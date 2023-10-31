@@ -1,0 +1,153 @@
+; ##################################################################################################
+; # 
+; # タイトル部分
+; # 
+; ##################################################################################################
+
+	goto *title_end
+
+*title_preloop
+	
+	sdim tmp_sdim,64,3
+	tmp_sdim(0) = "はじめから"
+	tmp_sdim(1) = "つづきから"
+	if DEBUG_LEVEL & LOG_ERROR {
+		tmp_sdim(2) = "デバッグルーム"
+	}
+
+	sub_create_selector tmp_sdim
+
+	sub_play_music MUSIC_TITLE
+
+*title_loop
+
+	; 表示
+	redraw 0
+	
+	color 0,0,0
+	boxf
+
+	gmode 0
+	pos 0,0
+	bid = 1
+	
+	sizex = imgdef_back_info(1,IMGDEF_BACK_INFO_SIZEY) * WINDOW_SIZEX / WINDOW_SIZEY
+	sizey = imgdef_back_info(1,IMGDEF_BACK_INFO_SIZEY)
+	posx = ( imgdef_back_info(1,IMGDEF_BACK_INFO_SIZEX) - sizex ) /2
+	gzoom WINDOW_SIZEX, WINDOW_SIZEY, IMGDEF_BACK_BUFFER_OFFSET+bid,posx,0,sizex,imgdef_back_info(1,IMGDEF_BACK_INFO_SIZEY)
+
+	
+	color 255,255,255: font "",36
+	pos 130, 430
+	mes "弱点だらけの補助魔導士",4
+
+	gmode 2
+
+	; 敵キャラ
+
+	
+	sizex = IMGDEF_CHAR_SIZEX *50 /100
+	sizey = IMGDEF_CHAR_SIZEX *50 /100
+	
+	pos 130, 120 ; コール
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(16,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+
+	pos 350, 130 ; アデルパート
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(26,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+	
+	sizex = IMGDEF_CHAR_SIZEX *80 /100
+	sizey = IMGDEF_CHAR_SIZEX *80 /100
+
+	pos 180, 120 ; リッキー
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(7,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+	
+	
+	
+	; 味方キャラ
+	sizex = IMGDEF_CHAR_SIZEX *50 /100
+	sizey = IMGDEF_CHAR_SIZEX *50 /100
+
+	pos 60, 470 ; キャロライン
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(3,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+
+	pos 370, 450 ; メリンダ
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(5,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+
+	sizex = IMGDEF_CHAR_SIZEX *80 /100
+	sizey = IMGDEF_CHAR_SIZEX *80 /100
+
+	pos 60, 530 ; シエーナ
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(2,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+	pos 310, 530 ; ルース
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(4,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+
+	sizex = IMGDEF_CHAR_SIZEX
+	sizey = IMGDEF_CHAR_SIZEX
+
+	pos 130, 460 ; リオ
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(1,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+
+	color 255,255,255: font "",12
+
+	; トップ画面のメニュー
+	sub_show_selector 250,830
+
+	if ( DEBUG_MODE == 1 ) or ( DEBUG_LEVEL > 0) {
+		pos 150, 890
+		color 255,255,255: font "",12,1
+		mes "デバッグ設定が有効になってます",4
+	}
+
+	redraw 1
+
+	; 待機時間
+	await 1000/FRAME_RATE		; 時間待ち
+
+	; 入力待ち
+	sub_check_keyinput
+
+	; 処理
+	sub_check_selector_list
+	
+	if (selector_list_active == 0) and (selector_list_returncode == 1){
+		if selector_list_focus == 0 : goto *map_preloop_first
+		if selector_list_focus == 1 {
+			; ゲームデータを読み込めるか確認する
+			sub_check_gamedata "autosave"
+			if global_info(GLOBAL_INFO_PRELOAD_STATUS) == 1 {
+				; キャラクタ定義があれば一通りキャラクタを生成
+				sub_map_create_allchar_by_chardef
+				
+				; シナリオ1の設定
+				sub_load_data_scenario1
+				
+				; 全チームの総合的な強さを再計算する
+				sub_culcu_allteam_power
+				
+				; 全チームの攻撃可能エリアを team_attackable_area に格納する
+				sub_calcu_allteam_attackable_area
+							
+				; ゲームデータを読み込む
+				sub_load_gamedata "autosave"
+				if global_info(GLOBAL_INFO_LOAD_STATUS) == 1 {
+					; チームが行動できる状態にする
+					sub_set_active_team
+					goto *map_loop
+				} else {
+					goto *force_end
+				}
+			} else {
+				; メニューを再作成する
+				sub_create_selector tmp_sdim
+				selector_list_disable(1) = 1
+			}
+		}
+		if selector_list_focus == 2 : goto *debug_preloop
+	}
+	
+	; ループの終わり
+	sub_reduce_input_cooldown ; 入力のクールダウン時間経過
+	goto *title_loop
+
+*title_end
+

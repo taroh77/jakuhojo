@@ -1,0 +1,1893 @@
+	goto *end_of_slgm_battle_sub
+; ##################################################################################################
+; # 
+; # バトルシーンのサブルーチン
+; # 
+; ##################################################################################################
+
+; バトルシーンの初期設定する
+;   arg1(area): 攻撃対象のエリア
+;   arg2(team): 攻撃するチーム 
+;   arg3(atcmem): 攻撃側メンバーのキャラID
+;   arg4(defmem): 防御側メンバーのキャラID
+#deffunc sub_battle_init int arg_area, int arg_team, array arg_atcmem, array arg_defmem
+
+	if DEBUG_LEVEL & LOG_ERROR {
+		logmes strf("I call sub_battle_init. args=%d,%d,list,list",arg_area,arg_team)
+		for sub_i,0,BATTLE_CHAR_MAX
+			if( length(arg_atcmem) > sub_i ): logmes strf("    list_atc(%d)=%d",sub_i,arg_atcmem(sub_i))
+		next
+		for sub_i,0,BATTLE_CHAR_MAX
+			if( length(arg_defmem) > sub_i ): logmes strf("    list_def(%d)=%d",sub_i,arg_defmem(sub_i))
+		next
+	}
+
+	; アニメーションをキューを初期化する
+	sub_battle_queue_anime_init
+	
+	battle_info(BATTLE_INFO_TEAM_ATC) = arg_team										; 攻撃側のチーム
+	battle_info(BATTLE_INFO_TEAM_DEF) = global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM)	; 防衛側のチーム
+	battle_info(BATTLE_INFO_AREA) = arg_area											; 戦うエリア
+	battle_info(BATTLE_INFO_BLOCK) = global_info(GLOBAL_INFO_BATTLE_READY_BLOCK)
+	if battle_info(BATTLE_INFO_BLOCK) == -1 {
+		sub_abort strf("E battle_info(BATTLE_INFO_BLOCK) cannot set.")
+	}
+	if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D decide block area=%d, block=%d", arg_area, battle_info(BATTLE_INFO_BLOCK))
+
+	battle_info(BATTLE_INFO_DEFP) = area_block_info(arg_area,AREA_BLOCK_INFO_DEFP,battle_info(BATTLE_INFO_BLOCK))	; 防衛側の地形効果
+	battle_info(BATTLE_INFO_DEFP) += area_info(arg_area, AREA_INFO_DEFP)
+	if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D BATTLE_INFO_DEFP=%d, area=%d, block=%d",battle_info(BATTLE_INFO_DEFP) , arg_area, battle_info(BATTLE_INFO_BLOCK))
+	
+	battle_info(BATTLE_INFO_TIC) = 0	; ゲーム内タイマー（主にアニメーション表示用、操作不可時も進む）
+	battle_info(BATTLE_INFO_TURN) = 0	; ゲーム内タイマー（主に操作用、操作不可時は進まない）
+	battle_info(BATTLE_INFO_TURN_LIMIT) = BATTLE_INFO_TURN_LIMIT_DEFAULT	; バトルの強制終了時間
+	battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_PRESTART		; 戦闘シーンの動作モード
+	battle_info(BATTLE_INFO_BCHAR_NEXTTURN) = -1	; 次の行動を処理するキャラ
+
+	
+	; 出撃チームメンバー（前半半分が攻撃軍、後半半分が防衛軍）
+	for sub_i,0,BATTLE_CHAR_MAX
+		battle_char(sub_i) = arg_atcmem(sub_i)
+		battle_char(sub_i+BATTLE_CHAR_MAX) = arg_defmem(sub_i)
+	next
+
+	; 戦果
+	battle_info(BATTLE_INFO_CONQUERE) = BATTLE_INFO_CONQUERE_MID
+	if battle_info(BATTLE_INFO_DEFP) > 0 {
+		if battle_info(BATTLE_INFO_DEFP) > 10 {
+			battle_info(BATTLE_INFO_CONQUERE) += BATTLE_INFO_CONQUERE_DEF_BUFF2
+		} else {
+			battle_info(BATTLE_INFO_CONQUERE) += BATTLE_INFO_CONQUERE_DEF_BUFF1
+		}
+	}
+
+	; 出撃するキャラの変数を初期化
+	sub_hpsum_atc = 0
+	sub_hpsum_def = 0
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+
+		; キャラクタのバトルシーン関連の変数を初期設定する
+		sub_battle_init_char battle_char(sub_bchar)
+
+		; 行動済みのキャラの場合は疲労のデバフをつける
+		if char_info(battle_char(sub_bchar),CHAR_INFO_ACTION_CNT) > 0 {
+			; 指定したBキャラにバフを付与する
+			sub_battle_add_buff sub_bchar, BATTLE_INFO_TIRED_BUFFID, char_info(battle_char(sub_bchar),CHAR_INFO_ACTION_CNT)
+		}
+		; 出撃したメンバーは1回行動済みにする
+		char_info(battle_char(sub_bchar),CHAR_INFO_ACTION_CNT) += 1
+		
+		; 戦果の変動量計算用
+		if sub_bchar < BATTLE_CHAR_MAX {
+			sub_hpsum_atc += char_info(battle_char(sub_bchar),CHAR_INFO_HP)
+		} else {
+			sub_hpsum_def += char_info(battle_char(sub_bchar),CHAR_INFO_HP)
+		}
+	next
+
+	if sub_hpsum_atc > 0 : battle_info(BATTLE_INFO_CONQUERE_ATC_RATE) = BATTLE_INFO_CONQUERE_MID / sub_hpsum_atc	; 戦果変動量（攻撃側1被ダメージあたり）
+	if sub_hpsum_def > 0 : battle_info(BATTLE_INFO_CONQUERE_DEF_RATE) = BATTLE_INFO_CONQUERE_MID / sub_hpsum_def	; 戦果変動量（防衛側1被ダメージあたり）
+
+	battle_info(BATTLE_INFO_WINNER) = 0						; 勝利チーム
+	battle_info(BATTLE_INFO_LOSER) = 0						; 敗北チーム
+	battle_info(BATTLE_INFO_FINISH_TIC) = 0					; バトルが終了したtic
+	battle_info(BATTLE_INFO_VIEW_SKIP) = 0	; 表示をスキップするか(1:スキップする)
+	if ( battle_info(BATTLE_INFO_TEAM_ATC) != global_info(GLOBAL_INFO_SELECT_TEAM) ) and ( battle_info(BATTLE_INFO_TEAM_DEF) != global_info(GLOBAL_INFO_SELECT_TEAM) ) {
+		battle_info(BATTLE_INFO_VIEW_SKIP) = 1
+	}
+	; BGMの変更
+	if battle_info(BATTLE_INFO_BLOCK) == 0 {
+		if battle_info(BATTLE_INFO_TEAM_ATC) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+			sub_play_music MUSIC_BATTLE3
+		} else {
+			if battle_info(BATTLE_INFO_TEAM_DEF) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+				sub_play_music MUSIC_BATTLE4
+			} else {
+				sub_play_music MUSIC_BATTLE3
+			}
+		}
+	} else {
+		if battle_info(BATTLE_INFO_TEAM_ATC) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+			sub_play_music MUSIC_BATTLE1
+		} else {
+			if battle_info(BATTLE_INFO_TEAM_DEF) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+				sub_play_music MUSIC_BATTLE2
+			} else {
+				sub_play_music MUSIC_BATTLE1
+			}
+		}
+	}
+	return
+
+; キャラクタのバトルシーン関連の変数を初期設定する
+;   arg1(charid): キャラID
+#deffunc sub_battle_init_char int arg_charid
+
+	if arg_charid <= 0 : return
+
+	if DEBUG_LEVEL & LOG_INFO  : logmes strf("I call sub_battle_init_char args=%d",arg_charid)
+
+	char_info(arg_charid,CHAR_INFO_DOWN) = 0		; 1:戦闘不能
+	if char_info(arg_charid,CHAR_INFO_HP) <= 0 : char_info(arg_charid,CHAR_INFO_HP) = 1
+	
+	char_info(arg_charid,CHAR_INFO_HP_REV) = char_info(arg_charid,CHAR_INFO_HP)
+	char_info(arg_charid,CHAR_INFO_HP_MILI)= 0		; HP自動回復の蓄積
+	char_info(arg_charid,CHAR_INFO_AP)     = char_info(arg_charid,CHAR_INFO_AP_MAX)
+	char_info(arg_charid,CHAR_INFO_AP_REV) = char_info(arg_charid,CHAR_INFO_AP)
+	char_info(arg_charid,CHAR_INFO_AP_MILI)= 0		; AP自動回復の蓄積
+	char_info(arg_charid,CHAR_INFO_STAN)   = 0
+	char_info(arg_charid,CHAR_INFO_STAN_STATE) = 0		; スタン状態(1:スタン状態)
+	char_info(arg_charid,CHAR_INFO_STAN_COUNT) = 0		; スタン復帰回数(回数が増えるのは復帰時)
+	char_info(arg_charid,CHAR_INFO_COVER_STATE) = 0		; かばうの状態(1x: Bキャラxをかばっている、-1: かばわれている)
+	char_info(arg_charid,CHAR_INFO_RECOIL) = CHAR_INFO_RECOIL_DEFAULT
+	char_info(arg_charid,CHAR_INFO_GETTURN) = 0				; 行動できるかどうか（1:できる）
+	char_info(arg_charid,CHAR_INFO_RESERVE_MODE) = 0		; 要準備のスキルの準備中か（1:準備中）
+	char_info(arg_charid,CHAR_INFO_AUTO_DECIDE_SKILL) = 0	; 次のターンがきたら自動的にこのスキルに決める
+	char_info(arg_charid,CHAR_INFO_AUTO_EXEC_SKILL) = 0		; 次のターンがきたら自動的にこのスキルに決める
+	for sub_buffid,0,BUFF_MAX
+		char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid) = 0	; 付与されているバフ・デバフの持続量
+	next
+	char_info(arg_charid,CHAR_INFO_PSKILLFLAG) = 0	; パッシブスキル用の発動フラグ
+
+	; キャラフラグを更新する
+	sub_calcu_char_flag arg_charid
+	
+	return
+	
+; キャラクター情報を全員分表示する
+#deffunc sub_battle_show_charinfo_all
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_show_char_all.")
+	
+	sub_battle_show_charinfo 10, 350, 0
+	sub_battle_show_charinfo 10, 465, 1
+	sub_battle_show_charinfo 10, 580, 2
+	sub_battle_show_charinfo WINDOW_SIZEX-200, 350, 3
+	sub_battle_show_charinfo WINDOW_SIZEX-200, 465, 4
+	sub_battle_show_charinfo WINDOW_SIZEX-200, 580, 5
+	
+	return
+
+; キャラクター情報を指定した座標に表示する
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(bchar): battle_char基準のインデックス
+#deffunc sub_battle_show_charinfo int arg_posx, int arg_posy, int arg_bchar
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_show_charinfo args=%d,%d,%d",arg_posx,arg_posy,arg_bchar)
+
+	; 存在しないcharidの場合は表示せず終了
+	if battle_char(arg_bchar) <= 0 : return
+	
+	; ウィンドウの大きさ
+	sub_battle_show_char_windowx = 190
+	sub_battle_show_char_windowy = 110
+	
+	; 背景の描画
+	if char_info(battle_char(arg_bchar),CHAR_INFO_DOWN) == 1 {
+		color 128,32,32
+	} else {
+		color 32,32,32
+	}
+	boxf arg_posx, arg_posy, arg_posx+sub_battle_show_char_windowx, arg_posy+sub_battle_show_char_windowy
+
+	color 255,139,139
+	pos arg_posx+1, arg_posy+1
+	line arg_posx+1,                              arg_posy+sub_battle_show_char_windowy-1
+	line arg_posx+sub_battle_show_char_windowx-1, arg_posy+sub_battle_show_char_windowy-1
+	line arg_posx+sub_battle_show_char_windowx-1, arg_posy+1
+	line arg_posx+1,                              arg_posy+1
+
+	; 名前
+	color 255,255,255: font "",12
+	pos arg_posx+5, arg_posy+5
+	mes char_sinfo(battle_char(arg_bchar),CHAR_SINFO_NAME)
+
+	; リコイル（次に行動可能になるまでの残り）
+	sub_bar = char_info(battle_char(arg_bchar),CHAR_INFO_RECOIL) * 70 / CHAR_INFO_RECOIL_DEFAULT
+	if sub_bar > 70 : sub_bar = 70
+	if sub_bar <  0 : sub_bar =  0
+	color 64,64,64
+	boxf arg_posx+115, arg_posy+5, arg_posx+115+70, arg_posy+5+3
+	if char_info(battle_char(arg_bchar), CHAR_INFO_RESERVE_MODE) == 1 {
+		color 224,224,64
+	} else {
+		color 255,255,255
+	}
+	boxf arg_posx+115, arg_posy+5, arg_posx+115+sub_bar, arg_posy+5+3
+	
+	; 顔画像
+	gmode 0
+	sub_show_char_face arg_posx+115, arg_posy+12, 70, battle_char(arg_bchar), -1
+
+	; HP
+	color 255,255,255: font "",12
+	pos arg_posx+5, arg_posy+25+6
+	mes "HP"
+	color 255,255,255: font "",18
+	pos arg_posx+25, arg_posy+25
+	mes strf("%4d/%4d",char_info(battle_char(arg_bchar),CHAR_INFO_HP),char_info(battle_char(arg_bchar),CHAR_INFO_HP_MAX))
+
+	; HPバー
+	color 255,255,255
+	boxf arg_posx+5, arg_posy+44, arg_posx+105, arg_posy+44+4
+
+	if char_info(battle_char(arg_bchar),CHAR_INFO_HP_REV) <= char_info(battle_char(arg_bchar),CHAR_INFO_HP) {
+		; 赤色
+		sub_bar = char_info(battle_char(arg_bchar),CHAR_INFO_HP) * 98 / char_info(battle_char(arg_bchar),CHAR_INFO_HP_MAX)
+		if sub_bar > 98 : sub_bar = 98
+		if sub_bar <  0 : sub_bar =  0
+		color 255,64,64
+		if sub_bar > 0 : boxf arg_posx+5+1, arg_posy+44+1, arg_posx+5+1+sub_bar, arg_posy+44+4-1
+		; 緑色
+		sub_bar = char_info(battle_char(arg_bchar),CHAR_INFO_HP_REV) * 98 / char_info(battle_char(arg_bchar),CHAR_INFO_HP_MAX)
+		if sub_bar > 98 : sub_bar = 98
+		if sub_bar <  0 : sub_bar =  0
+		color 64,255,64
+		if sub_bar > 0 : boxf arg_posx+5+1, arg_posy+44+1, arg_posx+5+1+sub_bar, arg_posy+44+4-1	
+	} else {
+		; 青色
+		sub_bar = char_info(battle_char(arg_bchar),CHAR_INFO_HP_REV) * 98 / char_info(battle_char(arg_bchar),CHAR_INFO_HP_MAX)
+		if sub_bar > 98 : sub_bar = 98
+		if sub_bar <  0 : sub_bar =  0
+		color 64,64,255
+		if sub_bar > 0 : boxf arg_posx+5+1, arg_posy+44+1, arg_posx+5+1+sub_bar, arg_posy+44+4-1	
+		; 緑色
+		sub_bar = char_info(battle_char(arg_bchar),CHAR_INFO_HP) * 98 / char_info(battle_char(arg_bchar),CHAR_INFO_HP_MAX)
+		if sub_bar > 98 : sub_bar = 98
+		if sub_bar <  0 : sub_bar =  0
+		color 64,255,64
+		if sub_bar > 0 : boxf arg_posx+5+1, arg_posy+44+1, arg_posx+5+1+sub_bar, arg_posy+44+4-1
+	}
+	
+	; AP
+	color 255,255,255: font "",12
+	pos arg_posx+5, arg_posy+55+6
+	mes "AP"
+	color 255,255,255: font "",18
+	pos arg_posx+25, arg_posy+55
+	mes strf("%4d/%4d",char_info(battle_char(arg_bchar),CHAR_INFO_AP),char_info(battle_char(arg_bchar),CHAR_INFO_AP_MAX))
+
+	; APバー
+	color 255,255,255
+	boxf arg_posx+5, arg_posy+74, arg_posx+105, arg_posy+74+4
+	; 緑色
+	sub_bar = char_info(battle_char(arg_bchar),CHAR_INFO_AP) * 98 / char_info(battle_char(arg_bchar),CHAR_INFO_AP_MAX)
+	if sub_bar > 98 : sub_bar = 98
+	if sub_bar <  0 : sub_bar =  0
+	color 64,255,64
+	if sub_bar > 0 : boxf arg_posx+5+1, arg_posy+74+1, arg_posx+5+1+sub_bar, arg_posy+74+4-1
+
+	; スタンゲージ
+	; 許容量
+	sub_bar = char_info(battle_char(arg_bchar),CHAR_INFO_STAN_MAX) * 70 /1000
+	if sub_bar > 70 : sub_bar = 70
+	if sub_bar <  0 : sub_bar =  0
+	color 64,64,64
+	boxf arg_posx+115, arg_posy+85, arg_posx+115+sub_bar, arg_posy+85+5
+	; 現在値
+	sub_bar = char_info(battle_char(arg_bchar),CHAR_INFO_STAN) * 68 /1000
+	if sub_bar > 68 : sub_bar = 68
+	if sub_bar <  0 : sub_bar =  0
+	if char_info(battle_char(arg_bchar),CHAR_INFO_STAN_STATE) == 1 {
+		; スタン時は赤色
+		color 255,64,64
+	} else {
+		color 128+sub_bar*128/68,128+sub_bar*128/68,64
+	}
+	if sub_bar > 0 : boxf arg_posx+115+1, arg_posy+85+1, arg_posx+115+sub_bar-1, arg_posy+85+5-1
+
+	; 弱点
+	font "",12
+	color 255,255,255
+	pos arg_posx+115, arg_posy+93: mes "弱:"
+
+	sub_wnum = 0
+	color 255,255,255: font "",12
+	for sub_i,1,ELEMENT_LMAX	; 無属性は表示しない
+		pos arg_posx+115+17+sub_wnum*12, arg_posy+93
+		if ( char_info(battle_char(arg_bchar),CHAR_INFO_WEAK) && ELEMENT_ALLS(sub_i) ) > 0 {
+			mes ELEMENT_LABEL(sub_i)
+			sub_wnum += 1
+		}
+	next
+	if sub_wnum == 0 : pos arg_posx+115+17+sub_wnum*12, arg_posy+93 : mes "‐"
+
+	; バフアイコン
+	sub_buff_num = 0
+	for sub_i,0,BUFF_MAX
+		if char_info(battle_char(arg_bchar),CHAR_INFO_BUFF_VALUE+sub_i) > 0 {
+			sub_show_icondef arg_posx+5+sub_buff_num*26, arg_posy+83, buff_info(sub_i,BUFF_INFO_ICONT), buff_info(sub_i,BUFF_INFO_ICONP), 24
+			color 255,255,192: font "", 12
+			pos arg_posx+5+12+sub_buff_num*26-6, arg_posy+83+15
+			switch buff_info(sub_i,BUFF_INFO_EFFECTIVE)
+			case BUFF_INFO_EFFECTIVE_TURN		; ターン経過で消滅（重ね掛けでターン延長）
+				mes strf("%3d",(char_info(battle_char(arg_bchar),CHAR_INFO_BUFF_VALUE+sub_i)+9)/10)
+				swbreak
+			case BUFF_INFO_EFFECTIVE_COUNT		; 効果を発揮した回数で消滅（重ね掛けで回数追加）
+				mes strf(" %2d",char_info(battle_char(arg_bchar),CHAR_INFO_BUFF_VALUE+sub_i))
+				swbreak
+			case BUFF_INFO_EFFECTIVE_DAMAGE		; ダメージで消滅（重ね掛けで許容ダメージ追加）
+				mes strf("%3d",(char_info(battle_char(arg_bchar),CHAR_INFO_BUFF_VALUE+sub_i)+9)/10)
+				swbreak
+			case BUFF_INFO_EFFECTIVE_PERMANENT	; 永続（重ね掛けで効果重複）
+				mes strf("  %1d",char_info(battle_char(arg_bchar),CHAR_INFO_BUFF_VALUE+sub_i))
+				swbreak
+			swend
+			sub_buff_num += 1
+		}
+		if sub_buff_num >= 4 : _break
+	next
+	;ダミーアイコン
+	;sub_show_icondef arg_posx+5,    arg_posy+85, 52, 2, 16
+	;sub_show_icondef arg_posx+5+20, arg_posy+85, 52, 3, 16
+	;sub_show_icondef arg_posx+5+40, arg_posy+85, 52, 4, 16
+	
+	return
+
+; キャラクター歩行画像を表示する
+;   arg1(bchar): battle_char基準のインデックス
+;   arg2(mode):  表示モード								フレーム指定
+;                0: 通常								-1 
+;                1: 一歩前に出る（行動時）				-1
+;                2: 一歩下げる（かばってもらう）		-1
+;                3: 位置を変える（かばう）				-1
+;                4: 一瞬色を変える（命中時など）
+;                5: 徐々に色を変える（状態異常時など）
+;                6: 消滅する（戦闘不能時）
+;   arg3(frame):  表示するフレーム
+#deffunc sub_battle_show_char int arg_bchar, int arg_mode, int arg_frame
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_show_char. args=%d",arg_bchar)
+
+	; offsetはこの関数で再計算するので初期化
+	battle_char_show_offset(arg_bchar,POS_X) = 0
+	battle_char_show_offset(arg_bchar,POS_Y) = 0
+
+	sub_posx = battle_char_show_pos(arg_bchar,POS_X)
+	sub_posy = battle_char_show_pos(arg_bchar,POS_Y)
+
+	sub_offsetx = 0
+	sub_offsety = 0
+
+	; mode = 1: 一歩前に出る（行動時）
+	if arg_mode == 1 {
+		sub_offsetx = 55
+	}
+	; 2: 一歩下げる（かばってもらう）
+	if arg_mode == 2 {
+		;sub_offsetx = -85
+		sub_offsetx = -40
+		sub_offsety = 25
+	}
+	; 3: 位置を変える（かばう）
+	if arg_mode == 3 {
+		if char_info(battle_char(arg_bchar),CHAR_INFO_COVER_STATE) >= 10{
+			sub_covering = char_info(battle_char(arg_bchar),CHAR_INFO_COVER_STATE) -10
+			sub_offsety = ( sub_covering - arg_bchar ) * 80
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D arg_bchar=%d, sub_covering=%d sub_offsety=%d", arg_bchar, sub_covering, sub_offsety)
+		}
+	}
+	
+	switch arg_bchar
+	case 0
+		sub_direc = DIREC_RIGHT
+		swbreak
+	case 1
+		sub_direc = DIREC_RIGHT
+		swbreak
+	case 2
+		sub_direc = DIREC_RIGHT
+		swbreak
+	case 3
+		sub_direc = DIREC_LEFT
+		sub_offsetx *= -1
+		swbreak
+	case 4
+		sub_direc = DIREC_LEFT
+		sub_offsetx *= -1
+		swbreak
+	case 5
+		sub_direc = DIREC_LEFT
+		sub_offsetx *= -1
+		swbreak
+	swend
+
+	battle_char_show_offset(arg_bchar,POS_X) = sub_offsetx
+	battle_char_show_offset(arg_bchar,POS_Y) = sub_offsety
+
+	sub_show_walk sub_posx+sub_offsetx, sub_posy+sub_offsety, 45, battle_char(arg_bchar), sub_direc, 0
+
+	return
+
+; 戦果を表示する
+#deffunc sub_battle_show_conquere
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_show_conquere.")
+
+	; ウィンドウの大きさ
+	sub_battle_show_conquere_windowx = 420
+	sub_battle_show_conquere_windowy = 50
+
+	sub_posx = ( WINDOW_SIZEX - sub_battle_show_conquere_windowx ) / 2
+	sub_posy = 0
+
+	; 背景の描画
+	color 32,32,32
+	boxf sub_posx, sub_posy, sub_posx+sub_battle_show_conquere_windowx, sub_posy+sub_battle_show_conquere_windowy
+	; 枠線の描画
+	color 128,128,128
+	pos sub_posx+1, sub_posy+1
+	line sub_posx+1,                                  sub_posy+sub_battle_show_conquere_windowy-1
+	line sub_posx+sub_battle_show_conquere_windowx-1, sub_posy+sub_battle_show_conquere_windowy-1
+	line sub_posx+sub_battle_show_conquere_windowx-1, sub_posy+1
+	line sub_posx+1,                                  sub_posy+1
+	
+	color 128,128,224
+	boxf sub_posx+10, sub_posy+20, sub_posx+210, sub_posy+22
+	color 224,128,128
+	boxf sub_posx+211, sub_posy+20, sub_posx+410, sub_posy+22
+
+	if battle_info(BATTLE_INFO_CONQUERE) <= BATTLE_INFO_CONQUERE_MID {
+		; 防衛側優勢
+		color 168,168,255
+	} else {
+		color 255,168,168
+	}
+
+	font "", 18
+	sub_bar = battle_info(BATTLE_INFO_CONQUERE) * 400 / BATTLE_INFO_CONQUERE_MAX
+	pos sub_posx+10-9+sub_bar, sub_posy+20-8: mes "▲"
+	
+	return
+
+; その他情報を表示する
+#deffunc sub_battle_show_other_info
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_show_other_info.")
+
+	; ウィンドウの大きさ
+	sub_battle_show_other_info_windowx = 240-60
+	sub_battle_show_other_info_windowy = 300
+
+	sub_posx = ( WINDOW_SIZEX - sub_battle_show_other_info_windowx ) / 2 + 30
+	sub_posy = 380
+
+	if DEBUG_MODE {
+		; 背景の描画
+		color 32,32,32
+		boxf sub_posx, sub_posy, sub_posx+sub_battle_show_other_info_windowx, sub_posy+sub_battle_show_other_info_windowy
+		; 枠線の描画
+		color 128,128,128
+		pos sub_posx+1, sub_posy+1
+		line sub_posx+1,                                    sub_posy+sub_battle_show_other_info_windowy-1
+		line sub_posx+sub_battle_show_other_info_windowx-1, sub_posy+sub_battle_show_other_info_windowy-1
+		line sub_posx+sub_battle_show_other_info_windowx-1, sub_posy+1
+		line sub_posx+1,                                    sub_posy+1
+	}	
+
+	color 255,255,255: font "",18
+
+	; エリア名
+	pos sub_posx+10,sub_posy+20
+	mes "エリア"
+	pos sub_posx+30,sub_posy+40
+	mes area_sinfo(battle_info(BATTLE_INFO_AREA),AREA_SINFO_NAME)
+	; ブロック
+	if battle_info(BATTLE_INFO_BLOCK) > 0 {
+		pos sub_posx+30,sub_posy+60
+		mes strf("ブロック%d",battle_info(BATTLE_INFO_BLOCK))
+	}
+	if battle_info(BATTLE_INFO_BLOCK) == 0 {
+		pos sub_posx+30,sub_posy+60
+		mes "エリア争奪戦"
+	}
+
+	; 地形効果
+	pos sub_posx+10,sub_posy+100
+	mes "防衛側地形効果"
+	pos sub_posx+30,sub_posy+120
+	mes strf("%3d％",battle_info(BATTLE_INFO_DEFP))
+
+	; 残り時間
+	pos sub_posx+10,sub_posy+160
+	mes "残り時間"
+	sub_rest_turn = ( battle_info(BATTLE_INFO_TURN_LIMIT)-battle_info(BATTLE_INFO_TURN)+9 ) / 10
+	if sub_rest_turn < 0 : sub_rest_turn = 0
+	pos sub_posx+30,sub_posy+180: mes strf("%4d", sub_rest_turn)
+
+	return
+
+; 中央上部にメッセージを表示する
+#deffunc sub_show_anime_topmessage str arg_message
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_show_anime_topmessage args=%s",arg_message)
+
+	sub_message = arg_message
+	
+	; ウィンドウの大きさ
+	sub_battle_show_topmessage_windowx = 20+strlen(sub_message)*9-1
+	sub_battle_show_topmessage_windowy = 38-1
+
+	sub_posx = ( WINDOW_SIZEX - sub_battle_show_topmessage_windowx ) / 2
+	sub_posy = 60
+
+	; 背景の描画
+	color 32,32,32
+	boxf sub_posx, sub_posy, sub_posx+sub_battle_show_topmessage_windowx, sub_posy+sub_battle_show_topmessage_windowy
+	; 枠線の描画
+	color 128,128,128
+	pos sub_posx+1, sub_posy+1
+	line sub_posx+1,                                    sub_posy+sub_battle_show_topmessage_windowy-1
+	line sub_posx+sub_battle_show_topmessage_windowx-1, sub_posy+sub_battle_show_topmessage_windowy-1
+	line sub_posx+sub_battle_show_topmessage_windowx-1, sub_posy+1
+	line sub_posx+1,                                    sub_posy+1	
+
+	color 255,255,255: font "",18
+	pos sub_posx+10, sub_posy+10
+	mes arg_message
+
+	return
+	
+; 全員のリコイルを減らす
+#deffunc sub_battle_reduce_recoil_all
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_reduce_recoil_all")
+
+	; 存在する全員のリコイルを減らす
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+		
+		sub_battle_reduce_recoil sub_bchar
+	next
+
+	return
+
+; 指定したBキャラのリコイルを減らす
+;   arg1(bchar): battle_char基準のインデックス
+#deffunc sub_battle_reduce_recoil int arg_bchar
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_reduce_recoil. args=%d",arg_bchar)
+
+	sub_charid = battle_char(arg_bchar)
+
+	; ダウン状態なら即終了
+	if char_info(sub_charid,CHAR_INFO_DOWN) == 1 : return
+	
+	; スタン状態ならスタン値を減らす
+	if char_info(sub_charid,CHAR_INFO_STAN_STATE) == 1 {
+		char_info(sub_charid,CHAR_INFO_STAN) -= 1
+		if char_info(sub_charid,CHAR_INFO_STAN) < 0 : char_info(sub_charid,CHAR_INFO_STAN) == 0
+	}
+	
+	; 行動できないなら終了(リコイルは減らさない)
+	if char_info(sub_charid, CHAR_INFO_FLAG_NOMOVE) == 1 : return
+
+	; 速度分だけリコイルを減らす
+	char_info(sub_charid,CHAR_INFO_RECOIL) -= char_info(sub_charid,CHAR_INFO_SPD)
+
+	; CHAR_INFO_RECOIL_DEFAULTを全部減らせばAP 5獲得できるように
+	if char_info(sub_charid,CHAR_INFO_AP) < char_info(sub_charid,CHAR_INFO_AP_MAX) {
+		char_info(sub_charid,CHAR_INFO_AP_MILI) += char_info(sub_charid,CHAR_INFO_SPD)
+		if char_info(sub_charid,CHAR_INFO_AP_MILI) >= CHAR_INFO_RECOIL_DEFAULT/5 {
+			char_info(sub_charid,CHAR_INFO_AP) += 1
+			char_info(sub_charid,CHAR_INFO_AP_MILI) -= CHAR_INFO_RECOIL_DEFAULT/5
+		}
+	}	
+
+	if char_info(sub_charid,CHAR_INFO_RECOIL) < 0 : char_info(sub_charid,CHAR_INFO_RECOIL) = 0
+
+	; リコイルが0になればターン取得
+	if char_info(sub_charid,CHAR_INFO_RECOIL) == 0 {
+		char_info(sub_charid,CHAR_INFO_GETTURN) = 1
+	} 
+	return
+
+; 行動可能なBキャラIDを格納する
+#deffunc sub_battle_get_active_bchar
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_get_active_bchar.")
+	
+	battle_info(BATTLE_INFO_BCHAR_NEXTTURN) = -1
+	battle_info(BATTLE_INFO_CHAR_NEXTTURN) = -1
+	
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+
+		if char_info(battle_char(sub_bchar),CHAR_INFO_GETTURN) == 1 {
+			battle_char_info(sub_bchar,BATTLE_CHAR_INFO_TURNSTATE) = 1
+			if battle_info(BATTLE_INFO_BCHAR_NEXTTURN) == -1 {
+				battle_info(BATTLE_INFO_BCHAR_NEXTTURN) = sub_bchar
+				battle_info(BATTLE_INFO_CHAR_NEXTTURN) = battle_char(sub_bchar)
+			}
+		} else {
+			battle_char_info(sub_bchar,BATTLE_CHAR_INFO_TURNSTATE) = 0
+		}
+	next
+
+	return
+
+; ticを進める
+#deffunc sub_battle_proceed_tic
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_proceed_tic.")
+
+	battle_info(BATTLE_INFO_TIC)  += 1	; ゲーム内タイマー（主にアニメーション表示用、操作不可時も進む）
+	
+	return
+
+; turnとticを進める
+#deffunc sub_battle_proceed_turn
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_proceed_turn.")
+
+	battle_info(BATTLE_INFO_TIC)  += 1	; ゲーム内タイマー（主にアニメーション表示用、操作不可時も進む）
+	battle_info(BATTLE_INFO_TURN) += 1	; ゲーム内タイマー（主に操作用、操作不可時は進まない）
+	
+	return
+
+; アニメーションをキューを初期化する
+#deffunc sub_battle_queue_anime_init
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_queue_anime_init")
+
+	dim queue_anime_info,QUEUE_ANIME_MAX,QUEUE_ANIME_INFO_MAX
+	queue_anime_current_frame = -1		; 現在再生しているフレーム
+	queue_anime_enroll_anime_num = 0	; 登録されているアニメの数
+	queue_anime_finished_anime_num = 0	; 再生が完了しているアニメの数
+
+	; 出撃するキャラの変数を初期化
+	for sub_i,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_i) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_i),CHAR_SINFO_NAME)) <= 0 : _continue
+		
+		char_info(battle_char(sub_i),CHAR_INFO_COVER_STATE) = 0	; かばうの状態(1x: Bキャラxをかばっている、-1: かばわれている)
+	next
+
+	return
+	
+; アニメーションをキューに追加する
+;   arg1(bchar):   対象となるBキャラ
+;   arg2(type):    登録するタイプ
+;   arg3(startf):  表示開始をするフレーム数（-1:カレントフレームの次, -2さらに1frameあと...）
+;   arg4(animeid): 登録するアニメーションID（アニメの場合）
+;   arg5(skillid): スキルID（アニメの場合、命中判定がないなら-1）
+;   arg6(sbcharid): スキルを使ったBキャラ（アニメの場合、命中判定がないなら-1）
+#deffunc sub_battle_enqueue_anime int arg_bchar, int arg_type, int arg_startf, int arg_animeid, int arg_skillid, int arg_sbcharid
+
+	; アニメーションIDが0は無視
+	if arg_animeid == 0 : return
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_enqueue_anime. args=%d,%d,%d,%d,%d,%d", arg_bchar, arg_type, arg_startf, arg_animeid, arg_skillid, arg_sbcharid)
+
+	sub_startf = arg_startf
+	; マイナスの場合はカレントフレームからその分だけ遅延した位置に登録
+	if arg_startf < 0 {
+		sub_startf = queue_anime_current_frame - arg_startf
+	}
+	
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_TYPE) = arg_type		; データタイプ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_ID) = arg_animeid	; アニメーションID
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_START) = sub_startf	; そのアニメーションの開始フレーム
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_FINISH) = sub_startf + anime_info(arg_animeid,ANIME_INFO_FRAME_FINISH)	; そのアニメーションの終了フレーム
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_BCHAR) = arg_bchar	; 対象となるBキャラ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL) = arg_skillid	; スキルID
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL_BCHAR) = arg_sbcharid	; スキルを使ったBキャラ
+
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D enqueueed anime. queue=%d type=%d, animeid=%d, startf=%d, finishf=%d, bchar=%d, skillid=%d sbcharid=%d", queue_anime_enroll_anime_num, queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_TYPE), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_ID), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_START), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_FINISH),	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_BCHAR), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL_BCHAR))
+	
+	queue_anime_enroll_anime_num += 1	; 登録されているアニメの数
+
+	return
+
+; 数字アニメーションをキューに追加する
+;   arg1(bchar):   対象となるBキャラ
+;   arg2(value):   数字アニメーションの数字
+;   arg3(startf):  表示開始をするフレーム数（-1:カレントフレームの次）
+#deffunc sub_battle_enqueue_number int arg_bchar, int arg_value, int arg_startf
+
+	if battle_info(BATTLE_INFO_VIEW_SKIP) == 1 : return
+
+	if DEBUG_LEVEL & LOG_INFO : logmes strf("I call sub_battle_enqueue_number. args=%d,%d,%d", arg_bchar, arg_value, arg_startf)
+
+	sub_startf = arg_startf
+	; マイナスの場合はカレントフレームからその分だけ遅延した位置に登録
+	if arg_startf < 0 {
+		sub_startf = queue_anime_current_frame - arg_startf
+	}
+	
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_TYPE) = QUEUE_ANIME_INFO_TYPE_NUMBER		; データタイプ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_START) = sub_startf	; そのアニメーションの開始フレーム
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_FINISH) = sub_startf + QUEUE_ANIME_NUMBER_RANGE_SHOW	; そのアニメーションの終了フレーム
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_BCHAR) = arg_bchar	; 対象となるBキャラ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL) = -1			; スキルID
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL_BCHAR) = -1	; スキルを使ったBキャラ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_VALUE) = arg_value	; 数字アニメーションの数字
+
+	if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D enqueueed number. queue=%d type=%d, animeid=%d, startf=%d, finishf=%d, bchar=%d, skillid=%d, sbcharid=%d, value=%d", queue_anime_enroll_anime_num, queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_TYPE), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_ID), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_START), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_FINISH),	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_BCHAR), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL_BCHAR), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_VALUE))
+	
+	queue_anime_enroll_anime_num += 1	; 登録されているアニメの数
+
+	return
+
+; バフ付与アニメーションをキューに追加する
+;   arg1(bchar):   対象となるBキャラ
+;   arg2(buffid):  バフID
+;   arg3(startf):  表示開始をするフレーム数（-1:カレントフレームの次）
+#deffunc sub_battle_enqueue_buff int arg_bchar, int arg_buffid, int arg_startf
+
+	if battle_info(BATTLE_INFO_VIEW_SKIP) == 1 : return
+
+	if DEBUG_LEVEL & LOG_INFO : logmes strf("I call sub_battle_enqueue_buff. args=%d,%d,%d", arg_bchar, arg_buffid, arg_startf)
+
+	sub_startf = arg_startf
+	; マイナスの場合はカレントフレームからその分だけ遅延した位置に登録
+	if arg_startf < 0 {
+		sub_startf = queue_anime_current_frame - arg_startf
+	}
+	
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_TYPE) = QUEUE_ANIME_INFO_TYPE_BUFF		; データタイプ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_START) = sub_startf	; そのアニメーションの開始フレーム
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_FINISH) = sub_startf + QUEUE_ANIME_BUFF_RANGE_SHOW	; そのアニメーションの終了フレーム
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_BCHAR) = arg_bchar	; 対象となるBキャラ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL) = -1			; スキルID
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL_BCHAR) = -1	; スキルを使ったBキャラ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_VALUE) = arg_buffid	; 数字アニメーションの数字
+
+	if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D enqueueed number. queue=%d type=%d, animeid=%d, startf=%d, finishf=%d, bchar=%d, skillid=%d, sbcharid=%d, value=%d", queue_anime_enroll_anime_num, queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_TYPE), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_ID), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_START), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_FINISH),	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_BCHAR), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL_BCHAR), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_VALUE))
+	
+	queue_anime_enroll_anime_num += 1	; 登録されているアニメの数
+
+	return
+
+; 中央上部にメッセージを表示するキューに追加する
+;   arg1(message): メッセージ
+;   arg2(startf):  表示開始をするフレーム数（-1:カレントフレームの次）
+;   arg3(finishf): 表示終了をするフレーム数（-1:全てのアニメの再生が終わるまで）
+#deffunc sub_battle_enqueue_topmessage str arg_message, int arg_startf, int arg_finishf
+
+	if DEBUG_LEVEL & LOG_INFO : logmes strf("I call sub_battle_enqueue_buff. args=%s,%d,%d", arg_message, arg_startf, arg_finishf)
+
+	sub_startf = arg_startf
+	; マイナスの場合はカレントフレームからその分だけ遅延した位置に登録
+	if arg_startf < 0 {
+		sub_startf = queue_anime_current_frame - arg_startf
+	}
+	sub_finishf = arg_finishf
+	
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_TYPE) = QUEUE_ANIME_INFO_TYPE_MESSAGE		; データタイプ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_START) = sub_startf		; そのアニメーションの開始フレーム
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_FINISH) = sub_finishf	; そのアニメーションの終了フレーム
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_BCHAR) = -1	; 対象となるBキャラ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL) = -1			; スキルID
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL_BCHAR) = -1	; スキルを使ったBキャラ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_VALUE) = -1	; 数字アニメーションの数字
+	queue_anime_sinfo(queue_anime_enroll_anime_num,QUEUE_ANIME_SINFO_TOPMESSAGE) = arg_message	; 中央上部のメッセージ用
+
+	if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D enqueueed topmessage. queue=%d type=%d, animeid=%d, startf=%d, finishf=%d, bchar=%d, skillid=%d, sbcharid=%d, value=%d, message=%s", queue_anime_enroll_anime_num, queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_TYPE), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_ID), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_START), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_FINISH),	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_BCHAR), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL_BCHAR), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_VALUE), queue_anime_sinfo(queue_anime_enroll_anime_num,QUEUE_ANIME_SINFO_TOPMESSAGE))
+
+	queue_anime_enroll_anime_num += 1	; 登録されているアニメの数
+
+	return
+	
+; キャラのかばう状態を変えるキューに追加する
+;   arg1(bchar):   対象となるBキャラ
+;   arg2(value):   CHAR_INFO_COVER_STATE
+;   arg3(startf):  表示開始をするフレーム数（-1:カレントフレームの次）
+;   arg4(finishf): 表示終了をするフレーム数（-1:カレントフレームの次）
+#deffunc sub_battle_enqueue_char_cover int arg_bchar, int arg_value, int arg_startf, int arg_finishf
+
+	if DEBUG_LEVEL & LOG_INFO : logmes strf("I call sub_battle_enqueue_char_cover args=%d,%d,%d,%d", arg_bchar, arg_value, arg_startf, arg_finishf)
+
+	sub_startf = arg_startf
+	; マイナスの場合はカレントフレームからその分だけ遅延した位置に登録
+	if arg_startf < 0 {
+		sub_startf = queue_anime_current_frame - arg_startf
+	}
+	sub_finishf = arg_finishf
+	; マイナスの場合はカレントフレームからその分だけ遅延した位置に登録
+	if arg_finishf < 0 {
+		sub_finishf = queue_anime_current_frame - arg_finishf
+	}
+	
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_TYPE) = QUEUE_ANIME_INFO_TYPE_CHAR_COVER		; データタイプ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_START) = sub_startf	; そのアニメーションの開始フレーム
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_FINISH) = sub_finishf	; そのアニメーションの終了フレーム
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_BCHAR) = arg_bchar	; 対象となるBキャラ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL) = -1			; スキルID
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL_BCHAR) = -1	; スキルを使ったBキャラ
+	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_VALUE) = arg_value	; CHAR_INFO_COVER_STATE
+
+	if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D enqueueed number. queue=%d type=%d, animeid=%d, startf=%d, finishf=%d, bchar=%d, skillid=%d, sbcharid=%d, value=%d", queue_anime_enroll_anime_num, queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_TYPE), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_ID), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_START), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_FINISH),	queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_BCHAR), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_SKILL_BCHAR), queue_anime_info(queue_anime_enroll_anime_num,QUEUE_ANIME_INFO_VALUE))
+	
+	queue_anime_enroll_anime_num += 1	; 登録されているアニメの数
+	
+	return
+
+; キューに登録された情報に沿って表示・処理する
+#deffunc sub_battle_exec_queue_anime
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_show_queue_anime. queue_anime_current_frame=%d",queue_anime_current_frame)
+
+	if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 {
+		; キャラクタ歩行画像を表示
+		for sub_bchar,0,BATTLE_CHAR_MAX*2
+			if battle_char(sub_bchar) <= 0 : _continue
+			; ダウンしていれば非表示
+			if char_info(battle_char(sub_bchar), CHAR_INFO_DOWN) == 1 {
+				; 非表示
+			} else {
+				; 出番であれば1歩前へ
+				if battle_info(BATTLE_INFO_BCHAR_NEXTTURN) == sub_bchar {
+					sub_battle_show_char sub_bchar, 1, -1
+				} else {
+					; かばわれていれば一歩後ろへ
+					if char_info(battle_char(sub_bchar), CHAR_INFO_COVER_STATE) == -1 {
+						sub_battle_show_char sub_bchar, 2, -1
+					} else {
+						; かばっていればそのキャラの前へ
+						if char_info(battle_char(sub_bchar), CHAR_INFO_COVER_STATE) >= 10 {
+							sub_battle_show_char sub_bchar, 3, -1
+						} else {
+							sub_battle_show_char sub_bchar, 0, -1
+						}
+					}
+				}
+			}
+		next
+	}
+	
+	; アニメーションキューでもう表示するものがなければ即終了
+	if queue_anime_enroll_anime_num == queue_anime_finished_anime_num : return
+	
+	for sub_queueid,0,QUEUE_ANIME_MAX
+		if queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_TYPE) == 0 : _break
+		if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D check queue_anime_id=%d",sub_queueid)
+		if queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_TYPE) > 0 {
+			switch queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_TYPE)
+			case QUEUE_ANIME_INFO_TYPE_ANIME		; アニメーションの再生
+				sub_animeid = queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_ID)
+				sub_frame = queue_anime_current_frame - queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START)
+				; 表示するアニメーションのフレーム数を特定する
+				; 	表示するフレーム数		queue_anime_current_frame
+				; 	このアニメの開始フレーム	queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START)
+				; 	このアニメの終了フレーム	queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START) + anime_info(sub_animeid,ANIME_INFO_FRAME_FINISH)
+				if queue_anime_current_frame >= queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START) {
+					if sub_frame < anime_info(sub_animeid,ANIME_INFO_FRAME_FINISH) {
+						; このアニメで表示対象あり
+						if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 :sub_show_anime_by_bchar queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR), queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_ID), sub_frame
+					}
+					if DEBUG_MODE == 1 :logmes strf("D current_frame=%d. animeid=%d, startf=%d, anime_show_frame=%d anime_frames=%d",queue_anime_current_frame, sub_animeid, queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START), sub_frame, anime_info(sub_animeid,ANIME_INFO_FRAME_FINISH))
+				}
+				; 命中判定
+				if queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_SKILL) > 0 {
+					if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D Judge hit queueid=%d, frame=%d animeid=%d anime_frame_hit=%d", sub_queueid, sub_frame, sub_animeid, anime_info(sub_animeid,ANIME_INFO_FRAME_HIT) )
+					if anime_info(sub_animeid,ANIME_INFO_FRAME_HIT) == sub_frame {
+						sub_skillid = queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_SKILL)
+						switch skill_info(sub_skillid,SKILL_INFO_TYPE) 
+							swbreak
+						case SKILL_INFO_TYPE_ACT_ATTACKP	; 攻撃(物攻を参照)
+						case SKILL_INFO_TYPE_ACT_ATTACKM	; 攻撃(魔攻を参照)
+							; 命中アニメをキューに登録
+							if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 :sub_battle_enqueue_anime queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR), QUEUE_ANIME_INFO_TYPE_ANIME, -1, anime_info(sub_animeid,ANIME_INFO_HIT_ANIME), -1, -1
+							; 攻撃を実行
+							sub_battle_exec_attack queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_SKILL_BCHAR),queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR),queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_SKILL)
+							; ダメージの数字アニメーションをキューに登録
+							if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 :sub_battle_enqueue_number queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR), battle_info(BATTLE_INFO_DIFF_HP_VALUE), -1
+							swbreak
+						case SKILL_INFO_TYPE_ACT_HEAL		; 回復
+							; 命中アニメをキューに登録
+							if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 :sub_battle_enqueue_anime queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR), QUEUE_ANIME_INFO_TYPE_ANIME, -1, anime_info(sub_animeid,ANIME_INFO_HIT_ANIME), -1, -1
+							; 回復を実行
+							sub_battle_exec_heal queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_SKILL_BCHAR),queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR),queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_SKILL)
+							; ダメージの数字アニメーションをキューに登録
+							if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 :sub_battle_enqueue_number queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR), battle_info(BATTLE_INFO_DIFF_HP_VALUE), -1
+							swbreak
+						case SKILL_INFO_TYPE_ACT_SUPPORT	; 補助(攻撃や回復がなく追加効果メイン)
+							; 命中アニメをキューに登録
+							if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 :sub_battle_enqueue_anime queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR), QUEUE_ANIME_INFO_TYPE_ANIME, -1, anime_info(sub_animeid,ANIME_INFO_HIT_ANIME), -1, -1
+							; スキルの追加効果を付与する
+							sub_battle_exec_addon queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_SKILL_BCHAR),queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR),queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_SKILL)
+							swbreak
+						swend
+					}
+				}
+				swbreak
+			case QUEUE_ANIME_INFO_TYPE_BUFF			; バフ付与アニメーション
+				if queue_anime_current_frame >= queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START) {
+					sub_frame = queue_anime_current_frame - queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START)
+					if sub_frame < QUEUE_ANIME_BUFF_RANGE_SHOW {
+						; 表示対象あり
+						sub_show_anime_buff_by_bchar queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR), queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_VALUE), sub_frame
+					}
+					if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D current_frame=%d. startf=%d, anime_number_show_frame=%d",queue_anime_current_frame, queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START), sub_frame)
+				}
+				swbreak
+			case QUEUE_ANIME_INFO_TYPE_NUMBER		; ダメージ、回復のアニメーション
+				if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 {	
+					if queue_anime_current_frame >= queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START) {
+						sub_frame = queue_anime_current_frame - queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START)
+						if sub_frame < QUEUE_ANIME_NUMBER_RANGE_SHOW {
+							; 表示対象あり
+							sub_show_anime_number_by_bchar queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR), queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_VALUE), sub_frame
+						}
+						if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D current_frame=%d. startf=%d, anime_number_show_frame=%d",queue_anime_current_frame, queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START), sub_frame)
+					}
+				}
+				swbreak
+			case QUEUE_ANIME_INFO_TYPE_MESSAGE		; 中央上部にメッセージ
+				if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 {
+					if queue_anime_current_frame >= queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START) {
+						; QUEUE_ANIME_INFO_FINISH) == -1 で常に表示
+						if ( queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_FINISH) == -1) or ( queue_anime_current_frame < queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_FINISH) ) {
+							; 表示対象あり
+							sub_show_anime_topmessage queue_anime_sinfo(sub_queueid,QUEUE_ANIME_SINFO_TOPMESSAGE)
+						}
+						if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D current_frame=%d. startf=%d, finishf=%d",queue_anime_current_frame, queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START), queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_FINISH))
+					}
+				}
+				swbreak
+			case QUEUE_ANIME_INFO_TYPE_CHAR_COVER	; かばう状態を変更する
+				if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 {
+					; かばう(かばわれる)開始
+					if queue_anime_current_frame == queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_START) {
+						char_info(battle_char(queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR)),CHAR_INFO_COVER_STATE) = queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_VALUE)
+					}
+					; かばう(かばわれる)終了
+					if queue_anime_current_frame == queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_FINISH) {
+						char_info(battle_char(queue_anime_info(sub_queueid,QUEUE_ANIME_INFO_BCHAR)),CHAR_INFO_COVER_STATE) = 0
+					}
+				}
+				swbreak			
+			case QUEUE_ANIME_INFO_TYPE_CHAR_BLINK	; キャラクターの点滅（未実装）
+				swbreak
+			case QUEUE_ANIME_INFO_TYPE_CHAR_BLINK2	; キャラクターをゆっくり点滅（未実装）
+				swbreak
+			case QUEUE_ANIME_INFO_TYPE_CHAR_DOWN	; キャラクターの消滅
+				swbreak
+			swend
+		}
+	next
+
+	; 全員を対象にスタン値が許容量を超えていればスタン状態にし、アニメーションキューに追加する
+	sub_battle_set_allchar_stan
+	
+	; 表示アニメを1フレーム進める
+	sub_battle_progress_queue_anime
+
+	return
+
+; 表示アニメを1フレーム進める
+#deffunc sub_battle_progress_queue_anime
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_show_queue_anime.")
+
+	queue_anime_current_frame += 1
+
+	; 表示が終了しているアニメーションキューを確認
+	queue_anime_finished_anime_num = 0
+	for sub_i,0,QUEUE_ANIME_MAX
+		if queue_anime_info(sub_i,QUEUE_ANIME_INFO_TYPE) > 0 {
+			if queue_anime_current_frame >= queue_anime_info(sub_i,QUEUE_ANIME_INFO_FINISH) {
+				queue_anime_finished_anime_num += 1
+			} else {
+				; QUEUE_ANIME_INFO_TYPE_MESSAGEは常に終了扱い
+				if queue_anime_info(sub_i,QUEUE_ANIME_INFO_TYPE) == QUEUE_ANIME_INFO_TYPE_MESSAGE {
+					queue_anime_finished_anime_num += 1
+				}
+			}
+		}
+	next
+
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D queue_anime_finished_anime_num is %d.",queue_anime_finished_anime_num)
+
+	return
+
+; 指定したBキャラが指定したスキルを決定する
+;   arg1(bchar):   対象となるBキャラ
+;   arg2(skillid): 使用するスキルID
+;   arg3(range):   範囲
+#deffunc sub_battle_decide_skill int arg_bchar, int arg_skillid, array arg_range
+	
+	if DEBUG_LEVEL & LOG_INFO {
+		logmes strf("I call sub_battle_decide_skill. args=%d,%d,list",arg_bchar, arg_skillid)
+		for sub_i,0,9
+			if( length(arg_range) > sub_i ): logmes strf("    list(%d)=%d",sub_i,arg_range(sub_i))
+		next
+		if( length(arg_list) >= 9 ): logmes strf("    ...and more")
+	}
+	
+	dim sub_range,BATTLE_CHAR_MAX*2
+	for sub_i,0,BATTLE_CHAR_MAX*2
+		sub_range(sub_i) = -1
+	next
+	for sub_i,0,length(arg_range)
+		sub_range(sub_i) = arg_range(sub_i)
+	next
+	
+	; 要準備なスキルの場合
+	if skill_info(arg_skillid, SKILL_INFO_PREPARE) > 0 {
+		if char_info(battle_char(arg_bchar), CHAR_INFO_RESERVE_MODE) == 0 {
+			; まだ準備中になってない場合
+			char_info(battle_char(arg_bchar), CHAR_INFO_RESERVE_MODE) = 1 
+			char_info(battle_char(arg_bchar), CHAR_INFO_AUTO_EXEC_SKILL) = arg_skillid
+			for sub_i,0,BATTLE_CHAR_MAX*2
+				char_info_auto_exec_targets(battle_char(arg_bchar),sub_i) = -1	; 0がデータとして入る可能性があるので-1で初期化
+			next
+			for sub_i,0,BATTLE_CHAR_MAX*2
+				char_info_auto_exec_targets(battle_char(arg_bchar),sub_i) = sub_range(sub_i)
+			next
+			; アニメーションをキューに追加する
+			sub_battle_enqueue_anime arg_bchar, QUEUE_ANIME_INFO_TYPE_ANIME, -1, CHAR_INFO_SKILL_NOTICE_ANIMEID, -1, -1
+			; 行動終了にする
+			char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN),CHAR_INFO_GETTURN) = 0
+			battle_char_info(battle_info(BATTLE_INFO_BCHAR_NEXTTURN),BATTLE_CHAR_INFO_TURNSTATE) = 0
+			; リコイルを設定する
+			char_info( battle_info(BATTLE_INFO_CHAR_NEXTTURN), CHAR_INFO_RECOIL ) = CHAR_INFO_RECOIL_DEFAULT * skill_info(arg_skillid,SKILL_INFO_PREPARE) /100
+			battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TICGO
+			return
+		} else {
+			; 既に準備中だった場合
+			for sub_i,0,BATTLE_CHAR_MAX*2
+				sub_range(sub_i) = char_info_auto_exec_targets(battle_char(arg_bchar),sub_i)
+			next
+
+			; 準備中の関連変数を初期化してそのまま処理続行
+			char_info(battle_char(arg_bchar), CHAR_INFO_RESERVE_MODE) = 0
+			char_info(battle_char(arg_bchar), CHAR_INFO_AUTO_EXEC_SKILL) = 0
+			for sub_i,0,BATTLE_CHAR_MAX*2
+				char_info_auto_exec_targets(battle_char(arg_bchar),sub_i) = -1	; 0がデータとして入る可能性があるので-1で初期化
+			next
+		}
+	}
+
+	; 準備後にダウンしたキャラを対象から外す
+	for sub_i,0,length(sub_range)
+		if sub_range(sub_i) >= 0 {
+			if char_info(battle_char(sub_range(sub_i)),CHAR_INFO_DOWN) == 1{
+				sub_range(sub_i) = -1
+			}
+		}
+	next
+	for sub_i,0,length(sub_range)-1
+		if ( sub_range(sub_i) == -1 ) and ( sub_range(sub_i+1) >= 0 ){
+			sub_range(sub_i) = sub_range(sub_i+1)
+			sub_range(sub_i+1) = -1
+		}
+	next
+	
+	; 範囲の有効な数を調べる
+	sub_range_num = 0
+	for sub_i,0,length(sub_range)
+		if sub_range(sub_i) >= 0 : sub_range_num +=1
+	next
+
+	; 連続発動回数分だけ繰り返す
+	for sub_count,0,skill_info(arg_skillid,SKILL_INFO_COUNT)
+		sub_flag_cover = 0
+		sub_flag_rnd = 0
+		sub_flag_all = 0
+		switch skill_info(arg_skillid,SKILL_INFO_RANGE)
+		case SKILL_INFO_RANGE_ENEMYRND		; 敵ランダム
+			sub_flag_cover = 1
+			sub_flag_rnd = 1
+			swbreak
+		case SKILL_INFO_RANGE_ALLYRND		; 味方ランダム
+			sub_flag_rnd = 1		
+			swbreak
+		case SKILL_INFO_RANGE_ME			; 自分自身
+			swbreak
+		case SKILL_INFO_RANGE_ENEMY			; 敵単体
+			sub_flag_cover = 1
+			swbreak
+		case SKILL_INFO_RANGE_ENEMYALL		; 敵全体
+			sub_flag_all = 1
+			swbreak
+		case SKILL_INFO_RANGE_ALLY			; 味方単体
+			swbreak
+		case SKILL_INFO_RANGE_ALLYALL		; 味方全体
+			sub_flag_all = 1
+			swbreak
+		swend
+
+		; ターゲットを確定
+		sub_target = sub_range(0)
+		if sub_flag_rnd == 1 {
+			sub_target = sub_range(rnd(sub_range_num))
+		}
+		if DEBUG_LEVEL & LOG_DEBUG {
+			if sub_flag_all == 0 : logmes strf("D Single target is %d",sub_target)
+			if sub_flag_all == 1 : logmes strf("D Target is sub_range")
+		}
+		
+		; かばうが発動するかどうか判定
+		if sub_flag_cover == 1 {
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D Cover check start")
+			for sub_i,0,BATTLE_CHAR_MAX*2
+				if battle_char(sub_i) <= 0 : _continue
+				; 判定するのは自分のチームでかつ、自分以外のみ
+				if sub_target < BATTLE_CHAR_MAX {
+					if sub_i >= BATTLE_CHAR_MAX : _continue
+				} else {
+					if sub_i < BATTLE_CHAR_MAX : _continue
+				}
+				if sub_target == sub_i : _continue
+				
+				; キャラフラグを更新する
+				sub_calcu_char_flag battle_char(sub_i)
+				
+				if char_info(battle_char(sub_i),CHAR_INFO_FLAG_COVER) > 0 {
+					; かばう確定
+					; キャラのかばう状態を変えるキューに追加する
+					;   arg1(bchar):   対象となるBキャラ
+					;   arg2(value):   CHAR_INFO_COVER_STATE
+					;   arg3(startf):  表示開始をするフレーム数（-1:カレントフレームの次）
+					;   arg4(finishf): 表示終了をするフレーム数（-1:カレントフレームの次）
+					sub_battle_enqueue_char_cover sub_target, -1,            -41 - QUEUE_ANIME_CONTINUOUS_DELAY*sub_count, QUEUE_ANIME_CONTINUOUS_DELAY*-1 -40 - QUEUE_ANIME_CONTINUOUS_DELAY*sub_count
+					sub_battle_enqueue_char_cover sub_i,      10+sub_target, -41 - QUEUE_ANIME_CONTINUOUS_DELAY*sub_count, QUEUE_ANIME_CONTINUOUS_DELAY*-1 -40 - QUEUE_ANIME_CONTINUOUS_DELAY*sub_count
+
+					;char_info(battle_char(sub_target),CHAR_INFO_COVER_STATE) = -1
+					;char_info(battle_char(sub_i),CHAR_INFO_COVER_STATE) = 10+sub_target
+					if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D Confirmed cover. charid(CHAR_INFO_COVER_STATE)) is covered=%d(%d) covering=%d(%d)", battle_char(sub_target), char_info(battle_char(sub_target),CHAR_INFO_COVER_STATE), battle_char(sub_i), char_info(battle_char(sub_i),CHAR_INFO_COVER_STATE))
+	
+					; 攻撃対象を書き換え
+					sub_target = sub_i
+
+					; かばう側の場合はバフの効果を1回減らす
+					sub_reduce_char_cover battle_char(sub_i), 1
+					_break
+				}
+			next
+		}
+
+		; アニメーションキューにスキルのアニメを登録する
+		if sub_flag_all == 1 {
+			for sub_lbchar,0,BATTLE_CHAR_MAX*2
+				if sub_range(sub_lbchar) >= 0{
+					; 連続攻撃はQUEUE_ANIME_CONTINUOUS_DELAY frameの遅延を入れる
+					sub_battle_enqueue_anime sub_range(sub_lbchar), QUEUE_ANIME_INFO_TYPE_ANIME, -41 - QUEUE_ANIME_CONTINUOUS_DELAY*sub_count , skill_info(arg_skillid,SKILL_INFO_ANIMEID), arg_skillid, battle_info(BATTLE_INFO_BCHAR_NEXTTURN)
+				}
+			next
+		} else {
+			; 連続攻撃はQUEUE_ANIME_CONTINUOUS_DELAY frameの遅延を入れる
+			sub_battle_enqueue_anime sub_target, QUEUE_ANIME_INFO_TYPE_ANIME, -41 - QUEUE_ANIME_CONTINUOUS_DELAY*sub_count , skill_info(arg_skillid,SKILL_INFO_ANIMEID), arg_skillid, battle_info(BATTLE_INFO_BCHAR_NEXTTURN)
+		}
+	next
+
+	; 中央上部にメッセージにスキル名を表示する
+	sub_battle_enqueue_topmessage skill_sinfo(arg_skillid,SKILL_SINFO_NAME), -1, -1
+
+	; APを消費する
+	char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN),CHAR_INFO_AP) -= skill_info(arg_skillid,SKILL_INFO_USEAP) * (100 - char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN),CHAR_INFO_FLAG_APREDUCE)) /100
+	; AP消費軽減してたら対応するバフを1回減らす
+	if char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN),CHAR_INFO_FLAG_APREDUCE) > 0 {
+		; バフの残り回数を減らす
+		sub_reduce_char_buff_count_by_flag battle_info(BATTLE_INFO_CHAR_NEXTTURN), CHAR_INFO_FLAG_APREDUCE, 1
+	}
+	
+	; 行動終了にする
+	char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN),CHAR_INFO_GETTURN) = 0
+	battle_char_info(battle_info(BATTLE_INFO_BCHAR_NEXTTURN),BATTLE_CHAR_INFO_TURNSTATE) = 0
+	; リコイルを設定する
+	char_info( battle_info(BATTLE_INFO_CHAR_NEXTTURN), CHAR_INFO_RECOIL ) = CHAR_INFO_RECOIL_DEFAULT * skill_info(arg_skillid,SKILL_INFO_DELAY) /100
+	
+	return
+
+; 指定したBキャラが指定したBキャラをスキルで攻撃する
+;   arg1(sbchar): スキルを使うBキャラ
+;   arg2(dbchar): 対象のBキャラ
+;   arg3(skillid): 使用するスキル
+#deffunc sub_battle_exec_attack int arg_sbchar, int arg_dbchar, int arg_skillid
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_exec_attack. args=%d,%d,%d", arg_sbchar, arg_dbchar, arg_skillid)
+
+	sub_schar = battle_char(arg_sbchar)
+	sub_dchar = battle_char(arg_dbchar)
+	sub_sbchar = arg_sbchar
+	sub_dbchar = arg_dbchar
+		
+	; ダメージ = スキルの威力(SKILL_INFO_POWER) × 攻撃側の攻撃力 / 防御側の防御力 × 攻撃側の属性与ダメ割合/100 × 防御側の属性被ダメ割合/100
+
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D base_skill_power=%d in sub_battle_exec_attack" ,skill_info(arg_skillid, SKILL_INFO_POWER))
+
+	sub_damage = skill_info(arg_skillid, SKILL_INFO_POWER)
+	switch skill_info(arg_skillid, SKILL_INFO_TYPE)
+	case SKILL_INFO_TYPE_ACT_ATTACKP
+		sub_damage *= char_info(sub_schar, CHAR_INFO_ATC)
+		sub_damage /= char_info(sub_dchar, CHAR_INFO_DEF)
+		swbreak
+	case SKILL_INFO_TYPE_ACT_ATTACKM
+		sub_damage *= char_info(sub_schar, CHAR_INFO_MAT) 
+		sub_damage /= char_info(sub_dchar, CHAR_INFO_MDF)
+		swbreak
+	default
+		if DEBUG_LEVEL & LOG_WARNING :logmes strf("W Invalid SKILL_INFO_TYPE sub_battle_exec_attack skillid=%d" ,arg_skillid)
+		sub_damage *= 100
+		sub_damage /= 100
+		swbreak
+	swend
+	; 一致する属性の与・被ダメージは反映する
+	sub_element_offset = skill_info(arg_skillid,SKILL_INFO_ELEMENT)
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D skillid=%d, skill_element=%d element_offset=%d atcp=%d, defp=%d" ,arg_skillid,skill_info(arg_skillid,SKILL_INFO_ELEMENT), sub_element_offset, char_info(sub_schar, CHAR_INFO_ELEM_ATC_RATE+sub_element_offset), char_info(sub_dchar, CHAR_INFO_ELEM_DEF_RATE+sub_element_offset))
+	sub_damage *= char_info(sub_schar, CHAR_INFO_ELEM_ATC_RATE+sub_element_offset)
+	sub_damage /= 100
+	sub_damage *= char_info(sub_dchar, CHAR_INFO_ELEM_DEF_RATE+sub_element_offset)
+	sub_damage /= 100
+	; LNONEの与・被ダメージは反映する
+	if skill_info(arg_skillid,SKILL_INFO_ELEMENT) != ELEMENT_LNONE {
+		sub_damage *= char_info(sub_schar, CHAR_INFO_ELEM_ATC_RATE)
+		sub_damage /= 100
+		sub_damage *= char_info(sub_dchar, CHAR_INFO_ELEM_DEF_RATE)
+		sub_damage /= 100
+		if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D skillid=%d, skill_element=%d element_offset=none atcp=%d, defp=%d" ,arg_skillid,skill_info(arg_skillid,SKILL_INFO_ELEMENT), char_info(sub_schar, CHAR_INFO_ELEM_ATC_RATE), char_info(sub_dchar, CHAR_INFO_ELEM_DEF_RATE))
+	}
+	; 防衛側であれば地形効果を反映
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D damage=%d",sub_damage)
+	if arg_dbchar >= BATTLE_CHAR_MAX {
+		sub_damage *= 100 - battle_info(BATTLE_INFO_DEFP)
+		sub_damage /= 100
+	}
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D after damage=%d defp=%d",sub_damage,battle_info(BATTLE_INFO_DEFP))
+	; 攻撃無効化判定
+	sub_invalid_atc = 0
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D check invalid_atc elem=%d, flag_invalid_atc=%d",skill_info(arg_skillid,SKILL_INFO_ELEMENT),char_info(sub_dchar, CHAR_INFO_FLAG_INVALID_ATC))
+	if ( ELEMENT_ALLS(skill_info(arg_skillid,SKILL_INFO_ELEMENT)) & char_info(sub_dchar, CHAR_INFO_FLAG_INVALID_ATC) ) {
+		sub_damage = 0
+		sub_invalid_atc = 1
+		; バフの残り回数を減らす
+		sub_reduce_char_buff_count_by_flag sub_dchar, CHAR_INFO_FLAG_INVALID_ATC, ELEMENT_ALLS(skill_info(arg_skillid,SKILL_INFO_ELEMENT))
+	}
+	
+	; 弱点の場合
+	if ELEMENT_ALLS(skill_info(arg_skillid,SKILL_INFO_ELEMENT)) & char_info(sub_dchar,CHAR_INFO_WEAK) {
+		sub_damage *= 150
+		sub_damage /= 100	; ダメージ1.5倍
+		; スタン値が溜まるのはスタンではないときだけ
+		if char_info(sub_dchar,CHAR_INFO_STAN_STATE) == 0 {
+			char_info(sub_dchar, CHAR_INFO_STAN) += sub_damage	; ダメージの100%をスタン値として蓄積
+		}
+	}
+
+	; スタン付与割合が0より大きい場合
+	if skill_info(arg_skillid, SKILL_INFO_STAN_RATE) > 0 {
+		char_info(sub_dchar, CHAR_INFO_STAN) += sub_damage * skill_info(arg_skillid, SKILL_INFO_STAN_RATE) /100	; ダメージに比例してをスタン値として蓄積
+	}
+	; スタン値の上限チェック
+	if char_info(sub_dchar, CHAR_INFO_STAN) > char_info(sub_dchar, CHAR_INFO_STAN_MAX) : char_info(sub_dchar, CHAR_INFO_STAN) = char_info(sub_dchar, CHAR_INFO_STAN_MAX)
+
+	if sub_damage < 0 : sub_damage = 0
+
+	; ダメージを変更予定HPに反映
+	char_info(sub_dchar, CHAR_INFO_HP_REV) -= sub_damage
+	if char_info(sub_dchar, CHAR_INFO_HP_REV) < 0 : char_info(sub_dchar, CHAR_INFO_HP_REV) = 0
+
+	; 戦果に反映（戦果に反映するのはダメージのみ、回復は対象外）
+	if sub_damage > 0 {
+		if arg_dbchar < BATTLE_CHAR_MAX {
+			battle_info(BATTLE_INFO_CONQUERE) -= battle_info(BATTLE_INFO_CONQUERE_ATC_RATE) * sub_damage
+		} else {
+			battle_info(BATTLE_INFO_CONQUERE) += battle_info(BATTLE_INFO_CONQUERE_DEF_RATE) * sub_damage		
+		}
+		if battle_info(BATTLE_INFO_CONQUERE) > BATTLE_INFO_CONQUERE_MAX : battle_info(BATTLE_INFO_CONQUERE) = BATTLE_INFO_CONQUERE_MAX
+		if battle_info(BATTLE_INFO_CONQUERE) < BATTLE_INFO_CONQUERE_MIN : battle_info(BATTLE_INFO_CONQUERE) = BATTLE_INFO_CONQUERE_MIN
+	}
+	
+	; 直前の攻撃や回復のダメージ量に格納
+	battle_info(BATTLE_INFO_DIFF_HP_VALUE) = sub_damage * -1
+
+	; スキルの追加効果を付与する（攻撃を無効化したときは追加効果なし）
+	if sub_invalid_atc == 0 {
+		sub_battle_exec_addon sub_sbchar, sub_dbchar, arg_skillid
+	}
+		
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D attack schar=%d, dchar=%d, skillid=%d, damage=%d", sub_schar, sub_dchar, arg_skillid, sub_damage)
+
+	return
+
+; 指定したBキャラが指定したBキャラをスキルで回復する
+;   arg1(sbchar): スキルを使うBキャラ
+;   arg2(dbchar): 対象のBキャラ
+;   arg3(skillid): 使用するスキル
+#deffunc sub_battle_exec_heal int arg_sbchar, int arg_dbchar, int arg_skillid
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_exec_heal args=%d,%d,%d", arg_sbchar, arg_dbchar, arg_skillid)
+
+	; 回復 = スキルの威力(SKILL_INFO_POWER) × 攻撃側の魔法攻撃力 / 100
+
+	sub_schar = battle_char(arg_sbchar)
+	sub_dchar = battle_char(arg_dbchar)
+
+	sub_damage = skill_info(arg_skillid, SKILL_INFO_POWER)
+	sub_damage *= char_info(sub_schar, CHAR_INFO_MAT) 
+	sub_damage /= 100
+	
+	if sub_damage < 0 : sub_damage = 0
+
+	; 回復を変更予定HPに反映
+	char_info(sub_dchar, CHAR_INFO_HP_REV) += sub_damage
+	if char_info(sub_dchar, CHAR_INFO_HP_REV) > char_info(sub_dchar, CHAR_INFO_HP_MAX) : char_info(sub_dchar, CHAR_INFO_HP_REV) = char_info(sub_dchar, CHAR_INFO_HP_MAX)
+
+	; 直前の攻撃や回復のダメージ量に格納
+	battle_info(BATTLE_INFO_DIFF_HP_VALUE) = sub_damage
+
+	; スキルの追加効果を付与する
+	sub_battle_exec_addon arg_sbchar, arg_dbchar, arg_skillid
+	
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D heal schar=%d, dchar=%d, skillid=%d, damage=%d", sub_schar, sub_dchar, arg_skillid, sub_damage)
+
+	return
+
+; 指定したBキャラが指定したBキャラをスキルの追加効果を付与する
+;   arg1(sbchar): スキルを使うBキャラ
+;   arg2(dbchar): 対象のBキャラ
+;   arg3(skillid): 使用するスキル
+#deffunc sub_battle_exec_addon int arg_sbchar, int arg_dbchar, int arg_skillid
+	
+	if DEBUG_LEVEL & LOG_DEBUG : logmes strf("I call sub_battle_exec_addon. args=%d,%d,%d", arg_sbchar, arg_dbchar, arg_skillid)
+
+	; 追加効果の処理
+	if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D skillid=%d SKILL_INFO_ADD1_RATE=%d", arg_skillid, skill_info(arg_skillid,SKILL_INFO_ADD1_RATE))
+	if skill_info(arg_skillid,SKILL_INFO_ADD1_RATE) > 0 {
+		if rnd(100) < skill_info(arg_skillid,SKILL_INFO_ADD1_RATE) {
+			; 今のところ、スキルの範囲と追加効果の範囲が一致しているもののみ処理	
+			if skill_info(arg_skillid,SKILL_INFO_ADD1_RANGE) == skill_info(arg_skillid,SKILL_INFO_RANGE) {
+				; 指定したBキャラにバフを付与する
+				sub_battle_add_buff arg_dbchar, skill_info(arg_skillid,SKILL_INFO_ADD1_BUFFID), skill_info(arg_skillid,SKILL_INFO_ADD1_POWER)
+			}
+		}
+	}
+
+	; キャラが行動不能状態であれば共存できないバフを消去する
+	sub_del_char_buff_by_nomove sub_dchar
+	
+	return
+
+; 指定したBキャラにバフを付与する
+#deffunc sub_battle_add_buff int arg_dbchar, int arg_buffid, int arg_value
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_add_buff. args=%d,%d,%d", arg_dbchar, arg_buffid, arg_value)
+	
+	sub_dchar = battle_char(arg_dbchar)
+
+	; 既にバフが有効で、重ね掛け不可であれば処理終了
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D current_value=%d buff_info_stack=%d", char_info(sub_dchar, CHAR_INFO_BUFF_VALUE+arg_buffid), buff_info(arg_buffid,BUFF_INFO_STACK))
+	if ( char_info(sub_dchar, CHAR_INFO_BUFF_VALUE+arg_buffid) > 0 ) and (buff_info(arg_buffid,BUFF_INFO_STACK) == 0) : return
+	
+	switch buff_info(arg_buffid,BUFF_INFO_EFFECTIVE)
+	case BUFF_INFO_EFFECTIVE_TURN		; ターン経過で消滅（重ね掛けでターン延長）
+		char_info(sub_dchar, CHAR_INFO_BUFF_VALUE+arg_buffid) += arg_value
+		swbreak
+	case BUFF_INFO_EFFECTIVE_COUNT		; 効果を発揮した回数で消滅（重ね掛けで回数追加）
+		char_info(sub_dchar, CHAR_INFO_BUFF_VALUE+arg_buffid) += arg_value
+		swbreak
+	case BUFF_INFO_EFFECTIVE_DAMAGE		; ダメージで消滅（重ね掛けで許容ダメージ追加）
+		char_info(sub_dchar, CHAR_INFO_BUFF_VALUE+arg_buffid) += arg_value
+		swbreak
+	case BUFF_INFO_EFFECTIVE_PERMANENT	; 永続（重ね掛けで効果重複）
+		char_info(sub_dchar, CHAR_INFO_BUFF_VALUE+arg_buffid) += arg_value
+		swbreak
+	swend
+
+	; キャラフラグを更新する
+	sub_calcu_char_flag battle_char(arg_dbchar)
+	
+	; キャラクターの能力を変動割合を再計算する
+	sub_calcu_param_rate battle_char(arg_dbchar)
+
+	; バフ付与アニメーションをキューに追加する
+	sub_battle_enqueue_buff arg_dbchar, arg_buffid, -1
+	
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D addon buff charid=%d buffid=%d total_value=%d", sub_dchar, arg_buffid, char_info(sub_dchar, CHAR_INFO_BUFF_VALUE+arg_buffid))
+	
+	return
+
+; 指定したBキャラのバフを消去する
+#deffunc sub_battle_del_buff int arg_dbchar, int arg_buffid
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_del_buff args=%d,%d", arg_dbchar, arg_buffid)
+	
+	sub_dchar = battle_char(arg_dbchar)
+
+	char_info(sub_dchar, CHAR_INFO_BUFF_VALUE+arg_buffid) = 0
+
+	; キャラクターの能力を変動割合を再計算する
+	sub_calcu_param_rate sub_dchar
+
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D delete buff charid=%d buffid=%d", sub_dchar, arg_buffid)
+	
+	return
+
+; 徐々にHPが変化するバフを処理する
+#deffunc sub_battle_exec_hp_change
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_exec_hp_change")
+
+	for sub_i,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_i) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_i),CHAR_SINFO_NAME)) <= 0 : _continue
+
+		for sub_j,0,BUFF_MAX
+			if buff_info(sub_j,BUFF_INFO_AUTO_HEAL) != 0 {
+				if char_info(battle_char(sub_i), CHAR_INFO_BUFF_VALUE+sub_j ) > 0 {
+					char_info(battle_char(sub_i), CHAR_INFO_HP_MILI) += buff_info(sub_j,BUFF_INFO_AUTO_HEAL)
+					if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D hp_mili add charid=%d hp_mili_diff=%d now_mili=%d", battle_char(sub_i), buff_info(sub_j,BUFF_INFO_AUTO_HEAL), char_info(battle_char(sub_i), CHAR_INFO_HP_MILI))
+				}
+			}
+		next
+		; MILIの1/100をHPに反映
+		if char_info(battle_char(sub_i), CHAR_INFO_HP_MILI)/100 != 0{
+			sub_hp_diff = char_info(battle_char(sub_i), CHAR_INFO_HP_MILI)/100
+			char_info(battle_char(sub_i), CHAR_INFO_HP_MILI) -= sub_hp_diff*100
+			char_info(battle_char(sub_i), CHAR_INFO_HP) += sub_hp_diff
+			char_info(battle_char(sub_i), CHAR_INFO_HP_REV) += sub_hp_diff
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D hp add charid=%d hp_diff=%d", battle_char(sub_i), sub_hp_diff)
+			; 上限・下限調整
+			if char_info(battle_char(sub_i), CHAR_INFO_HP)     > char_info(battle_char(sub_i), CHAR_INFO_HP_MAX) : char_info(battle_char(sub_i), CHAR_INFO_HP)     = char_info(battle_char(sub_i), CHAR_INFO_HP_MAX)
+			if char_info(battle_char(sub_i), CHAR_INFO_HP_REV) > char_info(battle_char(sub_i), CHAR_INFO_HP_MAX) : char_info(battle_char(sub_i), CHAR_INFO_HP_REV) = char_info(battle_char(sub_i), CHAR_INFO_HP_MAX)
+			if char_info(battle_char(sub_i), CHAR_INFO_HP)     < 0 : char_info(battle_char(sub_i), CHAR_INFO_HP)     = 0
+			if char_info(battle_char(sub_i), CHAR_INFO_HP_REV) < 0 : char_info(battle_char(sub_i), CHAR_INFO_HP_REV) = 0
+		}
+	next
+
+	; 全員を対象にHPが0であればダウン状態にし、アニメーションキューに追加する
+	sub_battle_set_allchar_down
+	
+	return
+	
+; 開幕のバフを付与
+#deffunc sub_battle_add_buff_by_battlestart
+
+	if battle_info(BATTLE_INFO_TURN) > 2 : return
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_add_buff_by_battlestart")
+		
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+		; 既に付与したことがあればスキップ
+		if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D pskill_flag=%d check_flag=%d result=%d",char_info(battle_char(sub_bchar),CHAR_INFO_PSKILLFLAG), CHAR_INFO_PSKILLFLAG_BATTLE_START, char_info(battle_char(sub_bchar),CHAR_INFO_PSKILLFLAG) & CHAR_INFO_PSKILLFLAG_BATTLE_START)
+		if ( char_info(battle_char(sub_bchar),CHAR_INFO_PSKILLFLAG) & CHAR_INFO_PSKILLFLAG_BATTLE_START ) > 0 : _continue
+		; ダウン状態なら付与しない
+		if char_info(battle_char(sub_bchar),CHAR_INFO_DOWN) == 1 : _continue
+		
+		for sub_skilloffset,0,CHAR_INFO_SKILL_MAX
+			if skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_TRIGGER ) == SKILL_INFO_SKILLTYPE_PASSIVE {
+				if skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_TYPE ) == SKILL_INFO_TYPE_PASS_BUFF {
+					if skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_CONDITIONS ) == SKILL_INFO_COND_BATTLE_START {
+						; 開幕時のバフを付与
+						sub_battle_add_buff sub_bchar, skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_ELEMENT ), skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_POWER )
+						; アニメーションキューに登録
+						sub_battle_enqueue_buff sub_bchar, skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_ELEMENT ), -1
+						battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TICGO
+					}
+	
+				}
+
+			}
+		next
+		; パッシブスキルフラグを更新
+		char_info(battle_char(sub_bchar),CHAR_INFO_PSKILLFLAG) |= CHAR_INFO_PSKILLFLAG_BATTLE_START
+	next
+	
+	return
+	
+; HP50%以下のバフを付与
+#deffunc sub_battle_add_buff_by_hp_half
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_add_buff_by_hp_half")
+		
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+		; 既に付与したことがあればスキップ
+		if ( char_info(battle_char(sub_bchar),CHAR_INFO_PSKILLFLAG) & CHAR_INFO_PSKILLFLAG_HP_HALF ) > 0 : _continue
+		; ダウン状態なら付与しない
+		if char_info(battle_char(sub_bchar),CHAR_INFO_DOWN) == 1 : _continue
+
+		if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D check start in sub_battle_add_buff_by_hp_half")
+		for sub_skilloffset,0,CHAR_INFO_SKILL_MAX
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D skillid=%d trigger=%d",char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_TRIGGER ))
+			if skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_TRIGGER ) == SKILL_INFO_SKILLTYPE_PASSIVE {
+				if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D skillid=%d type=%d",char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_TYPE ))
+				if skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_TYPE ) == SKILL_INFO_TYPE_PASS_BUFF {
+					if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D skillid=%d conditions=%d",char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_CONDITIONS ))
+					if skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_CONDITIONS ) == SKILL_INFO_COND_HP_HALF {
+						if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D charid=%d, hp=%d, hp_max=%d", battle_char(sub_bchar), char_info(battle_char(sub_bchar),CHAR_INFO_HP), char_info(battle_char(sub_bchar),CHAR_INFO_HP_MAX))
+						if char_info(battle_char(sub_bchar),CHAR_INFO_HP) <= char_info(battle_char(sub_bchar),CHAR_INFO_HP_MAX)/2 {
+							; HP50%以下のバフを付与
+							sub_battle_add_buff sub_bchar, skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_ELEMENT ), skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_POWER )
+							; アニメーションキューに登録
+							sub_battle_enqueue_buff sub_bchar, skill_info(char_info(battle_char(sub_bchar),CHAR_INFO_SKILL+sub_skilloffset), SKILL_INFO_ELEMENT ), -1
+							battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TICGO
+							; パッシブスキルフラグを更新
+							char_info(battle_char(sub_bchar),CHAR_INFO_PSKILLFLAG) |= CHAR_INFO_PSKILLFLAG_HP_HALF
+						}
+					}
+	
+				}
+
+			}
+		next
+	next
+	
+	return
+
+; 自動で行動を選択する
+;   arg1(bchar): 行動するBキャラ
+#deffunc sub_battle_decide_auto_skill int arg_bchar
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_decide_auto_skill args=%d",arg_bchar)
+
+	; スキルを決定する
+	sub_create_menu_battle battle_char(arg_bchar)
+	; 投票と決定のアルゴリズムを決めてスキルを確定させる
+	sub_vote_menu_battle MENU_LIST_BATTLE_VOTE_RANDOM, 1
+	if char_info(battle_char(arg_bchar), CHAR_INFO_HP) > char_info(battle_char(arg_bchar), CHAR_INFO_HP_MAX)/2 {
+		sub_vote_menu_battle MENU_LIST_BATTLE_VOTE_COVER, 1
+	}
+	if ( battle_info(BATTLE_INFO_TURN) >= 200 ) and ( char_info(battle_char(arg_bchar), CHAR_INFO_HP) <= char_info(battle_char(arg_bchar), CHAR_INFO_HP_MAX)*7/10 ) {
+		sub_vote_menu_battle MENU_LIST_BATTLE_VOTE_HEAL, 1
+	}
+	sub_vote_menu_battle MENU_LIST_BATTLE_VOTE_ATTACK, 1
+	sub_decide_menu_battle MENU_LIST_BATTLE_DECIDE_ELECTION
+	
+	; スキルの範囲を決定する
+	sub_create_menu_bchar arg_bchar, menu_list_battle_skill(menu_list_battle_select)
+	; 自動できまならないものは投票と決定のアルゴリズムを決めてスキルを確定させる
+	if menu_list_bchar_active == 1 {
+		if skill_info(menu_list_battle_skill(menu_list_battle_select), SKILL_INFO_TYPE) == SKILL_INFO_TYPE_ACT_HEAL {
+			sub_vote_menu_bchar MENU_LIST_BCHAR_VOTE_LOWHP, 1
+			sub_decide_menu_bchar MENU_LIST_BCHAR_DECIDE_MAX
+		} else {
+			sub_vote_menu_bchar MENU_LIST_BCHAR_VOTE_RANDOM, 1
+			sub_decide_menu_bchar MENU_LIST_BCHAR_DECIDE_ELECTION
+		}
+	}
+	
+	; メニューを閉じる
+	menu_list_battle_active = 0
+	menu_list_bchar_active = 0
+	
+	; 指定したBキャラが指定したスキルを決定する
+	sub_battle_decide_skill arg_bchar, menu_list_battle_skill(menu_list_battle_select), menu_list_bchar_select_bchar
+
+	return
+	
+; BATTLE_INFO_DIFF_HPREVを計算する
+#deffunc sub_battle_calcu_diff_hprev
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_calcu_diff_hprev.")
+
+	battle_info(BATTLE_INFO_DIFF_HPREV) = 0
+
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+
+		sub_diff = char_info(battle_char(sub_bchar), CHAR_INFO_HP_REV) - char_info(battle_char(sub_bchar), CHAR_INFO_HP)
+		if sub_diff < 0 : sub_diff *= -1
+
+		battle_info(BATTLE_INFO_DIFF_HPREV) += sub_diff
+	next
+
+	return
+
+; HPとHP_REVに差分があればその差を減らす
+#deffunc sub_battle_reduce_diff_hprev
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_reduce_diff_hprev")
+
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+
+		; 差分の10% +1 を減らす
+		if char_info(battle_char(sub_bchar), CHAR_INFO_HP) > char_info(battle_char(sub_bchar), CHAR_INFO_HP_REV) {
+			sub_diff = char_info(battle_char(sub_bchar), CHAR_INFO_HP) - char_info(battle_char(sub_bchar), CHAR_INFO_HP_REV)
+			 char_info(battle_char(sub_bchar), CHAR_INFO_HP) -= sub_diff*1/10 + 1 
+		} else {
+			if char_info(battle_char(sub_bchar), CHAR_INFO_HP) < char_info(battle_char(sub_bchar), CHAR_INFO_HP_REV) {
+				sub_diff = char_info(battle_char(sub_bchar), CHAR_INFO_HP_REV) - char_info(battle_char(sub_bchar), CHAR_INFO_HP)
+				 char_info(battle_char(sub_bchar), CHAR_INFO_HP) += sub_diff*1/10 + 1 
+			}
+		}
+	next
+
+	; 全員を対象にHPが0であればダウン状態にし、アニメーションキューに追加する
+	sub_battle_set_allchar_down
+	
+	return
+
+; 行動可能なBキャラがいるか判定し、プレイヤーなら選択肢生成、コンピュータなら自動で行動を選択する
+#deffunc sub_battle_exec_bchar_action
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_exec_bchar_action")
+
+	; 開幕のバフを付与
+	sub_battle_add_buff_by_battlestart
+
+	; HP50%以下のバフを付与
+	sub_battle_add_buff_by_hp_half
+
+	; 全員のスタン状態でスタン値が0になっていれば復帰し、アニメーションキューに追加する
+	sub_battle_recover_allchar_stan
+
+	; アニメーションが終わってたら
+	if queue_anime_enroll_anime_num == queue_anime_finished_anime_num {
+
+		; 行動可能なBキャラIDを格納する
+		sub_battle_get_active_bchar
+		if battle_info(BATTLE_INFO_BCHAR_NEXTTURN) >= 0 {
+			; 予約済みの行動があれば自動的にそれに決定
+			if char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN), CHAR_INFO_AUTO_DECIDE_SKILL) > 0 {
+				; 指定したBキャラが指定したスキルを決定する
+				dim tmp_range,BATTLE_CHAR_MAX*2
+				for sub_i,0,BATTLE_CHAR_MAX*2
+					tmp_range(sub_i) = char_info_auto_decide_targets(battle_info(BATTLE_INFO_CHAR_NEXTTURN),sub_i)
+				next
+				sub_battle_decide_skill battle_info(BATTLE_INFO_BCHAR_NEXTTURN), char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN), CHAR_INFO_AUTO_DECIDE_SKILL), tmp_range
+				; 予約スキルは解放する
+				char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN), CHAR_INFO_AUTO_DECIDE_SKILL) = 0
+				battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TICGO
+			} else {
+				if ( char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN), CHAR_INFO_AUTO_EXEC_SKILL) > 0 ) {
+					; 準備中のスキルが既に設定されていればそれを発動させる
+					; 指定したBキャラが指定したスキルを決定する
+					dim tmp_range,BATTLE_CHAR_MAX*2
+					for sub_i,0,BATTLE_CHAR_MAX*2
+						tmp_range(sub_i) = char_info_auto_exec_targets(battle_info(BATTLE_INFO_CHAR_NEXTTURN),sub_i)
+					next
+					sub_battle_decide_skill battle_info(BATTLE_INFO_BCHAR_NEXTTURN), char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN), CHAR_INFO_AUTO_EXEC_SKILL), tmp_range
+					; 準備中のスキルの設定は sub_battle_decide_skill の中で解除する
+					battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TICGO
+				} else {
+					; 誰かが行動できる場合
+					if char_info(battle_info(BATTLE_INFO_CHAR_NEXTTURN), CHAR_INFO_TEAM) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+						; プレイヤーが操作する場合
+						; スキル選択メニューを生成
+						sub_create_menu_battle battle_info(BATTLE_INFO_CHAR_NEXTTURN)
+						; 手動で決めるので次はEXECMODE_OPERATION
+						battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_OPERATION
+					} else {
+						; 自動で行動を選択する場合
+						sub_battle_decide_auto_skill battle_info(BATTLE_INFO_BCHAR_NEXTTURN)
+						battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TICGO
+					}				
+				}
+			}
+			
+		} else {
+			; 誰も行動できなければBATTLE_INFO_EXECMODE_TURNGOに遷移
+			battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TURNGO
+		}
+	
+	}
+
+	return
+
+; ターン経過型のバフの有効時間を1減らす
+#deffunc sub_battle_reduce_buff_effective_turn
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_reduce_buff_effective_turn")
+	
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+
+		for sub_buffid,0,BUFF_MAX
+			; ターン経過で消滅（重ね掛けでターン延長）の持続可能タイプのみ減らす
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D bchar=%d, buffid=%d, buff_value=%d",sub_bchar,sub_buffid,char_info(battle_char(sub_bchar),CHAR_INFO_BUFF_VALUE+sub_buffid))
+			if buff_info(sub_buffid,BUFF_INFO_EFFECTIVE) == BUFF_INFO_EFFECTIVE_TURN {
+				if char_info(battle_char(sub_bchar),CHAR_INFO_BUFF_VALUE+sub_buffid) > 0 : char_info(battle_char(sub_bchar),CHAR_INFO_BUFF_VALUE+sub_buffid) -= 1
+			}
+		next
+		; キャラフラグを更新する
+		sub_calcu_char_flag battle_char(sub_bchar)
+		
+		; キャラクターの能力を変動割合を再計算する
+		sub_calcu_param_rate battle_char(sub_bchar)
+	next
+
+	
+	return
+
+; 全員を対象にHPが0であればダウン状態にし、アニメーションキューに追加する
+#deffunc sub_battle_set_allchar_down
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_set_allchar_down")
+
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+
+		; キャラのHPが0ならダウン状態にし、アニメーションキューに追加する
+		sub_set_char_down_by_bchar sub_bchar
+	next
+
+	return
+	
+; 全員を対象にスタン値が許容量を超えていればスタン状態にし、アニメーションキューに追加する
+#deffunc sub_battle_set_allchar_stan
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_set_allchar_stan")
+
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+
+		; キャラのスタン値が許容量を超えていればスタン状態にし、アニメーションキューに追加する
+		sub_set_char_stan_by_bchar sub_bchar
+	next
+
+	return
+
+; 全員のスタン状態でスタン値が0になっていれば復帰し、アニメーションキューに追加する
+#deffunc sub_battle_recover_allchar_stan
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_recover_allchar_stan")
+
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+
+		; キャラがスタン状態でスタン値が0になっていれば復帰し、アニメーションキューに追加する
+		sub_recover_char_stan_by_bchar sub_bchar
+
+	next
+
+	return
+
+; 勝負がついていれば結果発表に移行する
+#deffunc sub_battle_check_winner
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_check_winner")
+	
+	if battle_info(BATTLE_INFO_WINNER) != 0 : return
+	
+	sub_battle_end = 0
+
+	if battle_info(BATTLE_INFO_TURN) >= battle_info(BATTLE_INFO_TURN_LIMIT) : sub_battle_end = 1	; バトルの強制終了時間
+
+	sub_down_atc = 0
+	sub_down_def = 0
+	for sub_i,0,BATTLE_CHAR_MAX*2
+		if sub_i < BATTLE_CHAR_MAX {
+			if battle_char(sub_i) <= 0 {
+				sub_down_atc += 1
+				_continue
+			}
+			if strlen(char_sinfo(battle_char(sub_i),CHAR_SINFO_NAME)) <= 0 {
+				sub_down_atc += 1
+				_continue
+			}
+			if char_info( battle_char(sub_i), CHAR_INFO_DOWN ) == 1 {
+				sub_down_atc += 1
+			}
+		} else {
+			if battle_char(sub_i) <= 0 {
+				sub_down_def += 1
+				_continue
+			}
+			if strlen(char_sinfo(battle_char(sub_i),CHAR_SINFO_NAME)) <= 0 {
+				sub_down_def += 1
+				_continue
+			}
+			if char_info( battle_char(sub_i), CHAR_INFO_DOWN ) == 1 {
+				sub_down_def += 1
+			}
+		}
+	next
+
+	; 全滅した方が敗北、両方同時に全滅したら防衛側の勝利
+	if sub_down_def == 3 {
+		battle_info(BATTLE_INFO_CONQUERE) = BATTLE_INFO_CONQUERE_MAX
+		sub_battle_end = 1
+	}
+	if sub_down_atc == 3 {
+		battle_info(BATTLE_INFO_CONQUERE) = BATTLE_INFO_CONQUERE_MIN
+		sub_battle_end = 1
+	}
+
+	if sub_battle_end == 1{
+		battle_info(BATTLE_INFO_FINISH_TIC) = battle_info(BATTLE_INFO_TIC)
+
+		; 勝敗
+		if battle_info(BATTLE_INFO_CONQUERE) <= BATTLE_INFO_CONQUERE_MID {
+			; 防衛側の勝利
+			battle_info(BATTLE_INFO_WINNER) = battle_info(BATTLE_INFO_TEAM_DEF)
+			battle_info(BATTLE_INFO_LOSER) = battle_info(BATTLE_INFO_TEAM_ATC)
+			if DEBUG_LEVEL & LOG_ERROR :logmes strf("D winner=%d loser=%d",battle_info(BATTLE_INFO_TEAM_DEF),battle_info(BATTLE_INFO_TEAM_ATC))
+		} else {
+			; 攻撃側の勝利
+			battle_info(BATTLE_INFO_WINNER) = battle_info(BATTLE_INFO_TEAM_ATC)
+			battle_info(BATTLE_INFO_LOSER) = battle_info(BATTLE_INFO_TEAM_DEF)
+			if DEBUG_LEVEL & LOG_ERROR :logmes strf("D winner=%d loser=%d",battle_info(BATTLE_INFO_TEAM_ATC),battle_info(BATTLE_INFO_TEAM_DEF))
+		}
+		; BGMの変更
+		if global_info(GLOBAL_INFO_SELECT_TEAM) == battle_info(BATTLE_INFO_WINNER) {
+			sub_play_music MUSIC_WIN
+			;sub_play_sound BATTLE_INFO_WIN_SOUNDID
+		} else {
+			if global_info(GLOBAL_INFO_SELECT_TEAM) == battle_info(BATTLE_INFO_LOSER) {
+				sub_play_music MUSIC_LOSE
+				;sub_play_sound BATTLE_INFO_LOSE_SOUNDID
+			} else {
+				sub_play_music MUSIC_WIN
+			}
+		}
+		
+		battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_RESULT
+	}
+	
+	return
+
+
+; 勝敗を表示する
+#deffunc sub_battle_show_result
+	
+	if battle_info(BATTLE_INFO_WINNER) == 0 : return
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_show_result")
+
+	sdim tmp_message,64
+
+	tmp_message = team_sinfo(battle_info(BATTLE_INFO_WINNER),TEAM_SINFO_NAME) + " が勝利！"
+	
+	; メッセージを指定した座標に表示する
+	sub_show_message_char tmp_message, -1, 200, -1, -1
+
+	; エリア情報を指定した座標に表示する
+	sub_show_area -1, 400, battle_info(BATTLE_INFO_AREA)
+	
+	return
+
+; バトルシーンの終了処理をする
+#deffunc sub_battle_finish
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_battle_finish")
+
+	; 出撃したキャラの処理
+	for sub_bchar,0,BATTLE_CHAR_MAX*2
+		if battle_char(sub_bchar) <= 0 : _continue
+		if strlen(char_sinfo(battle_char(sub_bchar),CHAR_SINFO_NAME)) <= 0 : _continue
+
+		; キャラクタのバトルシーン関連の変数を初期設定する
+		sub_battle_init_char battle_char(sub_bchar)
+		
+		; キャラが経験値を獲得する
+		sub_gain_exp_char battle_char(sub_bchar), 100
+	next
+	
+	battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_POSTBATTLE
+
+	; マップシーンに戻ったときの処理用
+	; チームが行動できる状態にする
+	sub_set_active_team
+	
+	return
+	
+*end_of_slgm_battle_sub

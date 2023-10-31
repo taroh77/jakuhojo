@@ -1,0 +1,1628 @@
+	goto *end_of_slgm_sub
+; ##################################################################################################
+; # 
+; # サブルーチン　汎用
+; # 
+; ##################################################################################################
+
+; 致命的なエラー発生による強制終了
+;   arg1(message): エラーメッセージ
+#deffunc sub_abort str arg_message
+	logmes arg_message
+
+	redraw 0
+	color 0,0,0
+	boxf
+	pos 0,0
+	color 255,128,128: font "",18
+	mes arg_message
+	redraw 1
+	stop
+
+	return
+	
+; キャラクター定義を指定してキャラクターを生成する
+;   arg1(chardefid): キャラクター定義ID
+;   arg2(charid):    キャラクターID（-1:空いている箇所を自動選定）
+#deffunc sub_create_char int arg_chardefid, int arg_charid
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_create_char. args=%d,%d",arg_chardefid,arg_charid)
+
+	; キャラクターIDを決定
+	sub_charid = arg_charid
+	if sub_charid == -1 {
+		for sub_i,0,CHAR_MAX
+			if strlen(char_sinfo(sub_i,CHAR_SINFO_NAME)) == 0 {
+				sub_charid = sub_i
+			}
+		next
+		if sub_charid == -1 {
+			if DEBUG_LEVEL & LOG_ERROR :logmes strf("E cannot create char in sub_create_char. chardefid=%d", arg_chardefid)
+			return
+		}
+	}
+
+	; CHARDEF_INFO_RANDOMが-1なら一通りのパラメータを-1に
+	if chardef_info(arg_chardefid,CHARDEF_INFO_RANDOM) == 1 {
+		for sub_i,1,PARAM_MAX
+			chardef_info(arg_chardefid,chardef_info_param_mapping(sub_i)) = -1
+			chardef_info(arg_chardefid,CHARDEF_INFO_WEAK) = -1
+		next
+	}
+	
+	; -1になっているパラメータを生成
+	for sub_i,1,PARAM_MAX
+		if chardef_info(arg_chardefid,chardef_info_param_mapping(sub_i)) == -1 {
+			if ( sub_i == PARAM_HP ) or ( sub_i == PARAM_AP ) {
+				chardef_info(arg_chardefid,chardef_info_param_mapping(sub_i)) = 20 + rnd(20)
+			} else {
+				chardef_info(arg_chardefid,chardef_info_param_mapping(sub_i)) = 4 + rnd(3)
+			}
+		}
+	next
+	if chardef_info(arg_chardefid,CHARDEF_INFO_WEAK) == -1 {
+		chardef_info(arg_chardefid,CHARDEF_INFO_WEAK) = 0
+		for sub_i,2,ELEMENT_LMAX
+			if rnd(100) < 8 {
+				chardef_info(arg_chardefid,CHARDEF_INFO_WEAK) |= ELEMENT_ALLS(sub_i)
+			}
+		next
+	}
+	
+	; キャラクター生成
+	;  HP  ＝ (300 ＋ キャラ定義*10) × クラス変動率/100  ＋  LV × キャラ定義/4 × クラス変動率/100
+	;  AP  ＝   10 ＋ キャラ定義     × クラス変動率/100
+	;  ATC ＝ ( 75 ＋ キャラ定義*5)  × クラス変動率/100  ＋  LV × キャラ定義/4 × クラス変動率/100
+	;    DEF,MAT,MDF共通
+	;  SPD ＝ ( 50 ＋ キャラ定義*5)  × クラス変動率/100
+	;  SRC ＝         キャラ定義*10  × クラス変動率/100
+	;    PRD,COM共通
+	
+	char_sinfo(sub_charid,CHAR_SINFO_NAME)    = chardef_sinfo(arg_chardefid,CHARDEF_SINFO_NAME)		; 名前
+	char_sinfo(sub_charid,CHAR_SINFO_PROFILE) = chardef_sinfo(arg_chardefid,CHARDEF_SINFO_PROFILE)	; プロフィール
+
+	char_info(sub_charid,CHAR_INFO_FACEIMGID)    = chardef_info(arg_chardefid,CHARDEF_INFO_FACEIMGID)		; 顔画像定義番号
+	char_info(sub_charid,CHAR_INFO_FACEDEFINDEX) = chardef_info(arg_chardefid,CHARDEF_INFO_FACEDEFINDEX)	; 通常の顔画像位置（左上が0、右方向に+1、4ごとに下の段）
+	char_info(sub_charid,CHAR_INFO_CHARIMGID)    = chardef_info(arg_chardefid,CHARDEF_INFO_CHARIMGID)		; キャラ画像定義番号
+	char_info(sub_charid,CHAR_INFO_WALKIMGID)    = chardef_info(arg_chardefid,CHARDEF_INFO_WALKIMGID)		; キャラ歩行画像定義番号
+	char_info(sub_charid,CHAR_INFO_BASE_CHARDEF) = arg_chardefid	; ベースとなるキャラクタ定義ID
+	char_info(sub_charid,CHAR_INFO_CLASS)    = chardef_info(arg_chardefid,CHARDEF_INFO_CLASS)	; クラス
+	char_info(sub_charid,CHAR_INFO_WEAK)    = chardef_info(arg_chardefid,CHARDEF_INFO_WEAK)		; 弱点
+	char_info(sub_charid,CHAR_INFO_LV_MAX)   = CHAR_INFO_LV_MAX_DEFAULT		; 最大レベル
+	char_info(sub_charid,CHAR_INFO_LV)       = 1		; レベル
+	char_info(sub_charid,CHAR_INFO_EX)       = 0		; 経験値
+	char_info(sub_charid,CHAR_INFO_HP_RATE)  = 100		; HP変動割合(標準100)
+	char_info(sub_charid,CHAR_INFO_AP_RATE)  = 100		; AP変動割合(標準100)
+	char_info(sub_charid,CHAR_INFO_ATC_RATE) = 100		; 物理攻撃力変動割合(標準100)
+	char_info(sub_charid,CHAR_INFO_DEF_RATE) = 100		; 物理防御力変動割合(標準100)
+	char_info(sub_charid,CHAR_INFO_MAT_RATE) = 100		; 魔法攻撃力変動割合(標準100)
+	char_info(sub_charid,CHAR_INFO_MDF_RATE) = 100		; 魔法防御力変動割合(標準100)
+	char_info(sub_charid,CHAR_INFO_SPD_RATE) = 100		; 速度変動割合(標準100)
+	char_info(sub_charid,CHAR_INFO_SRC_RATE) = 100		; 探索変動割合(標準100)
+	char_info(sub_charid,CHAR_INFO_PRD_RATE) = 100		; 生成変動割合(標準100)
+	char_info(sub_charid,CHAR_INFO_COM_RATE) = 100		; 話術変動割合(標準100)
+	char_info(sub_charid,CHAR_INFO_STAN_RATE) = 100		; スタン許容量変動割合(標準100)
+	for sub_i,0,ELEMENT_LMAX
+		char_info(sub_charid,CHAR_INFO_ELEM_ATC_RATE+sub_i) = 100	; 属性別与ダメ変動割合(標準100)
+		char_info(sub_charid,CHAR_INFO_ELEM_DEF_RATE+sub_i) = 100	; 属性別被ダメ変動割合(標準100)
+	next
+	char_info(sub_charid,CHAR_INFO_HP_BASE)   = ( 300 + chardef_info(arg_chardefid,CHARDEF_INFO_HP)*10 ) * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_HP)/100 + char_info(sub_charid,CHAR_INFO_LV) * chardef_info(arg_chardefid,CHARDEF_INFO_HP)/4 * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_HP)/100		; 基本HP
+	char_info(sub_charid,CHAR_INFO_HP)        = 999999	; あとで上限調整するので仮の値
+	char_info(sub_charid,CHAR_INFO_AP_BASE)   = ( 10 + chardef_info(arg_chardefid,CHARDEF_INFO_AP) ) * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_AP)/100		; 基本AP
+	char_info(sub_charid,CHAR_INFO_AP)        = 999	; あとで上限調整するので仮の値
+	char_info(sub_charid,CHAR_INFO_ATC_BASE)  = ( 75 + chardef_info(arg_chardefid,CHARDEF_INFO_ATC)*5 ) * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_ATC)/100 + char_info(sub_charid,CHAR_INFO_LV) * chardef_info(arg_chardefid,CHARDEF_INFO_ATC)/4 * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_ATC)/100		; 基本物理攻撃力
+	char_info(sub_charid,CHAR_INFO_DEF_BASE)  = ( 75 + chardef_info(arg_chardefid,CHARDEF_INFO_DEF)*5 ) * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_DEF)/100 + char_info(sub_charid,CHAR_INFO_LV) * chardef_info(arg_chardefid,CHARDEF_INFO_DEF)/4 * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_DEF)/100		; 基本物理防御力
+	char_info(sub_charid,CHAR_INFO_MAT_BASE)  = ( 75 + chardef_info(arg_chardefid,CHARDEF_INFO_MAT)*5 ) * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_MAT)/100 + char_info(sub_charid,CHAR_INFO_LV) * chardef_info(arg_chardefid,CHARDEF_INFO_MAT)/4 * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_MAT)/100		; 基本魔法攻撃力
+	char_info(sub_charid,CHAR_INFO_MDF_BASE)  = ( 75 + chardef_info(arg_chardefid,CHARDEF_INFO_MDF)*5 ) * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_MDF)/100 + char_info(sub_charid,CHAR_INFO_LV) * chardef_info(arg_chardefid,CHARDEF_INFO_MDF)/4 * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_MDF)/100		; 基本魔法防御力
+	char_info(sub_charid,CHAR_INFO_SPD_BASE)  = ( 50 + chardef_info(arg_chardefid,CHARDEF_INFO_SPD)*5 ) * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_SPD)/100		; 基本速度
+	char_info(sub_charid,CHAR_INFO_SRC_BASE)  = chardef_info(arg_chardefid,CHARDEF_INFO_SRC)*10 * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_SRC)/100		; 基本探索
+	char_info(sub_charid,CHAR_INFO_PRD_BASE)  = chardef_info(arg_chardefid,CHARDEF_INFO_PRD)*10 * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_PRD)/100		; 基本生成
+	char_info(sub_charid,CHAR_INFO_COM_BASE)  = chardef_info(arg_chardefid,CHARDEF_INFO_COM)*10 * class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_COM)/100		; 基本物話術
+	char_info(sub_charid,CHAR_INFO_STAN_BASE) = CHAR_INFO_STAN_DEFAULT	; 基本スタン許容量
+	char_info(sub_charid,CHAR_INFO_STAN)      = 0						; 現在スタン値
+	; クラスのスキル
+	sub_skillnum = 0
+	for sub_i,0,CLASS_INFO_SKILL_MAX
+		if class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_SKILL+sub_i) > 0 {
+			char_info(sub_charid,CHAR_INFO_SKILL+sub_skillnum) = class_info(char_info(sub_charid,CHAR_INFO_CLASS),CLASS_INFO_SKILL+sub_i)		; 習得スキル(0:なし)
+			sub_skillnum += 1
+		}
+	next
+	
+	; キャラクタ定義のスキル
+	for sub_i,0,CHARDEF_INFO_SKILL_MAX
+		if chardef_info(arg_chardefid,CHARDEF_INFO_SKILL+sub_i) > 0 {
+			char_info(sub_charid,CHAR_INFO_SKILL+sub_skillnum)  = chardef_info(arg_chardefid,CHARDEF_INFO_SKILL+sub_i)		; 習得スキル(0:なし)
+			sub_skillnum += 1
+		}
+	next
+
+	; キャラクターの能力を変動割合を再計算する
+	sub_calcu_param_rate arg_charid
+
+	; キャラクターの特性を再計算する
+	sub_calcu_attribute_char arg_charid
+
+	return
+
+; レベル変動のあるキャラクターのパラメータを再計算する
+;   arg1(charid):    キャラクターID
+#deffunc sub_calcu_param_char_by_lvdiff int arg_charid
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_calcu_param_char_by_lvdiff args=%d",arg_charid)
+	
+	char_info(arg_charid,CHAR_INFO_HP_BASE)   = ( 300 + chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_HP)*10 ) * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_HP)/100 + char_info(arg_charid,CHAR_INFO_LV) * chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_HP)/4 * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_HP)/100		; 基本HP
+	char_info(arg_charid,CHAR_INFO_AP_BASE)   = ( 10 + chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_AP) ) * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_AP)/100		; 基本AP
+	char_info(arg_charid,CHAR_INFO_ATC_BASE)  = ( 75 + chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_ATC)*5 ) * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_ATC)/100 + char_info(arg_charid,CHAR_INFO_LV) * chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_ATC)/4 * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_ATC)/100		; 基本物理攻撃力
+	char_info(arg_charid,CHAR_INFO_DEF_BASE)  = ( 75 + chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_DEF)*5 ) * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_DEF)/100 + char_info(arg_charid,CHAR_INFO_LV) * chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_DEF)/4 * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_DEF)/100		; 基本物理防御力
+	char_info(arg_charid,CHAR_INFO_MAT_BASE)  = ( 75 + chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_MAT)*5 ) * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_MAT)/100 + char_info(arg_charid,CHAR_INFO_LV) * chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_MAT)/4 * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_MAT)/100		; 基本魔法攻撃力
+	char_info(arg_charid,CHAR_INFO_MDF_BASE)  = ( 75 + chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_MDF)*5 ) * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_MDF)/100 + char_info(arg_charid,CHAR_INFO_LV) * chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_MDF)/4 * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_MDF)/100		; 基本魔法防御力
+	char_info(arg_charid,CHAR_INFO_SPD_BASE)  = ( 50 + chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_SPD)*5 ) * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_SPD)/100		; 基本速度
+	char_info(arg_charid,CHAR_INFO_SRC_BASE)  = chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_SRC)*10 * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_SRC)/100		; 基本探索
+	char_info(arg_charid,CHAR_INFO_PRD_BASE)  = chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_PRD)*10 * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_PRD)/100		; 基本生成
+	char_info(arg_charid,CHAR_INFO_COM_BASE)  = chardef_info(char_info(arg_charid,CHAR_INFO_BASE_CHARDEF),CHARDEF_INFO_COM)*10 * class_info(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_INFO_RATE_COM)/100		; 基本物話術
+
+	; キャラクターの能力を変動割合を再計算する
+	sub_calcu_param_rate arg_charid
+
+	return
+
+; キャラクターにスキルを追加する
+;   arg1(charid):  キャラクターID
+;   arg2(skillid): スキルID
+#deffunc sub_add_skill_char int arg_charid, int arg_skillid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_add_skill_char args=%d,%d",arg_charid, arg_skillid)
+
+	for sub_i,0,CHAR_INFO_SKILL_MAX
+		if char_info(arg_charid, CHAR_INFO_SKILL+sub_i) == arg_skillid {
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D already exist skill charid=%d, skillid=%d",arg_charid, arg_skillid)
+			return
+		}
+	next
+
+	for sub_i,0,CHAR_INFO_SKILL_MAX
+		if char_info(arg_charid, CHAR_INFO_SKILL+sub_i) <= 0 {
+			char_info(arg_charid, CHAR_INFO_SKILL+sub_i) = arg_skillid
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D add skill success charid=%d, skillid=%d",arg_charid, arg_skillid)
+			
+			; キャラクターの能力を変動割合を再計算する
+			sub_calcu_param_rate arg_charid
+		
+			; キャラクターの特性を再計算する
+			sub_calcu_attribute_char arg_charid
+			return
+		}
+	next
+
+	if DEBUG_LEVEL & LOG_WARNING :logmes strf("W cannot add skill charid=%d, skillid=%d",arg_charid,  arg_skillid)
+	
+	return
+
+; キャラクターの特性を再計算する
+;   arg1(charid):    キャラクターID
+#deffunc sub_calcu_attribute_char int arg_charid
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_calcu_attribute_char args=%d",arg_charid)
+
+	char_info(arg_charid, CHAR_INFO_ARRTIBUTE) = 0
+
+	for sub_i,0,CHAR_INFO_SKILL_MAX
+		if char_info(arg_charid, CHAR_INFO_SKILL+sub_i) <= 0 : _continue
+
+		if skill_info(char_info(arg_charid, CHAR_INFO_SKILL+sub_i), SKILL_INFO_TRIGGER) == SKILL_INFO_SKILLTYPE_ACTIVE {
+			if ( skill_info(char_info(arg_charid, CHAR_INFO_SKILL+sub_i), SKILL_INFO_FLAG) & SKILL_INFO_FLAG_COVER ) > 0 {
+				char_info(arg_charid, CHAR_INFO_ARRTIBUTE) |= CHAR_INFO_ARRTIBUTE_COVER	; 味方ガード持ち
+			}
+			switch skill_info(char_info(arg_charid, CHAR_INFO_SKILL+sub_i), SKILL_INFO_TYPE)
+			case SKILL_INFO_TYPE_ACT_ATTACKP	; 攻撃(物攻を参照)
+			case SKILL_INFO_TYPE_ACT_ATTACKM	; 攻撃(魔攻を参照)
+				if skill_info(char_info(arg_charid, CHAR_INFO_SKILL+sub_i), SKILL_INFO_POWER) * skill_info(char_info(arg_charid, CHAR_INFO_SKILL+sub_i), SKILL_INFO_COUNT) >= 200 {
+					char_info(arg_charid, CHAR_INFO_ARRTIBUTE) |= CHAR_INFO_ARRTIBUTE_ATTACK	; 高火力スキル持ち
+				}
+				swbreak
+			case SKILL_INFO_TYPE_ACT_HEAL		; 回復
+				char_info(arg_charid, CHAR_INFO_ARRTIBUTE) |= CHAR_INFO_ARRTIBUTE_HEAL	; 回復スキル持ち
+				swbreak
+			case SKILL_INFO_TYPE_ACT_SUPPORT	; 補助(攻撃や回復がなく追加効果メイン)			
+				swbreak
+			swend
+		}
+	next
+
+	return
+		
+; キャラクターの能力を変動割合を再計算する
+;   arg1(charid):    キャラクターID
+#deffunc sub_calcu_param_rate int arg_charid
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_calcu_param. args=%d",arg_charid)
+
+	char_info(arg_charid,CHAR_INFO_HP_RATE) = 100
+	char_info(arg_charid,CHAR_INFO_AP_RATE) = 100
+	char_info(arg_charid,CHAR_INFO_ATC_RATE) = 100
+	char_info(arg_charid,CHAR_INFO_DEF_RATE) = 100
+	char_info(arg_charid,CHAR_INFO_MAT_RATE) = 100
+	char_info(arg_charid,CHAR_INFO_MDF_RATE) = 100
+	char_info(arg_charid,CHAR_INFO_SPD_RATE) = 100
+	char_info(arg_charid,CHAR_INFO_SRC_RATE) = 100
+	char_info(arg_charid,CHAR_INFO_PRD_RATE) = 100
+	char_info(arg_charid,CHAR_INFO_COM_RATE) = 100
+	char_info(arg_charid,CHAR_INFO_STAN_RATE) = 100
+	for sub_i,0,ELEMENT_LMAX
+		char_info(arg_charid,CHAR_INFO_ELEM_ATC_RATE+sub_i) = 100	; 属性別与ダメ変動割合(標準100)
+		char_info(arg_charid,CHAR_INFO_ELEM_DEF_RATE+sub_i) = 100	; 属性別被ダメ変動割合(標準100)
+	next
+	
+	; 弱点による補正（1個につき、HP+25%、物防/魔防+10%）
+	for sub_i,1,ELEMENT_LMAX	; 無属性は処理しない
+		if ( char_info(arg_charid,CHAR_INFO_WEAK) && ELEMENT_ALLS(sub_i) ) > 0 {
+			char_info(arg_charid,CHAR_INFO_HP_RATE) += 25
+			char_info(arg_charid,CHAR_INFO_DEF_RATE) += 10
+			char_info(arg_charid,CHAR_INFO_MDF_RATE) += 10
+		}
+	next
+
+	; パッシブスキルによる補正
+	for sub_i,0,CHAR_INFO_SKILL_MAX
+		sub_skill = char_info(arg_charid,CHAR_INFO_SKILL+sub_i)
+		; パッシブスキル
+		if skill_info(sub_skill,SKILL_INFO_TRIGGER) == SKILL_INFO_SKILLTYPE_PASSIVE {
+			; パラメータ変化（割合）
+			if skill_info(sub_skill,SKILL_INFO_TYPE) == SKILL_INFO_TYPE_PASS_PARAM {
+				; スキルの発動条件は常時
+				if skill_info(sub_skill,SKILL_INFO_CONDITIONS) == SKILL_INFO_COND_ALWAYS {
+					; 範囲は自分
+					if skill_info(sub_skill,SKILL_INFO_RANGE) == SKILL_INFO_RANGE_ME {
+						char_info(arg_charid,char_info_param_rate_mapping(skill_info(sub_skill,SKILL_INFO_ELEMENT))) += skill_info(sub_skill,SKILL_INFO_POWER)
+						; skill_info(sub_skill,SKILL_INFO_RANGE)   = SKILL_INFO_RANGE_ME		; スキルの範囲
+						; skill_info(sub_skill,SKILL_INFO_POWER)   = 100		; パッシブスキルによっては参照（効果量）
+						; skill_info(sub_skill,SKILL_INFO_ELEMENT) = PARAM_HP		; パッシブスキルによっては参照（パラメータ種類）
+					}
+				}
+			}
+		}
+	next
+
+	; バフによる補正
+	for sub_i,0,BUFF_MAX
+		; 永続バフの場合はBUFF_VALUEの分だけ効果量を倍加する
+		sub_times = 1
+		if buff_info(sub_i,BUFF_INFO_EFFECTIVE) == BUFF_INFO_EFFECTIVE_PERMANENT {
+			sub_times = char_info(arg_charid,CHAR_INFO_BUFF_VALUE+sub_i)
+		}
+		; BUFF_INFO_TYPE_PARAM    1	; パラメータ変化（割合）
+		if buff_info(sub_i,BUFF_INFO_TYPE) == BUFF_INFO_TYPE_PARAM {
+			if char_info(arg_charid,CHAR_INFO_BUFF_VALUE+sub_i) > 0 {
+				if buff_info(sub_i,BUFF_INFO_VALUE1) > 0 {
+					char_info(arg_charid,char_info_param_rate_mapping(buff_info(sub_i,BUFF_INFO_VALUE1))) += buff_info(sub_i,BUFF_INFO_VALUE2) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE3) > 0 {
+					char_info(arg_charid,char_info_param_rate_mapping(buff_info(sub_i,BUFF_INFO_VALUE3))) += buff_info(sub_i,BUFF_INFO_VALUE4) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE5) > 0 {
+					char_info(arg_charid,char_info_param_rate_mapping(buff_info(sub_i,BUFF_INFO_VALUE5))) += buff_info(sub_i,BUFF_INFO_VALUE6) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE7) > 0 {
+					char_info(arg_charid,char_info_param_rate_mapping(buff_info(sub_i,BUFF_INFO_VALUE7))) += buff_info(sub_i,BUFF_INFO_VALUE8) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE9) > 0 {
+					char_info(arg_charid,char_info_param_rate_mapping(buff_info(sub_i,BUFF_INFO_VALUE9))) += buff_info(sub_i,BUFF_INFO_VALUE10) * sub_times
+				}
+			}
+		}
+		; BUFF_INFO_TYPE_ATC_ELEM 3	; 属性別与ダメ変動（割合）
+		if buff_info(sub_i,BUFF_INFO_TYPE) == BUFF_INFO_TYPE_ATC_ELEM {
+			if char_info(arg_charid,CHAR_INFO_BUFF_VALUE+sub_i) > 0 {
+				if buff_info(sub_i,BUFF_INFO_VALUE2) > 0 {
+					char_info(arg_charid,CHAR_INFO_ELEM_ATC_RATE+buff_info(sub_i,BUFF_INFO_VALUE1)) += buff_info(sub_i,BUFF_INFO_VALUE2) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE4) > 0 {
+					char_info(arg_charid,CHAR_INFO_ELEM_ATC_RATE+buff_info(sub_i,BUFF_INFO_VALUE3)) += buff_info(sub_i,BUFF_INFO_VALUE4) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE6) > 0 {
+					char_info(arg_charid,CHAR_INFO_ELEM_ATC_RATE+buff_info(sub_i,BUFF_INFO_VALUE5)) += buff_info(sub_i,BUFF_INFO_VALUE6) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE8) > 0 {
+					char_info(arg_charid,CHAR_INFO_ELEM_ATC_RATE+buff_info(sub_i,BUFF_INFO_VALUE7)) += buff_info(sub_i,BUFF_INFO_VALUE8) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE10) > 0 {
+					char_info(arg_charid,CHAR_INFO_ELEM_ATC_RATE+buff_info(sub_i,BUFF_INFO_VALUE9)) += buff_info(sub_i,BUFF_INFO_VALUE10) * sub_times
+				}
+			}
+		}
+		; BUFF_INFO_TYPE_DEF_ELEM 4	; 属性別被ダメ変動（割合）
+		if buff_info(sub_i,BUFF_INFO_TYPE) == BUFF_INFO_TYPE_DEF_ELEM {
+			if char_info(arg_charid,CHAR_INFO_BUFF_VALUE+sub_i) > 0 {
+				if buff_info(sub_i,BUFF_INFO_VALUE2) > 0 {
+					char_info(arg_charid,CHAR_INFO_ELEM_DEF_RATE+buff_info(sub_i,BUFF_INFO_VALUE1)) += buff_info(sub_i,BUFF_INFO_VALUE2) * sub_times
+					if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D add ELEM_DEF_RATE VALUE1/2 charid=%d, buffid=%d, add_elem=%d, add_value=%d", arg_charid, sub_i, buff_info(sub_i,BUFF_INFO_VALUE1), buff_info(sub_i,BUFF_INFO_VALUE2))
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE4) > 0 {
+					char_info(arg_charid,CHAR_INFO_ELEM_DEF_RATE+buff_info(sub_i,BUFF_INFO_VALUE3)) += buff_info(sub_i,BUFF_INFO_VALUE4) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE6) > 0 {
+					char_info(arg_charid,CHAR_INFO_ELEM_DEF_RATE+buff_info(sub_i,BUFF_INFO_VALUE5)) += buff_info(sub_i,BUFF_INFO_VALUE6) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE8) > 0 {
+					char_info(arg_charid,CHAR_INFO_ELEM_DEF_RATE+buff_info(sub_i,BUFF_INFO_VALUE7)) += buff_info(sub_i,BUFF_INFO_VALUE8) * sub_times
+				}
+				if buff_info(sub_i,BUFF_INFO_VALUE10) > 0 {
+					char_info(arg_charid,CHAR_INFO_ELEM_DEF_RATE+buff_info(sub_i,BUFF_INFO_VALUE9)) += buff_info(sub_i,BUFF_INFO_VALUE10) * sub_times
+				}
+			}			
+		}
+	next
+
+	; スタン復帰回数による補正
+	if char_info(arg_charid,CHAR_INFO_STAN_COUNT) > 0 {
+		char_info(arg_charid,CHAR_INFO_STAN_RATE) += 50
+	}
+	
+	; RATEの下限値制御
+	for sub_param,1,PARAM_MAX
+		if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D char_info_param_rate_mapping(%d)=%d", sub_param, char_info_param_rate_mapping(sub_param))
+		if char_info(arg_charid,char_info_param_rate_mapping(sub_param)) < CHAR_INFO_RATE_MIN : char_info(arg_charid,char_info_param_rate_mapping(sub_param)) = CHAR_INFO_RATE_MIN
+	next
+	for sub_elem,0,ELEMENT_LMAX
+		if char_info(arg_charid,CHAR_INFO_ELEM_ATC_RATE+sub_elem) < CHAR_INFO_RATE_MIN : char_info(arg_charid,CHAR_INFO_ELEM_ATC_RATE+sub_elem) = CHAR_INFO_RATE_MIN
+		if char_info(arg_charid,CHAR_INFO_ELEM_DEF_RATE+sub_elem) < CHAR_INFO_RATE_MIN : char_info(arg_charid,CHAR_INFO_ELEM_DEF_RATE+sub_elem) = CHAR_INFO_RATE_MIN
+	next
+		
+	; キャラクターの能力を基本値、割合から計算する
+	sub_calcu_param arg_charid
+
+	return
+
+; キャラクターの能力を基本値、割合から計算する
+;   arg1(charid):    キャラクターID
+#deffunc sub_calcu_param int arg_charid
+	if DEBUG_MODE == 1 :logmes strf("I call sub_calcu_param. args=%d",arg_charid)
+
+	char_info(arg_charid,CHAR_INFO_HP_MAX)   = char_info(arg_charid,CHAR_INFO_HP_BASE) * char_info(arg_charid,CHAR_INFO_HP_RATE)/100		; 最大HP
+	char_info(arg_charid,CHAR_INFO_AP_MAX)   = char_info(arg_charid,CHAR_INFO_AP_BASE) * char_info(arg_charid,CHAR_INFO_AP_RATE)/100		; 最大HP
+
+
+	; 現在HPは上限調整
+	if char_info(arg_charid,CHAR_INFO_HP) > char_info(arg_charid,CHAR_INFO_HP_MAX) {
+		char_info(arg_charid,CHAR_INFO_HP) = char_info(arg_charid,CHAR_INFO_HP_MAX)	; 現在HP
+		; 現在HPが上限調整された場合のみ変更予定HPも変更する
+		if char_info(arg_charid,CHAR_INFO_HP_REV) > char_info(arg_charid,CHAR_INFO_HP_MAX) {
+			char_info(arg_charid,CHAR_INFO_HP_REV) = char_info(arg_charid,CHAR_INFO_HP)	; 変更予定HP
+		}
+	}
+	
+	; 現在APは上限調整
+	if char_info(arg_charid,CHAR_INFO_AP) > char_info(arg_charid,CHAR_INFO_AP_MAX) {
+		char_info(arg_charid,CHAR_INFO_AP) = char_info(arg_charid,CHAR_INFO_AP_MAX)	; 現在AP
+		; 現在APが上限調整された場合のみ変更予定APも変更する
+		if char_info(arg_charid,CHAR_INFO_AP_REV) > char_info(arg_charid,CHAR_INFO_AP_MAX) {
+			char_info(arg_charid,CHAR_INFO_AP_REV) = char_info(arg_charid,CHAR_INFO_AP)	; 変更予定AP
+		}
+	}
+	
+	char_info(arg_charid,CHAR_INFO_ATC)      = char_info(arg_charid,CHAR_INFO_ATC_BASE)  * char_info(arg_charid,CHAR_INFO_ATC_RATE)/100		; 現在物理攻撃力
+	char_info(arg_charid,CHAR_INFO_DEF)      = char_info(arg_charid,CHAR_INFO_DEF_BASE)  * char_info(arg_charid,CHAR_INFO_DEF_RATE)/100		; 物理防御力
+	char_info(arg_charid,CHAR_INFO_MAT)      = char_info(arg_charid,CHAR_INFO_MAT_BASE)  * char_info(arg_charid,CHAR_INFO_MAT_RATE)/100		; 魔法攻撃力
+	char_info(arg_charid,CHAR_INFO_MDF)      = char_info(arg_charid,CHAR_INFO_MDF_BASE)  * char_info(arg_charid,CHAR_INFO_MDF_RATE)/100		; 魔法防御力
+	char_info(arg_charid,CHAR_INFO_SPD)      = char_info(arg_charid,CHAR_INFO_SPD_BASE)  * char_info(arg_charid,CHAR_INFO_SPD_RATE)/100		; 速度
+	char_info(arg_charid,CHAR_INFO_SRC)      = char_info(arg_charid,CHAR_INFO_SRC_BASE)  * char_info(arg_charid,CHAR_INFO_SRC_RATE)/100		; 探索
+	char_info(arg_charid,CHAR_INFO_PRD)      = char_info(arg_charid,CHAR_INFO_PRD_BASE)  * char_info(arg_charid,CHAR_INFO_PRD_RATE)/100		; 生成
+	char_info(arg_charid,CHAR_INFO_COM)      = char_info(arg_charid,CHAR_INFO_COM_BASE)  * char_info(arg_charid,CHAR_INFO_COM_RATE)/100		; 話術
+	char_info(arg_charid,CHAR_INFO_STAN_MAX) = char_info(arg_charid,CHAR_INFO_STAN_BASE) * char_info(arg_charid,CHAR_INFO_STAN_RATE)/100	; スタン許容量
+
+	; キャラクターの総戦力を再計算する
+	sub_calcu_power arg_charid
+
+	return
+
+; キャラのCOVER値を減らす
+;   arg1(charid): キャラクターID
+;   arg2(value):  減らすCOVER値
+#deffunc sub_reduce_char_cover int arg_charid, int arg_value
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_reduce_char_cover args=%d,%d",arg_charid, arg_value)
+
+	sub_reduce_cover = arg_value
+	
+	for sub_buffid,0,BUFF_MAX
+		if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D buffid=%d", sub_buffid)
+		if buff_info(sub_buffid,BUFF_INFO_TYPE) == BUFF_INFO_TYPE_COVER {
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D buffid=%d is TYPE_COVER, BUFF_VALUE=%d", sub_buffid, char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid))
+			if char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid) > 0 {
+				if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D reduce_cover=%d, buffid=%d, BUFF_VALUE=%d", sub_reduce_cover, sub_buffid, char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid))
+				if char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid) >= sub_reduce_cover {
+					char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid) -= sub_reduce_cover
+					sub_reduce_cover = 0
+				} else {
+					sub_reduce_cover -= char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid)
+					char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid) = 0
+				}
+			}
+		}
+		if sub_reduce_cover <= 0 : _break
+	next
+
+	; キャラフラグを更新する
+	sub_calcu_char_flag arg_charid
+
+	return
+
+; バフの残り回数を減らす
+;   arg1(charid): キャラクターID
+;   arg2(flag):   フラグ
+;		CHAR_INFO_FLAG_COVER    ; かばう持ち
+;		CHAR_INFO_FLAG_APREDUCE ; AP消費削減
+;		CHAR_INFO_FLAG_INVALID_ATC ; 攻撃無効化(1しか減らせない)
+;   arg3(value):  減らす値/攻撃無効化は属性
+#deffunc sub_reduce_char_buff_count_by_flag int arg_charid, int arg_flag, int arg_value
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_reduce_char_buff_count args=%d,%d,%d",arg_charid, arg_flag, arg_value)
+	
+	sub_bufftype = -1
+	switch arg_flag
+	case CHAR_INFO_FLAG_COVER    ; かばう持ち
+		sub_bufftype = BUFF_INFO_TYPE_COVER
+		swbreak
+	case CHAR_INFO_FLAG_APREDUCE ; AP消費削減
+		sub_bufftype = BUFF_INFO_TYPE_AP_REDUCE
+		swbreak
+	case CHAR_INFO_FLAG_INVALID_ATC ; 攻撃無効化
+		sub_bufftype = BUFF_INFO_TYPE_INVALID_ATC
+		swbreak
+	swend
+	
+	for sub_buffid,0,BUFF_MAX
+		if buff_info(sub_buffid,BUFF_INFO_TYPE) == sub_bufftype {
+			if char_info(arg_charid,CHAR_INFO_BUFF_VALUE+sub_buffid) > 0 {
+				if sub_bufftype == BUFF_INFO_TYPE_INVALID_ATC {
+					; 属性が一致したバフだけが対象
+					if ( arg_value & buff_info(sub_buffid,BUFF_INFO_VALUE1) ) > 0 {
+						; バフの残り回数を1減らす
+						sub_reduce_char_buff_count arg_charid, sub_buffid, 1
+					}
+				} else {
+					; バフの残り回数を減らす
+					sub_reduce_char_buff_count arg_charid, sub_buffid, arg_value
+				}
+			}
+		}
+	next
+	
+	return
+
+; バフの残り回数を減らす
+;   arg1(charid): キャラクターID
+;   arg2(buffid): バフID
+;   arg3(value):  減らす値
+#deffunc sub_reduce_char_buff_count int arg_charid, int arg_buffid, int arg_value
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_reduce_char_buff_count args=%d,%d,%d",arg_charid, arg_buffid, arg_value)
+	
+	if buff_info(arg_buffid,BUFF_INFO_EFFECTIVE) != BUFF_INFO_EFFECTIVE_COUNT {
+		if DEBUG_LEVEL & LOG_WARNING :logmes strf("W buffid %d is not BUFF_INFO_EFFECTIVE_COUNT in sub_reduce_char_buff_count",arg_buffid)
+		return
+	}
+
+	if char_info(arg_charid,CHAR_INFO_BUFF_VALUE+arg_buffid) <= 0 {
+		if DEBUG_LEVEL & LOG_WARNING :logmes strf("W charid %d buffid %d is already 0 or under(%d) in sub_reduce_char_buff_count",arg_charid,arg_buffid,char_info(arg_charid,CHAR_INFO_BUFF_VALUE+arg_buffid))
+		return
+	}
+
+	char_info(arg_charid,CHAR_INFO_BUFF_VALUE+arg_buffid) -= arg_value
+	if char_info(arg_charid,CHAR_INFO_BUFF_VALUE+arg_buffid) < 0 : char_info(arg_charid,CHAR_INFO_BUFF_VALUE+arg_buffid) = 0
+	
+	; キャラフラグを更新する
+	sub_calcu_char_flag arg_charid
+
+	return
+
+; キャラのHPが0ならダウン状態にし、アニメーションキューに追加する
+;   arg1(bcharid): BキャラID
+#deffunc sub_set_char_down_by_bchar int arg_bcharid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_set_char_down_by_bchar args=%d",arg_bcharid)
+
+	if char_info(battle_char(arg_bcharid),CHAR_INFO_DOWN) == 1 : return
+
+	; キャラのHPが0ならダウン状態に
+	sub_set_char_dowm battle_char(arg_bcharid)
+
+	; 今回でダウンになった
+	if char_info(battle_char(arg_bcharid),CHAR_INFO_DOWN) == 1 {
+
+		if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D charid %d is set down",battle_char(arg_bcharid))
+		
+		;; アニメーションをキューに追加する（アニメーションは未実装）
+		;sub_battle_enqueue_anime arg_bcharid, QUEUE_ANIME_INFO_TYPE_ANIME, -1, BUFF_STAN_ANIMEID, -1, -1
+		;battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TICGO
+
+		; 戦果を変動させる
+		if arg_bcharid < BATTLE_CHAR_MAX{
+			battle_info(BATTLE_INFO_CONQUERE) -= BATTLE_INFO_CONQUERE_BEAT
+		} else {
+			battle_info(BATTLE_INFO_CONQUERE) += BATTLE_INFO_CONQUERE_BEAT
+		}
+		if battle_info(BATTLE_INFO_CONQUERE) > BATTLE_INFO_CONQUERE_MAX : battle_info(BATTLE_INFO_CONQUERE) = BATTLE_INFO_CONQUERE_MAX
+		if battle_info(BATTLE_INFO_CONQUERE) < BATTLE_INFO_CONQUERE_MIN : battle_info(BATTLE_INFO_CONQUERE) = BATTLE_INFO_CONQUERE_MIN
+	}
+	
+	return
+	
+; キャラのスタン値が許容量を超えていればスタン状態にし、アニメーションキューに追加する
+;   arg1(bcharid): BキャラID
+#deffunc sub_set_char_stan_by_bchar int arg_bcharid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_set_char_stan_by_bchar args=%d",arg_bcharid)
+
+	if char_info(battle_char(arg_bcharid),CHAR_INFO_STAN_STATE) == 1 : return
+
+	; キャラのスタン値が許容量を超えていればスタン状態に
+	sub_set_char_stan battle_char(arg_bcharid)
+
+	; 今回でスタンになった
+	if char_info(battle_char(arg_bcharid),CHAR_INFO_STAN_STATE) == 1 {
+
+		; 指定したBキャラにバフを付与する
+		sub_battle_add_buff arg_bcharid, BUFF_STAN_BUFFID, 1
+		; アニメーションをキューに追加する
+		sub_battle_enqueue_anime arg_bcharid, QUEUE_ANIME_INFO_TYPE_ANIME, -1, BUFF_STAN_ANIMEID, -1, -1
+		; バフ付与アニメーションをキューに追加する
+		sub_battle_enqueue_buff arg_bcharid, BUFF_STAN_BUFFID, -1
+		; ちょっとの間スロー再生する
+		battle_info(BATTLE_INFO_SLOW_FRAME) = BUFF_STAN_SLOW_FRAME
+		; 効果音を鳴らす
+		if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 : sub_play_sound BUFF_STAN_SOUNDID
+	}
+	
+	return
+
+; キャラのスタン値が許容量を超えていればスタン状態に
+;   arg1(charid): キャラクターID
+#deffunc sub_set_char_stan int arg_charid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_set_char_stan args=%d",arg_charid)
+	
+	if char_info(arg_charid,CHAR_INFO_STAN_STATE) == 1 : return
+
+	if char_info(arg_charid,CHAR_INFO_STAN) >= char_info(arg_charid,CHAR_INFO_STAN_MAX) {
+		char_info(arg_charid,CHAR_INFO_STAN_STATE) = 1
+		; ターン取得の取り消し
+		char_info(arg_charid,CHAR_INFO_GETTURN) = 0
+		; キャラがスタン状態であれば共存できないバフを消去する
+		sub_del_char_buff_by_stan arg_charid
+		; キャラフラグを更新する
+		sub_calcu_char_flag arg_charid
+		; 要準備のスキルは解除される
+		char_info(arg_charid, CHAR_INFO_RESERVE_MODE) = 0
+		char_info(arg_charid, CHAR_INFO_AUTO_EXEC_SKILL) = 0
+		for sub_bchar,0,BATTLE_CHAR_MAX*2
+			char_info_auto_exec_targets(arg_charid,sub_bchar) = -1	; 0がデータとして入る可能性があるので-1で初期化
+		next
+	}
+	
+	return
+
+; キャラがスタン状態でスタン値が0になっていれば復帰し、アニメーションキューに追加する
+;   arg1(bcharid): BキャラID
+#deffunc sub_recover_char_stan_by_bchar int arg_bcharid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_recover_char_stan_by_bchar args=%d",arg_bcharid)
+
+	if char_info(battle_char(arg_bcharid),CHAR_INFO_STAN_STATE) == 0 : return
+
+	; キャラがスタン状態でスタン値が0になっていれば復帰
+	sub_recover_char_stan battle_char(arg_bcharid)
+
+	; 今回でスタンから復帰した
+	if char_info(battle_char(arg_bcharid),CHAR_INFO_STAN_STATE) == 0 {
+		if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D stan recover sub_recover_char_stan_by_bchar charid=%d",battle_char(arg_bcharid))
+		
+		; 指定したBキャラのバフを消去する
+		sub_battle_del_buff arg_bcharid, BUFF_STAN_BUFFID
+		; アニメーションをキューに追加する
+		sub_battle_enqueue_anime arg_bcharid, QUEUE_ANIME_INFO_TYPE_ANIME, -1, BUFF_STAN_ANIMEID_RECOVER, -1, -1
+		; お返しバフを付与する
+		sub_battle_add_buff arg_bcharid, BUFF_STAN_BUFFID_RECOVER, 1
+		; キャラフラグを更新する
+		sub_calcu_char_flag battle_char(arg_bcharid)
+		; 効果音を鳴らす
+		if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 : sub_play_sound BUFF_STAN_SOUNDID_RECOVER
+
+		; お返しスキルを決定する
+		sub_create_menu_battle battle_char(arg_bcharid)
+		sub_vote_menu_battle MENU_LIST_BATTLE_VOTE_USEAP, 1
+		sub_decide_menu_battle MENU_LIST_BATTLE_DECIDE_MAX
+		char_info(battle_char(arg_bcharid),CHAR_INFO_AUTO_DECIDE_SKILL) = menu_list_battle_skill(menu_list_battle_select)
+		; お返しスキルの範囲を決定する
+		sub_create_menu_bchar arg_bcharid, char_info(battle_char(arg_bcharid),CHAR_INFO_AUTO_DECIDE_SKILL)
+		sub_vote_menu_bchar MENU_LIST_BCHAR_VOTE_RANDOM, 1
+		sub_decide_menu_bchar MENU_LIST_BCHAR_DECIDE_MAX
+		for sub_i,0,MENU_LIST_BCHAR_MAX
+			char_info_auto_decide_targets(battle_char(arg_bcharid),sub_i) = menu_list_bchar_select_bchar(sub_i)
+		next
+		; メニューを閉じる
+		menu_list_battle_active = 0
+		menu_list_bchar_active = 0
+		; リコイルを0にする
+		char_info(battle_char(arg_bcharid),CHAR_INFO_RECOIL) = 0
+		; リコイルが0になればターン取得
+		if char_info(sub_charid,CHAR_INFO_RECOIL) == 0 {
+			char_info(sub_charid,CHAR_INFO_GETTURN) = 1
+		} 
+		
+		battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TICGO
+	}
+	
+	return
+	
+; キャラがスタン状態でスタン値が0になっていれば復帰
+;   arg1(charid): キャラクターID
+#deffunc sub_recover_char_stan int arg_charid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_recover_char_stan args=%d",arg_charid)
+	
+	if char_info(arg_charid,CHAR_INFO_STAN_STATE) == 0 : return
+
+	if char_info(arg_charid,CHAR_INFO_STAN) <= 0 {
+		char_info(arg_charid,CHAR_INFO_STAN_STATE) = 0
+		char_info(arg_charid,CHAR_INFO_STAN_COUNT) += 1
+		; キャラフラグを更新する
+		sub_calcu_char_flag arg_charid
+	}
+	
+	return
+	
+; キャラがスタン状態であれば共存できないバフを消去する
+;   arg1(charid): キャラクターID
+#deffunc sub_del_char_buff_by_stan int arg_charid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_del_char_buff_by_stan args=%d",arg_charid)
+
+	if char_info(arg_charid,CHAR_INFO_STAN_STATE) == 0 : return
+
+	for sub_buffid,0,BUFF_MAX
+		if buff_info(sub_buffid,BUFF_INFO_DEL_STAN) == 1 {	; スタン時に消去されるか(1:される)
+			char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid) = 0
+		}
+	next
+	
+	; キャラが行動不能状態であれば共存できないバフを消去する
+	sub_del_char_buff_by_nomove arg_charid
+
+	return
+	
+; キャラが行動不能状態であれば共存できないバフを消去する
+;   arg1(charid): キャラクターID
+#deffunc sub_del_char_buff_by_nomove int arg_charid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_del_char_buff_by_nomove args=%d",arg_charid)
+
+	if char_info(arg_charid,CHAR_INFO_FLAG_NOMOVE) == 0 : return
+
+	for sub_buffid,0,BUFF_MAX
+		if buff_info(sub_buffid,BUFF_INFO_DEL_NOMOVE) == 1 {	; 行動不能時に消去されるか(1:される)
+			char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid) = 0
+		}
+	next
+
+	return
+
+; キャラがダウン状態であれば共存できないバフを消去する（基本的にすべて消去）
+;   arg1(charid): キャラクターID
+#deffunc sub_del_char_buff_by_down int arg_charid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_del_char_buff_by_down args=%d",arg_charid)
+
+	if char_info(arg_charid,CHAR_INFO_DOWN) == 0 : return
+
+	for sub_buffid,0,BUFF_MAX
+		char_info(arg_charid, CHAR_INFO_BUFF_VALUE+sub_buffid) = 0
+	next
+	
+	return
+	
+; キャラのHPが0ならダウン状態に
+;   arg1(charid): キャラクターID
+#deffunc sub_set_char_dowm int arg_charid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_set_char_dowm args=%d",arg_charid)
+	
+	if char_info(arg_charid,CHAR_INFO_DOWN) == 1 : return
+
+	if char_info(arg_charid,CHAR_INFO_HP) <= 0 {
+		char_info(arg_charid,CHAR_INFO_DOWN) = 1
+		; キャラがダウン状態であれば共存できないバフを消去する（基本的にすべて消去）
+		sub_del_char_buff_by_down arg_charid
+		; キャラフラグを更新する
+		sub_calcu_char_flag arg_charid
+		; 要準備のスキルは解除される
+		char_info(arg_charid, CHAR_INFO_RESERVE_MODE) = 0
+		char_info(arg_charid, CHAR_INFO_AUTO_EXEC_SKILL) = 0
+		for sub_bchar,0,BATTLE_CHAR_MAX*2
+			char_info_auto_exec_targets(arg_charid,sub_bchar) = -1	; 0がデータとして入る可能性があるので-1で初期化
+		next
+	}
+	
+	return
+	
+; キャラフラグを更新する
+;   arg1(charid):    キャラクターID
+#deffunc sub_calcu_char_flag int arg_charid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_calcu_char_flag args=%d",arg_charid)
+	if arg_charid == -1 {
+		if DEBUG_LEVEL & LOG_ERROR :logmes strf("E invalied argument sub_calcu_char_flag args=%d",arg_charid)
+	}
+
+	; CHAR_INFO_FLAG_COVER    ; かばう持ち(値はvalue)
+	char_info(arg_charid,CHAR_INFO_FLAG_COVER) = 0
+	if char_info(arg_charid,CHAR_INFO_STAN_STATE) == 0 { ; スタン時はかばう不可
+		for sub_buffid,0,BUFF_MAX
+			if buff_info(sub_buffid,BUFF_INFO_TYPE) == BUFF_INFO_TYPE_COVER {
+				if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D add FLAG_COVER buffid=%d value=%d",sub_buffid, char_info(arg_charid,CHAR_INFO_BUFF_VALUE+sub_buffid))
+				char_info(arg_charid,CHAR_INFO_FLAG_COVER) += char_info(arg_charid,CHAR_INFO_BUFF_VALUE+sub_buffid)
+			}
+		next
+	}
+
+	; CHAR_INFO_FLAG_NOMOVE   ; 行動不能
+	char_info(arg_charid,CHAR_INFO_FLAG_NOMOVE) = 0
+	; スタンしているときは行動不能
+	if char_info(arg_charid,CHAR_INFO_STAN_STATE) == 1 : char_info(arg_charid,CHAR_INFO_FLAG_NOMOVE) = 1
+	for sub_buffid,0,BUFF_MAX
+		; 行動不可のバフが有効なら行動不能
+		if buff_info(sub_buffid,BUFF_INFO_NO_MOVE) == 1 {
+			if char_info(arg_charid,CHAR_INFO_BUFF_VALUE+sub_buffid) > 0 : char_info(arg_charid,CHAR_INFO_FLAG_NOMOVE) = 1
+		}
+	next
+
+	; CHAR_INFO_FLAG_APREDUCE 	; AP消費削減(値は削減率)
+	char_info(arg_charid,CHAR_INFO_FLAG_APREDUCE) = 0
+	for sub_buffid,0,BUFF_MAX
+		if buff_info(sub_buffid,BUFF_INFO_TYPE) == BUFF_INFO_TYPE_AP_REDUCE {
+			if char_info(arg_charid,CHAR_INFO_BUFF_VALUE+sub_buffid) > 0 {
+				if char_info(arg_charid,CHAR_INFO_FLAG_APREDUCE) < buff_info(sub_buffid,BUFF_INFO_VALUE1) : char_info(arg_charid,CHAR_INFO_FLAG_APREDUCE) = buff_info(sub_buffid,BUFF_INFO_VALUE1)
+			}
+		}
+	next
+
+	; CHAR_INFO_FLAG_INVALID_ATC ; 攻撃の無効化(値は属性のor)
+	char_info(arg_charid,CHAR_INFO_FLAG_INVALID_ATC) = 0
+	for sub_buffid,0,BUFF_MAX
+		if buff_info(sub_buffid,BUFF_INFO_TYPE) == BUFF_INFO_TYPE_INVALID_ATC {
+			if char_info(arg_charid,CHAR_INFO_BUFF_VALUE+sub_buffid) > 0 {
+				char_info(arg_charid,CHAR_INFO_FLAG_INVALID_ATC) |= buff_info(sub_buffid,BUFF_INFO_VALUE1)
+			}
+		}
+	next
+	
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D charid=%d FLAG_COVER=%d FLAG_NOMOVE=%d FLAG_INVALIDATC=%d",arg_charid,char_info(arg_charid,CHAR_INFO_FLAG_COVER), char_info(arg_charid,CHAR_INFO_FLAG_NOMOVE),char_info(arg_charid,CHAR_INFO_FLAG_INVALID_ATC))
+	
+	return
+
+; キャラが経験値を獲得する
+;   arg1(charid): キャラクターID
+;   arg2(value):  経験値
+#deffunc sub_gain_exp_char int arg_charid, int arg_value
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_gain_exp_char args=%d,%d", arg_charid, arg_value)
+
+	char_info(arg_charid, CHAR_INFO_EX) += arg_value
+
+	; キャラがレベルアップできるならする
+	if char_info(arg_charid, CHAR_INFO_EX) >= CHAR_INFO_NEED_EX_INIT + CHAR_INFO_NEED_EX_PERLV * char_info(arg_charid, CHAR_INFO_LV) {
+		sub_gain_lv_char arg_charid
+	}
+	
+	return
+
+; キャラがレベルアップする
+;   arg1(charid):    キャラクターID
+#deffunc sub_gain_lv_char int arg_charid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_gain_lv_char args=%d",arg_charid)
+	
+	; キャラがレベルアップできるならする
+	while char_info(arg_charid, CHAR_INFO_EX) >= CHAR_INFO_NEED_EX_INIT + CHAR_INFO_NEED_EX_PERLV * char_info(arg_charid, CHAR_INFO_LV)
+		char_info(arg_charid, CHAR_INFO_EX) -= CHAR_INFO_NEED_EX_INIT + CHAR_INFO_NEED_EX_PERLV * char_info(arg_charid, CHAR_INFO_LV)
+		if char_info(arg_charid, CHAR_INFO_LV) < char_info(arg_charid, CHAR_INFO_LV_MAX) : char_info(arg_charid, CHAR_INFO_LV) += 1
+	wend
+	
+	; レベル変動のあるキャラクターのパラメータを再計算する
+	sub_calcu_param_char_by_lvdiff arg_charid
+		
+	return
+
+; マナを消費してキャラのHPを回復する
+;   arg1(member): キャラクターIDのリスト　※1人目の所属チームで識別　※長さは任意、使わないデータは-1で埋める
+#deffunc sub_heal_char_by_mana array arg_member
+
+	if DEBUG_LEVEL & LOG_INFO {
+		logmes strf("I call sub_heal_char_by_mana args=list")
+		for sub_i,0,9
+			if( length(arg_member) > sub_i ): logmes strf("    list(%d)=%d",sub_i,arg_member(sub_i))
+		next
+		if( length(arg_member) >= 9 ): logmes strf("    ...and more")
+	}
+
+	if length(arg_member) <= 0 : return
+	if arg_member(0) <= 0 : return
+	
+	sub_teamid = char_info(arg_member(0), CHAR_INFO_TEAM)
+	sub_total_mana = team_info(sub_teamid, TEAM_INFO_TOTAL_MANA)
+	sub_required_mana = 0
+	for sub_i,0,length(arg_member)
+		if arg_member(sub_i) <= 0 : _continue
+		if char_info(arg_member(sub_i), CHAR_INFO_HP) < char_info(arg_member(sub_i), CHAR_INFO_HP_MAX) {
+			sub_required_mana += char_info(arg_member(sub_i), CHAR_INFO_HP_MAX) - char_info(arg_member(sub_i), CHAR_INFO_HP)
+		}
+	next
+
+	if team_info(sub_teamid, TEAM_INFO_TOTAL_MANA) >= sub_required_mana {
+		; マナ保有量で全てまかなえる場合
+		for sub_i,0,length(arg_member)
+			if arg_member(sub_i) <= 0 : _continue
+			if char_info(arg_member(sub_i), CHAR_INFO_HP) < char_info(arg_member(sub_i), CHAR_INFO_HP_MAX) {
+				; キャラのHPを割合で回復する
+				sub_heal_char_by_rate arg_member(sub_i), 100
+			}
+		next
+		team_info(sub_teamid, TEAM_INFO_TOTAL_MANA) -= sub_required_mana
+		if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D all char heal use_mana=%d",sub_required_mana)
+	} else {
+		; マナ保有量で全てまかなえない場合
+		sub_heal_cap = team_info(sub_teamid, TEAM_INFO_TOTAL_MANA)
+
+		sub_heal_line = 1	; 何%までキャラを回復させるか（1%→2%→...とループを回すごとに引き上げていく）
+		while sub_heal_cap > 0
+			if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D set heal_line=%d%%",sub_heal_line)
+			for sub_i,0,length(arg_member)
+				if arg_member(sub_i) <= 0 : _continue
+				sub_target_hp = char_info(arg_member(sub_i), CHAR_INFO_HP_MAX) * sub_heal_line /100
+				if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D set target_hp charid=%d, target_hp=%d current_hp=%d", arg_member(sub_i), sub_target_hp, char_info(arg_member(sub_i), CHAR_INFO_HP))
+				if char_info(arg_member(sub_i), CHAR_INFO_HP) < sub_target_hp {
+					sub_heal_p = sub_target_hp - char_info(arg_member(sub_i), CHAR_INFO_HP)
+					if sub_heal_cap >= sub_heal_p {
+						if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D heal %d%% line done charid=%d, target_hp=%d", sub_heal_line, arg_member(sub_i), sub_target_hp)
+						; マナ保有量でまかなえる場合
+						; キャラのHPを回復する
+						sub_heal_char arg_member(sub_i), sub_heal_p
+						sub_heal_cap -= sub_heal_p
+					} else {
+						if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D heal %d%% line incomplete  charid=%d, target_hp=%d heal_hp=%d", sub_heal_line, arg_member(sub_i), sub_target_hp, sub_heal_cap)
+						; マナ保有量でまかなえない場合
+						; キャラのHPを回復する
+						sub_heal_char arg_member(sub_i), sub_heal_cap
+						sub_heal_cap = 0
+					}
+				}
+				if sub_heal_cap <= 0 : _break
+			next
+			sub_heal_line += 1
+		wend
+		team_info(sub_teamid, TEAM_INFO_TOTAL_MANA) = 0
+	}
+	
+	return
+
+; キャラのHPを割合で回復する
+;   arg1(charid): キャラクターID
+;   arg2(rate):   回復割合
+#deffunc sub_heal_char_by_rate int arg_charid, int arg_rate
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_heal_char_by_rate args=%d,%d", arg_charid, arg_rate)
+
+	sub_heal_char arg_charid, arg_rate * char_info(arg_charid, CHAR_INFO_HP_MAX) / 100
+	
+	return
+	
+; キャラのHPを回復する
+;   arg1(charid): キャラクターID
+;   arg2(value):  回復量
+#deffunc sub_heal_char int arg_charid, int arg_value
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_heal_char args=%d,%d", arg_charid, arg_value)
+
+	char_info(arg_charid, CHAR_INFO_HP) += arg_value
+	if char_info(arg_charid, CHAR_INFO_HP) > char_info(arg_charid, CHAR_INFO_HP_MAX) : char_info(arg_charid, CHAR_INFO_HP) = char_info(arg_charid, CHAR_INFO_HP_MAX)
+	if char_info(arg_charid, CHAR_INFO_HP) < 0 : char_info(arg_charid, CHAR_INFO_HP) = 0
+	
+	return
+	
+; キャラクターの総戦力を再計算する
+;   arg1(charid):    キャラクターID
+#deffunc sub_calcu_power int arg_charid
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_calcu_power. args=%d",arg_charid)
+
+	char_info(arg_charid,CHAR_INFO_POWER) = 0
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_HP)/10
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_AP)*2
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_ATC)
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_DEF)
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_MAT)
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_MDF)
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_SPD)
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_SRC)/2
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_PRD)/2
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_COM)/2
+	char_info(arg_charid,CHAR_INFO_POWER) += char_info(arg_charid,CHAR_INFO_STAN)/4
+	return
+
+; キャラクターを指定してチームに所属させる
+;   arg1(charid): キャラクターID
+;   arg2(teamid): チームID
+#deffunc sub_add_char_to_team int arg_charid, int arg_teamid
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_add_char_to_team. args=%d,%d",arg_charid,arg_teamid)
+
+	; 引数のエラーチェック
+	if strlen(char_sinfo(arg_charid,CHAR_SINFO_NAME)) == 0 {
+		logmes strf("E invalid charid in sub_add_char_to_team. args=%d",arg_charid)
+		return
+	}
+	if strlen(team_sinfo(arg_teamid,TEAM_SINFO_NAME)) == 0 {
+		logmes strf("E invalid teamid in sub_add_char_to_team. args=%d",arg_teamid)
+		return
+	}
+
+	; 既に所属している場合は脱退させる
+	if char_info(arg_charid,CHAR_INFO_TEAM) > 0{
+		sub_del_char_from_team arg_charid, arg_teamid
+	}
+	
+	; 加入させる
+	sub_flag = 0
+	for sub_i,0,TEAM_MEMBER_MAX
+		if team_member(arg_teamid,sub_i) == 0 {
+			team_member(arg_teamid,sub_i) = arg_charid
+			char_info(arg_charid,CHAR_INFO_TEAM) = arg_teamid
+			sub_flag = 1
+		}
+		if sub_flag == 1 : _break
+	next
+	if sub_flag == 0{
+		logmes strf("W member cannot add team_member in sub_add_char_to_team. args=%d,%d",arg_charid,arg_teamid)
+	}
+	
+	; チームの人数を再計算する
+	sub_culcu_team_member_num arg_teamid
+
+	; チームの総戦力を再計算する
+	sub_culcu_team_power arg_teamid
+	
+	return
+
+; キャラクターを指定してチームから脱退させる
+;   arg1(charid): キャラクターID
+;   arg2(teamid): チームID
+#deffunc sub_del_char_from_team int arg_charid, int arg_teamid
+	if DEBUG_LEVEL & LOG_ERROR :logmes strf("I call del_char_from_team. args=%d,%d",arg_charid,arg_teamid)
+
+	; 引数のエラーチェック
+	if strlen(char_sinfo(arg_charid,CHAR_SINFO_NAME)) == 0 {
+		if DEBUG_LEVEL & LOG_ERROR :logmes strf("E invalid charid in sub_del_char_from_team. args=%d",arg_charid)
+		return
+	}
+	if strlen(team_sinfo(arg_teamid,TEAM_SINFO_NAME)) == 0 {
+		if DEBUG_LEVEL & LOG_ERROR :logmes strf("E invalid teamid in sub_del_char_from_team. args=%d",arg_teamid)
+		return
+	}
+
+	; もしチームリーダーなら脱退できない
+	if team_info(arg_teamid,TEAM_INFO_LEADER) == arg_charid {
+		if DEBUG_LEVEL & LOG_ERROR :logmes strf("E leader cannot del member in sub_del_char_from_team. args=%d,%d",arg_charid,arg_teamid)
+		return
+	}
+
+	; 脱退させる
+	sub_flag = 0
+	for sub_i,0,TEAM_MEMBER_MAX
+		if team_member(arg_teamid,sub_i) == arg_charid {
+			team_member(arg_teamid,sub_i) = 0
+			char_info(arg_charid,CHAR_INFO_TEAM) = 0
+			sub_flag = 1
+		}
+	next
+	if sub_flag == 0{
+		if DEBUG_LEVEL & LOG_WARNING :logmes strf("W member not in team in sub_del_char_from_team. args=%d,%d",arg_charid,arg_teamid)
+	}
+	
+	; 隙間ができるので詰める
+	sub_index = 0
+	for sub_i,0,TEAM_MEMBER_MAX
+		if team_member(arg_teamid,sub_index) > 0 {
+			if team_member(arg_teamid,sub_index) == team_member(arg_teamid,sub_i){
+				_continue
+				sub_index += 1
+			} else {
+				if DEBUG_LEVEL & LOG_ERROR :logmes strf("E unexpected error in sub_del_char_from_team. args=%d,%d, sub_index=%d, sub_i=%d", arg_charid, arg_teamid, sub_index, sub_i)
+			}
+		}
+		if team_member(arg_teamid,sub_index) == 0 {
+			if team_member(arg_teamid,sub_index) == team_member(arg_teamid,sub_i){
+				_continue
+			} else {
+				team_member(arg_teamid,sub_index) = team_member(arg_teamid,sub_i)
+				team_member(arg_teamid,sub_i) = 0
+				sub_index += 1
+			}
+		}
+	next	
+	
+	; チームの人数を再計算する
+	sub_culcu_team_member_num arg_teamid
+	
+	; チームの総戦力を再計算する
+	sub_culcu_team_power arg_teamid
+	
+	return
+
+; チームの人数を再計算する
+;   arg1(teamid): チームID
+#deffunc sub_culcu_team_member_num int arg_teamid
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_culcu_team_member_num. args=%d",arg_teamid)
+	
+	; 引数のエラーチェック
+	if strlen(team_sinfo(arg_teamid,TEAM_SINFO_NAME)) == 0 {
+		if DEBUG_LEVEL & LOG_ERROR :logmes strf("E invalid teamid in sub_culcu_team_member_num. args=%d",arg_teamid)
+		return
+	}
+
+	team_info(arg_teamid,TEAM_INFO_TOTAL_MEMBER) = 0
+	
+	for sub_i,0,TEAM_MEMBER_MAX
+		if team_member(arg_teamid,sub_i) > 0 {
+			team_info(arg_teamid,TEAM_INFO_TOTAL_MEMBER) += 1
+		}
+	next
+	
+	return
+
+; 全チームの支配エリア数を再計算する
+#deffunc sub_culcu_allteam_member_num
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_culcu_allteam_member_num")
+
+	for sub_i,0,TEAM_MAX
+		team_info(sub_i,TEAM_INFO_AREA_CNT) = 0
+	next
+
+	for sub_i,0,AREA_MAX
+		if area_INFO(sub_i,AREA_INFO_TEAM) > 0 {
+			team_info(area_INFO(sub_i,AREA_INFO_TEAM),TEAM_INFO_AREA_CNT) += 1
+		}
+	next
+
+	return
+
+; チームの総戦力を再計算する
+;   arg1(teamid): チームID
+#deffunc sub_culcu_team_power int arg_teamid
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_culcu_team_power. args=%d",arg_teamid)
+	
+	; 引数のエラーチェック
+	if strlen(team_sinfo(arg_teamid,TEAM_SINFO_NAME)) == 0 {
+		if DEBUG_LEVEL & LOG_ERROR :logmes strf("E invalid teamid in sub_culcu_team_power. args=%d",arg_teamid)
+		return
+	}
+
+	team_info(arg_teamid,TEAM_INFO_TOTAL_POWER) = 0
+	
+	for sub_i,0,TEAM_MEMBER_MAX
+		if team_member(arg_teamid,sub_i) > 0 {
+			team_info(arg_teamid,TEAM_INFO_TOTAL_POWER) += char_info(team_member(arg_teamid,sub_i),CHAR_INFO_POWER)
+		}
+	next
+	
+	return
+
+; 全チームの総戦力を再計算する
+#deffunc sub_culcu_allteam_power
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_culcu_allteam_power.")
+
+	for sub_team,0,TEAM_MAX
+		if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D check strlen %s",team_sinfo(sub_team,TEAM_SINFO_NAME))
+		if strlen(team_sinfo(sub_team,TEAM_SINFO_NAME)) > 0 {
+			sub_culcu_team_power sub_team	 ; for文の中で関数を呼ぶ場合は要注意（一時変数名が重複しないように...）
+		}
+		if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D end of loop %d",sub_team)
+	next
+	
+	return
+
+; 行動可能な人数を集計する
+;   arg1(teamid): チームID
+#deffunc sub_calcu_team_active_member int arg_teamid
+
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("I call sub_calcu_team_active_member args=%d",arg_teamid)
+
+	team_info(arg_teamid, TEAM_INFO_ACTIVE_MEMBER) = 0
+	
+	for sub_i,0,team_info(arg_teamid,TEAM_INFO_TOTAL_MEMBER)
+		if char_info( team_member(arg_teamid,sub_i), CHAR_INFO_ACTION_CNT) == 0 {
+			team_info(arg_teamid, TEAM_INFO_ACTIVE_MEMBER) += 1
+		}
+	next
+
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D TEAM_INFO_ACTIVE_MEMBER is %d teamid=%d",team_info(arg_teamid, TEAM_INFO_ACTIVE_MEMBER),arg_teamid)
+	
+	return
+		
+; グローバルデータを初期化する
+#deffunc sub_init_global
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_init_global.")
+
+	global_info(GLOBAL_INFO_TURN) = 0
+
+	return
+			
+; 全チームの攻撃可能エリアを team_attackable_area に格納する
+#deffunc sub_calcu_allteam_attackable_area
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_calcu_allteam_attackable_area.")
+
+	for sub_team,0,TEAM_MAX
+		; 指定したチームの攻撃可能エリアを team_attackable_area に格納する
+		sub_calcu_team_attackable_area sub_team
+	next
+	
+	return
+	
+; 指定したチームの攻撃可能エリアを team_attackable_area に格納する
+;   arg1(teamid): チームID
+#deffunc sub_calcu_team_attackable_area int arg_teamid
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_calcu_team_attackable_area. args=%d",arg_teamid)
+	
+	; 初期化
+	team_attackable_area_num(arg_teamid) = 0
+	for sub_i,0,AREA_MAX
+		team_attackable_area(arg_teamid,sub_i) = 0
+	next
+
+	; 人数が0人のチームは初期化だけして終了
+	if team_info(arg_teamid,TEAM_INFO_TOTAL_MEMBER) == 0: return
+
+	; 攻撃可能エリアを調査
+	for sub_i,0,AREA_MAX
+		; エリアが他チーム支配であること
+		if area_info(sub_i,AREA_INFO_TEAM) != arg_teamid {
+			for sub_j,0,AREA_NEIGHBER_MAX
+				; 隣接エリアが自チームであること
+				if area_neighber(sub_i,sub_j) > 0 {
+					if area_info( area_neighber(sub_i,sub_j) , AREA_INFO_TEAM) == arg_teamid {
+						team_attackable_area(arg_teamid,team_attackable_area_num(arg_teamid)) = sub_i
+						team_attackable_area_num(arg_teamid) += 1
+						_break
+					}
+				}
+			next
+		} else {
+			; 自チーム支配であっても一部のブロックが他チーム支配であること
+			for sub_j,0,area_info(sub_i,AREA_INFO_BLOCKS)
+				if area_block_info(sub_i,AREA_BLOCK_INFO_TEAM,sub_j) != arg_teamid {
+					team_attackable_area(arg_teamid,team_attackable_area_num(arg_teamid)) = sub_i
+					team_attackable_area_num(arg_teamid) += 1
+				}
+			next
+		}
+	next
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D team=%d attackable_area=%d",arg_teamid,team_attackable_area_num(arg_teamid))
+	
+	return
+
+; 攻撃側が勝った場合はブロックを塗り替える
+;   arg1(area):  エリアID
+;   arg2(block): ブロックID
+;   arg3(team): チームID
+;   arg4(sound): 音を鳴らすか(1:鳴らす)
+#deffunc sub_change_block int arg_area, int arg_block, int arg_team, int arg_sound
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_change_block args=%d,%d,%d,%d",arg_area, arg_block, arg_team, arg_sound)
+
+	area_block_info(arg_area,AREA_BLOCK_INFO_TEAM,arg_block) = arg_team
+
+	if arg_block == 0 {
+		; ブロック0を塗り替えた場合はエリアの所有も変更する
+		sub_change_area arg_area, arg_team
+	}
+
+	; 全チームの攻撃可能エリアを team_attackable_area に格納する
+	sub_calcu_allteam_attackable_area
+
+	if arg_sound == 1 {
+		sub_play_sound BATTLE_INFO_AREA_CHANGE_SOUNDID
+	}
+	
+	return
+
+; ブロック0を塗り替えた場合はエリアの所有も変更する
+;   arg1(area):  エリアID
+;   arg2(team): チームID
+#deffunc sub_change_area int arg_area, int arg_team
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_change_area args=%d,%d",arg_area, arg_team)
+
+	sub_change_team = -1
+	
+	; もし負けた側の本拠地の場合は本拠地を更新する
+	if team_info(area_info(arg_area,AREA_INFO_TEAM),TEAM_INFO_BASEAREA) == arg_area {
+		sub_change_team = area_info(arg_area,AREA_INFO_TEAM)
+	}
+
+	; エリアの所有を変える
+	area_info(arg_area, AREA_INFO_TEAM) = arg_team
+
+	; ブロックの所有を全て変える
+	for sub_i,0,area_info(arg_area, AREA_INFO_BLOCKS)
+		area_block_info(arg_area,AREA_BLOCK_INFO_TEAM,sub_i) = arg_team
+	next
+	
+	; 本拠地を再選定する
+	if sub_change_team != -1 {
+		sub_change_basearea sub_change_team
+	}
+	
+	; 全チームの支配エリア数を再計算する
+	sub_culcu_allteam_member_num
+	
+	return
+
+; 本拠地を再選定する
+;   arg1(team): チームID
+#deffunc sub_change_basearea int arg_teamid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_change_basearea args=%d",arg_teamid)
+
+	sub_max_mana = -1
+	sub_max_area = -1
+	for sub_i,0,AREA_MAX
+		if area_info(sub_i,AREA_INFO_TEAM) == arg_teamid {
+			if area_info(sub_i,AREA_INFO_MANAG) > sub_max_mana {
+				sub_max_mana = area_info(sub_i,AREA_INFO_MANAG)
+				sub_max_area = sub_i
+			}
+		}
+	next
+
+	; エリアがないので全滅確定
+	if sub_max_area == -1 {
+		; チーム解散
+		sub_break_team arg_teamid
+	} else {
+		team_info(arg_teamid,TEAM_INFO_BASEAREA) = sub_max_area
+		if DEBUG_LEVEL & LOG_ERROR :logmes strf("D move BASEAREA teamid=%d new_basearea=%d",arg_teamid,team_info(arg_teamid,TEAM_INFO_BASEAREA))
+	}
+	
+	return
+
+; チーム解散
+;   arg1(team): チームID
+#deffunc sub_break_team int arg_teamid
+	
+	if DEBUG_LEVEL & LOG_ERROR :logmes strf("I call sub_break_team args=%d",arg_teamid)
+
+	; 全てのエリアの部分的に占有しているブロックをエリア所有者に書き換える
+	for sub_i,0,AREA_MAX
+		for sub_j,0,AREA_BLOCK_MAX
+			if area_block_info(sub_i,AREA_BLOCK_INFO_TEAM,sub_j) == arg_teamid {
+				area_block_info(sub_i,AREA_BLOCK_INFO_TEAM,sub_j) = area_info(sub_i,AREA_INFO_TEAM)
+				if DEBUG_LEVEL & LOG_ERROR :logmes strf("D block team change area=%d, block=%d team=%d->%d",sub_i,sub_j,arg_teamid,area_info(sub_i,AREA_INFO_TEAM))
+			}
+		next
+	next
+
+	; 全てのメンバーをチームから外す（今のバージョンではランダムキャラに戻さない）
+	for sub_i,0,TEAM_MEMBER_MAX
+		if team_member(arg_teamid,sub_i) > 0 {
+			;; キャラクターを指定してチームから脱退させる　※ホントは使いたいが今はエラーになるので方法を変える
+			;sub_del_char_from_team team_member(arg_teamid,sub_i), arg_teamid
+			char_info(team_member(arg_teamid,sub_i),CHAR_INFO_TEAM) = 0
+			team_member(arg_teamid,sub_i) = 0
+		}
+	next
+
+	; チームの人数を再計算する
+	sub_culcu_team_member_num arg_teamid
+	
+	return
+		
+; 音楽を再生する
+;   arg1(musicid):    音楽ID
+#deffunc sub_play_music int arg_musicid
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_play_music. args=%d",arg_musicid)
+
+	mmplay MUSIC_BUFFER_OFFSET+arg_musicid
+
+	return
+
+; 音楽を停止する
+#deffunc sub_stop_music
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_stop_music.")
+
+	mmstop
+
+	return
+
+; 効果音を再生する
+;   arg1(soundid):    効果音ID
+#deffunc sub_play_sound int arg_soundid
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_play_sound. args=%d",arg_soundid)
+
+	mmplay SOUND_BUFFER_OFFSET+arg_soundid
+
+	return
+
+; ゲームデータを保存する
+;   arg1(savename): セーブ名
+#deffunc sub_save_gamedata str arg_savename
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_save_gamedata args=%s",arg_savename)
+
+	; 親ディレクトリの作成
+	sdim sub_filelist,64
+	dirlist sub_filelist,"save",5
+	if strlen(sub_filelist) <= 0 {
+		mkdir "save"
+	}
+
+	; 該当ディレクトリの作成
+	dirlist sub_filelist,"save/"+arg_savename,5
+	if strlen(sub_filelist) <= 0 {
+		mkdir "save/"+arg_savename
+	}
+
+	; 既にファイルがあれば削除
+	dirlist sub_filelist,"save/"+arg_savename+"/*",0
+	notesel sub_filelist
+	for i,0,noteinfo(0)
+		noteget file,i
+		delete "save/"+arg_savename+"/"+file
+	next
+
+	global_info(GLOBAL_INFO_LOAD_STATUS) = 0
+
+	; 保存
+	bsave "save/"+arg_savename+"/team_sinfo",team_sinfo
+	bsave "save/"+arg_savename+"/team_info",team_info
+	bsave "save/"+arg_savename+"/team_member",team_member
+	bsave "save/"+arg_savename+"/team_attackable_area",team_attackable_area
+	bsave "save/"+arg_savename+"/team_attackable_area_num",team_attackable_area_num
+	bsave "save/"+arg_savename+"/area_sinfo",area_sinfo
+	bsave "save/"+arg_savename+"/area_info",area_info
+	bsave "save/"+arg_savename+"/area_neighber",area_neighber
+	bsave "save/"+arg_savename+"/area_block_info",area_block_info
+	bsave "save/"+arg_savename+"/area_focus",area_focus
+	bsave "save/"+arg_savename+"/area_select",area_select
+	bsave "save/"+arg_savename+"/area_list_display",area_list_display
+	bsave "save/"+arg_savename+"/chardef_sinfo",chardef_sinfo
+	bsave "save/"+arg_savename+"/chardef_info",chardef_info
+	bsave "save/"+arg_savename+"/char_sinfo",char_sinfo
+	bsave "save/"+arg_savename+"/char_info",char_info
+	bsave "save/"+arg_savename+"/char_info_auto_decide_targets",char_info_auto_decide_targets
+	bsave "save/"+arg_savename+"/char_info_auto_exec_targets",char_info_auto_exec_targets
+	bsave "save/"+arg_savename+"/global_sinfo",global_sinfo
+	bsave "save/"+arg_savename+"/global_info",global_info
+	bsave "save/"+arg_savename+"/global_turn_teams",global_turn_teams
+	bsave "save/"+arg_savename+"/battle_sinfo",battle_sinfo
+	bsave "save/"+arg_savename+"/battle_info",battle_info
+	bsave "save/"+arg_savename+"/battle_char",battle_char
+	bsave "save/"+arg_savename+"/battle_char_atc",battle_char_atc
+	bsave "save/"+arg_savename+"/battle_char_def",battle_char_def
+	bsave "save/"+arg_savename+"/battle_char_info",battle_char_info
+	bsave "save/"+arg_savename+"/random_table_char_info",random_table_char_info
+	bsave "save/"+arg_savename+"/random_table_char_info_num",random_table_char_info_num
+	bsave "save/"+arg_savename+"/random_table_char_info_pickup",random_table_char_info_pickup
+	bsave "save/"+arg_savename+"/random_table_skill_info",random_table_skill_info
+	bsave "save/"+arg_savename+"/random_table_skill_info_num",random_table_skill_info_num
+	bsave "save/"+arg_savename+"/random_table_skill_info_pickup",random_table_skill_info_pickup
+	bsave "save/"+arg_savename+"/input_key",input_key
+	bsave "save/"+arg_savename+"/input_key_keycode",input_key_keycode
+	bsave "save/"+arg_savename+"/input_key_cooldown",input_key_cooldown
+	bsave "save/"+arg_savename+"/selector_map",selector_map
+	bsave "save/"+arg_savename+"/selector_map_focus",selector_map_focus
+	bsave "save/"+arg_savename+"/selector_map_active",selector_map_active
+	bsave "save/"+arg_savename+"/selector_map_returncode",selector_map_returncode
+	bsave "save/"+arg_savename+"/selector_map_num",selector_map_num
+	bsave "save/"+arg_savename+"/menu_list_char",menu_list_char
+	bsave "save/"+arg_savename+"/menu_list_char_selects",menu_list_char_selects
+	bsave "save/"+arg_savename+"/menu_list_char_disable",menu_list_char_disable
+	bsave "save/"+arg_savename+"/menu_list_char_show_start",menu_list_char_show_start
+	bsave "save/"+arg_savename+"/menu_list_char_focus",menu_list_char_focus
+	bsave "save/"+arg_savename+"/menu_list_char_pickup_num",menu_list_char_pickup_num
+	bsave "save/"+arg_savename+"/menu_list_char_pickup_param",menu_list_char_pickup_param
+	bsave "save/"+arg_savename+"/menu_list_char_pickup_sumparam",menu_list_char_pickup_sumparam
+	bsave "save/"+arg_savename+"/menu_list_char_pickup",menu_list_char_pickup
+	bsave "save/"+arg_savename+"/menu_list_char_active",menu_list_char_active
+	bsave "save/"+arg_savename+"/menu_list_char_returncode",menu_list_char_returncode
+	bsave "save/"+arg_savename+"/menu_list_char_vote",menu_list_char_vote
+	bsave "save/"+arg_savename+"/menu_list_char_vote_num",menu_list_char_vote_num
+	bsave "save/"+arg_savename+"/menu_list_event",menu_list_event
+	bsave "save/"+arg_savename+"/menu_list_event_code",menu_list_event_code
+	bsave "save/"+arg_savename+"/menu_list_event_areaid",menu_list_event_areaid
+	bsave "save/"+arg_savename+"/menu_list_event_teamid",menu_list_event_teamid
+	bsave "save/"+arg_savename+"/menu_list_event_focus",menu_list_event_focus
+	bsave "save/"+arg_savename+"/menu_list_event_active",menu_list_event_active
+	bsave "save/"+arg_savename+"/menu_list_event_returncode",menu_list_event_returncode
+	bsave "save/"+arg_savename+"/menu_list_event_num",menu_list_event_num
+	bsave "save/"+arg_savename+"/event_code_lock",event_code_lock
+	bsave "save/"+arg_savename+"/menu_list_battle",menu_list_battle
+	bsave "save/"+arg_savename+"/menu_list_battle_desc",menu_list_battle_desc
+	bsave "save/"+arg_savename+"/menu_list_battle_skill",menu_list_battle_skill
+	bsave "save/"+arg_savename+"/menu_list_battle_disable",menu_list_battle_disable
+	bsave "save/"+arg_savename+"/menu_list_battle_charid",menu_list_battle_charid
+	bsave "save/"+arg_savename+"/menu_list_battle_focus",menu_list_battle_focus
+	bsave "save/"+arg_savename+"/menu_list_battle_select",menu_list_battle_select
+	bsave "save/"+arg_savename+"/menu_list_battle_active",menu_list_battle_active
+	bsave "save/"+arg_savename+"/menu_list_battle_returncode",menu_list_battle_returncode
+	bsave "save/"+arg_savename+"/menu_list_battle_num",menu_list_battle_num
+	bsave "save/"+arg_savename+"/menu_list_battle_vote",menu_list_battle_vote
+	bsave "save/"+arg_savename+"/menu_list_battle_vote_num",menu_list_battle_vote_num
+	bsave "save/"+arg_savename+"/menu_list_bchar",menu_list_bchar
+	bsave "save/"+arg_savename+"/menu_list_bchar_charid",menu_list_bchar_charid
+	bsave "save/"+arg_savename+"/menu_list_bchar_focus",menu_list_bchar_focus
+	bsave "save/"+arg_savename+"/menu_list_bchar_select",menu_list_bchar_select
+	bsave "save/"+arg_savename+"/menu_list_bchar_select_bchar",menu_list_bchar_select_bchar
+	bsave "save/"+arg_savename+"/menu_list_bchar_select_bchar_num",menu_list_bchar_select_bchar_num
+	bsave "save/"+arg_savename+"/menu_list_bchar_active",menu_list_bchar_active
+	bsave "save/"+arg_savename+"/menu_list_bchar_returncode",menu_list_bchar_returncode
+	bsave "save/"+arg_savename+"/menu_list_bchar_num",menu_list_bchar_num
+	bsave "save/"+arg_savename+"/menu_list_bchar_vote",menu_list_bchar_vote
+	bsave "save/"+arg_savename+"/menu_list_bchar_vote_num",menu_list_bchar_vote_num
+	bsave "save/"+arg_savename+"/selector_list",selector_list
+	bsave "save/"+arg_savename+"/selector_list_disable",selector_list_disable
+	bsave "save/"+arg_savename+"/selector_list_focus",selector_list_focus
+	bsave "save/"+arg_savename+"/selector_list_active",selector_list_active
+	bsave "save/"+arg_savename+"/selector_list_returncode",selector_list_returncode
+	bsave "save/"+arg_savename+"/selector_list_num",selector_list_num
+	bsave "save/"+arg_savename+"/selector_list_max_length",selector_list_max_length
+	bsave "save/"+arg_savename+"/event_trigger_sinfo",event_trigger_sinfo
+	bsave "save/"+arg_savename+"/event_trigger_info",event_trigger_info
+	bsave "save/"+arg_savename+"/event_data_info",event_data_info
+
+	return
+
+; ゲームデータを読み込めるか確認する
+;   arg1(savename): セーブ名
+#deffunc sub_check_gamedata str arg_savename
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_check_gamedata args=%s",arg_savename)
+
+	global_info(GLOBAL_INFO_PRELOAD_STATUS) = 0
+	
+	; 親ディレクトリの作成
+	sdim sub_filelist,64
+	dirlist sub_filelist,"save",5
+	if strlen(sub_filelist) <= 0 {
+		return
+	}
+
+	; 該当ディレクトリの作成
+	dirlist sub_filelist,"save/"+arg_savename,5
+	if strlen(sub_filelist) <= 0 {
+		return
+	}
+
+	global_info(GLOBAL_INFO_PRELOAD_STATUS) = 1
+
+	return
+
+; ゲームデータを読み込む
+;   arg1(savename): セーブ名
+#deffunc sub_load_gamedata str arg_savename
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_load_gamedata args=%s",arg_savename)
+
+	global_info(GLOBAL_INFO_LOAD_STATUS) = 0
+	
+	; 親ディレクトリの作成
+	sdim sub_filelist,64
+	dirlist sub_filelist,"save",5
+	if strlen(sub_filelist) <= 0 {
+		return
+	}
+
+	; 該当ディレクトリの作成
+	dirlist sub_filelist,"save/"+arg_savename,5
+	if strlen(sub_filelist) <= 0 {
+		return
+	}
+
+	; 読み込み
+	bload "save/"+arg_savename+"/team_sinfo",team_sinfo
+	bload "save/"+arg_savename+"/team_info",team_info
+	bload "save/"+arg_savename+"/team_member",team_member
+	bload "save/"+arg_savename+"/team_attackable_area",team_attackable_area
+	bload "save/"+arg_savename+"/team_attackable_area_num",team_attackable_area_num
+	bload "save/"+arg_savename+"/area_sinfo",area_sinfo
+	bload "save/"+arg_savename+"/area_info",area_info
+	bload "save/"+arg_savename+"/area_neighber",area_neighber
+	bload "save/"+arg_savename+"/area_block_info",area_block_info
+	bload "save/"+arg_savename+"/area_focus",area_focus
+	bload "save/"+arg_savename+"/area_select",area_select
+	bload "save/"+arg_savename+"/area_list_display",area_list_display
+	bload "save/"+arg_savename+"/chardef_sinfo",chardef_sinfo
+	bload "save/"+arg_savename+"/chardef_info",chardef_info
+	bload "save/"+arg_savename+"/char_sinfo",char_sinfo
+	bload "save/"+arg_savename+"/char_info",char_info
+	bload "save/"+arg_savename+"/char_info_auto_decide_targets",char_info_auto_decide_targets
+	bload "save/"+arg_savename+"/char_info_auto_exec_targets",char_info_auto_exec_targets
+	bload "save/"+arg_savename+"/global_sinfo",global_sinfo
+	bload "save/"+arg_savename+"/global_info",global_info
+	bload "save/"+arg_savename+"/global_turn_teams",global_turn_teams
+	bload "save/"+arg_savename+"/battle_sinfo",battle_sinfo
+	bload "save/"+arg_savename+"/battle_info",battle_info
+	bload "save/"+arg_savename+"/battle_char",battle_char
+	bload "save/"+arg_savename+"/battle_char_atc",battle_char_atc
+	bload "save/"+arg_savename+"/battle_char_def",battle_char_def
+	bload "save/"+arg_savename+"/battle_char_info",battle_char_info
+	bload "save/"+arg_savename+"/random_table_char_info",random_table_char_info
+	bload "save/"+arg_savename+"/random_table_char_info_num",random_table_char_info_num
+	bload "save/"+arg_savename+"/random_table_char_info_pickup",random_table_char_info_pickup
+	bload "save/"+arg_savename+"/random_table_skill_info",random_table_skill_info
+	bload "save/"+arg_savename+"/random_table_skill_info_num",random_table_skill_info_num
+	bload "save/"+arg_savename+"/random_table_skill_info_pickup",random_table_skill_info_pickup
+	bload "save/"+arg_savename+"/input_key",input_key
+	bload "save/"+arg_savename+"/input_key_keycode",input_key_keycode
+	bload "save/"+arg_savename+"/input_key_cooldown",input_key_cooldown
+	bload "save/"+arg_savename+"/selector_map",selector_map
+	bload "save/"+arg_savename+"/selector_map_focus",selector_map_focus
+	bload "save/"+arg_savename+"/selector_map_active",selector_map_active
+	bload "save/"+arg_savename+"/selector_map_returncode",selector_map_returncode
+	bload "save/"+arg_savename+"/selector_map_num",selector_map_num
+	bload "save/"+arg_savename+"/menu_list_char",menu_list_char
+	bload "save/"+arg_savename+"/menu_list_char_selects",menu_list_char_selects
+	bload "save/"+arg_savename+"/menu_list_char_disable",menu_list_char_disable
+	bload "save/"+arg_savename+"/menu_list_char_show_start",menu_list_char_show_start
+	bload "save/"+arg_savename+"/menu_list_char_focus",menu_list_char_focus
+	bload "save/"+arg_savename+"/menu_list_char_pickup_num",menu_list_char_pickup_num
+	bload "save/"+arg_savename+"/menu_list_char_pickup_param",menu_list_char_pickup_param
+	bload "save/"+arg_savename+"/menu_list_char_pickup_sumparam",menu_list_char_pickup_sumparam
+	bload "save/"+arg_savename+"/menu_list_char_pickup",menu_list_char_pickup
+	bload "save/"+arg_savename+"/menu_list_char_active",menu_list_char_active
+	bload "save/"+arg_savename+"/menu_list_char_returncode",menu_list_char_returncode
+	bload "save/"+arg_savename+"/menu_list_char_vote",menu_list_char_vote
+	bload "save/"+arg_savename+"/menu_list_char_vote_num",menu_list_char_vote_num
+	bload "save/"+arg_savename+"/menu_list_event",menu_list_event
+	bload "save/"+arg_savename+"/menu_list_event_code",menu_list_event_code
+	bload "save/"+arg_savename+"/menu_list_event_areaid",menu_list_event_areaid
+	bload "save/"+arg_savename+"/menu_list_event_teamid",menu_list_event_teamid
+	bload "save/"+arg_savename+"/menu_list_event_focus",menu_list_event_focus
+	bload "save/"+arg_savename+"/menu_list_event_active",menu_list_event_active
+	bload "save/"+arg_savename+"/menu_list_event_returncode",menu_list_event_returncode
+	bload "save/"+arg_savename+"/menu_list_event_num",menu_list_event_num
+	bload "save/"+arg_savename+"/event_code_lock",event_code_lock
+	bload "save/"+arg_savename+"/menu_list_battle",menu_list_battle
+	bload "save/"+arg_savename+"/menu_list_battle_desc",menu_list_battle_desc
+	bload "save/"+arg_savename+"/menu_list_battle_skill",menu_list_battle_skill
+	bload "save/"+arg_savename+"/menu_list_battle_disable",menu_list_battle_disable
+	bload "save/"+arg_savename+"/menu_list_battle_charid",menu_list_battle_charid
+	bload "save/"+arg_savename+"/menu_list_battle_focus",menu_list_battle_focus
+	bload "save/"+arg_savename+"/menu_list_battle_select",menu_list_battle_select
+	bload "save/"+arg_savename+"/menu_list_battle_active",menu_list_battle_active
+	bload "save/"+arg_savename+"/menu_list_battle_returncode",menu_list_battle_returncode
+	bload "save/"+arg_savename+"/menu_list_battle_num",menu_list_battle_num
+	bload "save/"+arg_savename+"/menu_list_battle_vote",menu_list_battle_vote
+	bload "save/"+arg_savename+"/menu_list_battle_vote_num",menu_list_battle_vote_num
+	bload "save/"+arg_savename+"/menu_list_bchar",menu_list_bchar
+	bload "save/"+arg_savename+"/menu_list_bchar_charid",menu_list_bchar_charid
+	bload "save/"+arg_savename+"/menu_list_bchar_focus",menu_list_bchar_focus
+	bload "save/"+arg_savename+"/menu_list_bchar_select",menu_list_bchar_select
+	bload "save/"+arg_savename+"/menu_list_bchar_select_bchar",menu_list_bchar_select_bchar
+	bload "save/"+arg_savename+"/menu_list_bchar_select_bchar_num",menu_list_bchar_select_bchar_num
+	bload "save/"+arg_savename+"/menu_list_bchar_active",menu_list_bchar_active
+	bload "save/"+arg_savename+"/menu_list_bchar_returncode",menu_list_bchar_returncode
+	bload "save/"+arg_savename+"/menu_list_bchar_num",menu_list_bchar_num
+	bload "save/"+arg_savename+"/menu_list_bchar_vote",menu_list_bchar_vote
+	bload "save/"+arg_savename+"/menu_list_bchar_vote_num",menu_list_bchar_vote_num
+	bload "save/"+arg_savename+"/selector_list",selector_list
+	bload "save/"+arg_savename+"/selector_list_disable",selector_list_disable
+	bload "save/"+arg_savename+"/selector_list_focus",selector_list_focus
+	bload "save/"+arg_savename+"/selector_list_active",selector_list_active
+	bload "save/"+arg_savename+"/selector_list_returncode",selector_list_returncode
+	bload "save/"+arg_savename+"/selector_list_num",selector_list_num
+	bload "save/"+arg_savename+"/selector_list_max_length",selector_list_max_length
+	bload "save/"+arg_savename+"/event_trigger_sinfo",event_trigger_sinfo
+	bload "save/"+arg_savename+"/event_trigger_info",event_trigger_info
+	bload "save/"+arg_savename+"/event_data_info",event_data_info
+
+	global_info(GLOBAL_INFO_LOAD_STATUS) = 1
+	
+	return
+
+*end_of_slgm_sub

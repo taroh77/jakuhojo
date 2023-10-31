@@ -1,0 +1,29 @@
+; ##################################################################################################
+; # 
+; # データ部分
+; # 
+; ##################################################################################################
+
+; データ部分（画像系）
+	#include "data_imagedef.hsp"
+
+; データ部分（音系）
+	#include "data_sound.hsp"
+
+; クラス定義
+	#include "data_class.hsp"	
+
+; スキル定義
+	#include "data_skill.hsp"	
+
+; キャラクタ定義
+	#include "data_chardef.hsp"	
+
+; キャラクタ定義
+	#include "data_buff.hsp"	
+
+; キャラクタ定義
+	#include "data_anime.hsp"	
+
+; イベント定義
+	#include "data_event.hsp"	

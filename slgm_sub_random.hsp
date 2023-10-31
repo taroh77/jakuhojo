@@ -1,0 +1,201 @@
+	goto *end_of_slgm_sub_random
+; ##################################################################################################
+; # 
+; # サブルーチン　ランダム関連
+; # 
+; ##################################################################################################
+
+; ランダムテーブルにキャラを追加する
+;   arg1(charid): キャラID 
+#deffunc sub_add_random_table_char int arg_charid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_add_random_table_char args=%d", arg_charid)
+
+	char_info(arg_charid, CHAR_INFO_TEAM) = 0
+
+	random_table_char_info(random_table_char_info_num,RANDOM_TABLE_CHAR_INFO_ID) = arg_charid
+	random_table_char_info(random_table_char_info_num,RANDOM_TABLE_CHAR_INFO_USE) = 0
+	random_table_char_info_num += 1
+
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D add random_table char=%d(%s)", arg_charid, char_sinfo(arg_charid,CHAR_SINFO_NAME))
+	
+	return
+
+; ランダムテーブルからキャラを1人選ぶ
+#deffunc sub_pickup_random_table_char
+
+	random_table_char_info_pickup = -1
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_pickup_random_table_char")
+
+	if random_table_char_info_num <= 0 {
+		if DEBUG_LEVEL & LOG_WARNING :logmes strf("W random_table_char is empty")
+		return
+	}
+
+	sub_pickup = rnd(random_table_char_info_num)
+
+	for sub_i,0,RANDOM_TABLE_CHAR_MAX
+		if random_table_char_info(sub_i,RANDOM_TABLE_CHAR_INFO_USE) == 0 {
+			if sub_pickup <= 0 {
+				random_table_char_info_pickup = random_table_char_info(sub_i,RANDOM_TABLE_CHAR_INFO_ID)
+				random_table_char_info(sub_i,RANDOM_TABLE_CHAR_INFO_USE) = 1
+				random_table_char_info_num -= 1
+				if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D pickup random_table_char char=%d(%s)", random_table_char_info_pickup, char_sinfo(random_table_char_info_pickup,CHAR_SINFO_NAME))
+				_break
+			} else {
+				sub_pickup -= 1
+			}
+			if sub_i == RANDOM_TABLE_CHAR_MAX-1 {
+				if DEBUG_LEVEL & LOG_ERROR :logmes strf("E Unexpected error in sub_pickup_random_table_char")
+				return
+			}
+		}		
+	next
+	
+	return
+
+
+; ランダムテーブルにスキルを追加する
+;   arg1(charid): スキルID 
+#deffunc sub_add_random_table_skill int arg_skillid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_add_random_table_skill args=%d", arg_skillid)
+
+	; ユニークスキルは登録できない
+	if skill_info(arg_skillid, SKILL_INFO_FLAG) & SKILL_INFO_FLAG_UNIQUE : return
+
+	random_table_skill_info(random_table_skill_info_num,RANDOM_TABLE_SKILL_INFO_ID)     = arg_skillid	; スキルID
+	random_table_skill_info(random_table_skill_info_num,RANDOM_TABLE_SKILL_INFO_TRIGGER)= skill_info(arg_skillid, SKILL_INFO_TRIGGER)	; スキルの発動条件タイプ
+	random_table_skill_info(random_table_skill_info_num,RANDOM_TABLE_SKILL_INFO_TYPE)   = skill_info(arg_skillid, SKILL_INFO_TYPE)		; スキルタイプ
+	random_table_skill_info(random_table_skill_info_num,RANDOM_TABLE_SKILL_INFO_RANK)   = skill_info(arg_skillid, SKILL_INFO_RANK)		; ランク
+	random_table_skill_info(random_table_skill_info_num,RANDOM_TABLE_SKILL_INFO_FLAG)   = skill_info(arg_skillid, SKILL_INFO_FLAG)		; フラグ
+	random_table_skill_info_num += 1
+	
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D add random_table skill=%d(%s) trig=%d, type=%d, rank=%d, flag=%d", arg_skillid, skill_sinfo(arg_skillid,SKILL_SINFO_NAME),skill_info(arg_skillid, SKILL_INFO_TRIGGER),skill_info(arg_skillid, SKILL_INFO_TYPE),skill_info(arg_skillid, SKILL_INFO_RANK),skill_info(arg_skillid, SKILL_INFO_FLAG))
+	
+	return
+
+; ランダムテーブルから条件を満たすスキルを1つ選ぶ
+;   arg1(trigger):   発動条件タイプ
+;   arg2(type):      スキルタイプ
+;   arg3(rank_lower):ランク下限
+;   arg3(rank_upper):ランク上限
+;   arg4(flag):      フラグ
+#deffunc sub_pickup_random_table_skill int arg_trigger, int arg_type, int arg_rank_lower, int arg_rank_upper, int arg_flag
+
+	random_table_skill_info_pickup = -1
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_pickup_random_table_skill args=%d,%d,%d,%d,%d", arg_trigger, arg_type, arg_rank_lower, arg_rank_upper, arg_flag)
+	
+	dim sub_entry_skill,SKILL_MAX
+	sub_entry_skill_num = 0
+
+	for sub_i,0,random_table_skill_info_num
+		if arg_trigger != -1 {
+			if arg_trigger != random_table_skill_info(sub_i,RANDOM_TABLE_SKILL_INFO_TRIGGER) : _continue
+		}
+		if arg_type != -1 {
+			if arg_type != random_table_skill_info(sub_i,RANDOM_TABLE_SKILL_INFO_TYPE) : _continue
+		}
+		if arg_rank_lower != -1{
+			if arg_rank_lower > random_table_skill_info(sub_i,RANDOM_TABLE_SKILL_INFO_RANK) : _continue
+		}
+		if arg_rank_upper != -1{
+			if arg_rank_upper < random_table_skill_info(sub_i,RANDOM_TABLE_SKILL_INFO_RANK) : _continue
+		}
+		if arg_flag != -1{
+			if ( arg_flag & random_table_skill_info(sub_i,RANDOM_TABLE_SKILL_INFO_RANK) ) == 0 : _continue
+		}
+		sub_entry_skill(sub_entry_skill_num) = random_table_skill_info(sub_i,RANDOM_TABLE_SKILL_INFO_ID)
+		sub_entry_skill_num += 1
+	next
+
+	if sub_entry_skill_num <= 0 {
+		if DEBUG_LEVEL & LOG_WARNING :logmes strf("W pickup_random_table_skill is empty args=%d,%d,%d,%d,%d", arg_trigger, arg_type, arg_rank_lower, arg_rank_upper, arg_flag)
+		return
+	}
+
+	random_table_skill_info_pickup = sub_entry_skill(rnd(sub_entry_skill_num))
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D pickup random_table_skill skill=%d(%s)", random_table_skill_info_pickup, skill_sinfo(random_table_skill_info_pickup,SKILL_SINFO_NAME))
+	
+	return
+
+; ランダムキャラにスキルを追加する
+#deffunc sub_add_skill_random_char int arg_charid
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_add_skill_random_char args=%d", arg_charid)
+
+	if char_info(arg_charid, CHAR_INFO_ATC) >= char_info(arg_charid, CHAR_INFO_MAT) {
+		sub_type = SKILL_INFO_TYPE_ACT_ATTACKP
+	} else {
+		sub_type = SKILL_INFO_TYPE_ACT_ATTACKM
+	}
+
+	; 最大で6個付与する
+	for sub_loop,0,6
+		switch sub_loop
+		case 0
+			if rnd(3) < 2 {
+				; パッシブスキルを付与
+				; ランダムテーブルから条件を満たすスキルを1つ選ぶ
+				sub_pickup_random_table_skill SKILL_INFO_SKILLTYPE_PASSIVE, -1, -1, 6, -1
+				; キャラクターにスキルを追加する
+				sub_add_skill_char arg_charid, random_table_skill_info_pickup
+				swbreak
+			}
+		case 1
+			; 攻撃スキルを付与
+			; ランダムテーブルから条件を満たすスキルを1つ選ぶ
+			sub_pickup_random_table_skill SKILL_INFO_SKILLTYPE_ACTIVE, sub_type, -1, 6, SKILL_INFO_FLAG_NORMAL
+			; キャラクターにスキルを追加する
+			sub_add_skill_char arg_charid, random_table_skill_info_pickup
+			swbreak
+		case 2
+			if rnd(2) == 0 {
+				; 攻撃スキルを付与
+				; ランダムテーブルから条件を満たすスキルを1つ選ぶ
+				sub_pickup_random_table_skill SKILL_INFO_SKILLTYPE_ACTIVE, sub_type, -1, 6, SKILL_INFO_FLAG_NORMAL
+				; キャラクターにスキルを追加する
+				sub_add_skill_char arg_charid, random_table_skill_info_pickup
+			}
+			swbreak
+		case 3			
+			; 攻撃スキル（消費APが多い）を付与
+			; ランダムテーブルから条件を満たすスキルを1つ選ぶ
+			sub_pickup_random_table_skill SKILL_INFO_SKILLTYPE_ACTIVE, sub_type, 3, 6, SKILL_INFO_FLAG_NORMAL
+			; キャラクターにスキルを追加する
+			sub_add_skill_char arg_charid, random_table_skill_info_pickup
+			swbreak
+		case 4
+			if rnd(2) == 0 {
+				; 補助スキルを付与
+				; ランダムテーブルから条件を満たすスキルを1つ選ぶ
+				sub_pickup_random_table_skill SKILL_INFO_SKILLTYPE_ACTIVE, SKILL_INFO_TYPE_ACT_SUPPORT, -1, 6, -1
+				; キャラクターにスキルを追加する
+				sub_add_skill_char arg_charid, random_table_skill_info_pickup
+			} else {
+				if rnd(2) == 0 {
+					; 回復スキルを付与
+					; ランダムテーブルから条件を満たすスキルを1つ選ぶ
+					sub_pickup_random_table_skill SKILL_INFO_SKILLTYPE_ACTIVE, SKILL_INFO_TYPE_ACT_HEAL, -1, 6, -1
+					; キャラクターにスキルを追加する
+					sub_add_skill_char arg_charid, random_table_skill_info_pickup
+				}
+			}
+			swbreak
+		case 5
+			if rnd(3) == 0 {
+				; 攻撃スキル（レア）を付与
+				; ランダムテーブルから条件を満たすスキルを1つ選ぶ
+				sub_pickup_random_table_skill SKILL_INFO_SKILLTYPE_ACTIVE, sub_type, -1, 6, SKILL_INFO_FLAG_RARE
+				; キャラクターにスキルを追加する
+				sub_add_skill_char arg_charid, random_table_skill_info_pickup
+			}
+			swbreak
+		swend
+	next
+	
+	return
+	
+*end_of_slgm_sub_random

@@ -1,0 +1,1265 @@
+	goto *end_of_slgm_sub_event
+; ##################################################################################################
+; # 
+; # サブルーチン　イベント系
+; # 
+; ##################################################################################################
+
+; イベントトリガーチェック
+;   arg1(timing): チェックするタイミング
+#deffunc sub_check_event_trigger int arg_timing
+
+	if DEBUG_LEVEL & LOG_ERROR :logmes strf("I call sub_check_event_trigger args=%d",arg_timing)
+	
+	; 全チームの支配エリア数を再計算する
+	sub_culcu_allteam_member_num
+	
+	switch arg_timing
+	case EVENT_TRIGGER_INFO_TIMING_TURN_START
+		global_info(GLOBAL_INFO_EVENT_TRIGGER_ID) = -1
+		swbreak
+	case EVENT_TRIGGER_INFO_TIMING_EVENT_MENU
+		global_info(GLOBAL_INFO_WAIT_EVENT_ID) = -1
+		swbreak
+	swend
+	
+	for sub_eventtriger,0,EVENT_TRIGGER_MAX
+		if strlen(event_trigger_sinfo(sub_eventtriger,EVENT_TRIGGER_SINFO_NAME)) <= 0 : _continue
+		if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_FLAG) == 1 : _continue
+		if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_TIMING) != arg_timing : _continue
+
+		if DEBUG_LEVEL & LOG_ERROR {
+			if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM) == -1 {
+				logmes strf("D check event_trigger %d team=%d, area=%d<->%d", sub_eventtriger, event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM), event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN),event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX))
+			} else {
+				logmes strf("D check event_trigger %d team=%d, area=%d<->%d(have %d)", sub_eventtriger, event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM), event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN),event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX),team_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM),TEAM_INFO_AREA_CNT))
+			}
+		}
+		
+		if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM) != -1 {	; 発動条件：チーム
+			if arg_timing == EVENT_TRIGGER_INFO_TIMING_EVENT_MENU {
+				if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM) != global_info(GLOBAL_INFO_TURN_TEAM) : _continue
+			}
+			if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) != -1 {	; 発動条件：チームの支配エリア数（最小）
+				if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) > team_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM),TEAM_INFO_AREA_CNT) : _continue
+			}
+			if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) != -1 {	; 発動条件：チームの支配エリア数（最大）
+				if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) < team_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM),TEAM_INFO_AREA_CNT) : _continue
+			}
+			if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) != -1 {	; 発動条件：チームに特定キャラがいる
+				if char_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR),CHAR_INFO_TEAM) != event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM) : _continue
+			}
+			if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) != -1 {	; 発動条件：チームに特定キャラがいない
+				if char_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR),CHAR_INFO_TEAM) == event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM) : _continue
+			}
+			if ( event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) != -1 ) and ( event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) == -1 ) {	; 発動条件：チームが特定のエリアを支配
+				if area_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA),AREA_INFO_TEAM) != event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM) : _continue
+			}
+			if ( event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) != -1 ) and ( event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) != -1 ) {	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+				if area_block_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA),AREA_BLOCK_INFO_TEAM,event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK)) != event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM) : _continue
+			}
+			if ( event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) != -1 ) and ( event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) == -1 ) {	; 発動条件：チームが特定のエリア・ブロックを支配してない
+				if area_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA),AREA_INFO_TEAM) == event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM) : _continue
+			}
+			if ( event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) != -1 ) and ( event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) != -1 ) {	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+				if area_block_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA),AREA_BLOCK_INFO_TEAM,event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK)) != event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TEAM) : _continue
+			}
+		}
+		if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TURN_EARLY) != -1 {	; 発動条件：ターン（最速）
+			if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TURN_EARLY) > global_info(GLOBAL_INFO_TURN) : _continue
+		}
+		if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TURN_LATE) != -1 {	; 発動条件：ターン（最遅）
+			if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_TURN_LATE) < global_info(GLOBAL_INFO_TURN) : _continue
+		}
+		if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_DONE_EVENT) != -1 {	; 発動条件：特定のイベントが発動したかどうか
+			if event_trigger_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_DONE_EVENT),EVENT_TRIGGER_INFO_FLAG) != 1 : _continue
+		}
+		if event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) != -1 {	; 発動条件：特定のイベントが発動していないかどうか
+			if event_trigger_info(event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_COND_DONE_EVENT),EVENT_TRIGGER_INFO_FLAG) == 1 : _continue
+		}
+
+		switch arg_timing
+		case EVENT_TRIGGER_INFO_TIMING_TURN_START
+			global_info(GLOBAL_INFO_EVENT_TRIGGER_ID) = sub_eventtriger
+			event_trigger_info(sub_eventtriger,EVENT_TRIGGER_INFO_FLAG) = 1
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL
+			swbreak
+		case EVENT_TRIGGER_INFO_TIMING_EVENT_MENU
+			global_info(GLOBAL_INFO_WAIT_EVENT_ID) = sub_eventtriger
+			swbreak
+		swend
+		_break
+	next
+
+	if DEBUG_LEVEL & LOG_ERROR :logmes strf("D EVENT_TRIGGER_ID is %d in sub_check_event_trigger",global_info(GLOBAL_INFO_EVENT_TRIGGER_ID) )
+	
+	return
+
+; イベントデータを呼び出す
+;   arg1(eventdataid):    イベントデータID
+;   arg2(eventtriggerid): イベントトリガーID
+#deffunc sub_call_event_data int arg_eventdataid, int arg_eventtriggerid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_call_event_data args=%d,%d",arg_eventdataid,arg_eventtriggerid)
+
+	switch arg_eventdataid
+	case 101 ; "オープニングとチームリオの紹介"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0
+			; 基本イベントをロックする
+			event_code_lock(EVENT_CODE_ATTACK_AREA) = 1
+			event_code_lock(EVENT_CODE_TRAINING) = 1
+			event_code_lock(EVENT_CODE_MANAG_UP) = 1
+			event_code_lock(EVENT_CODE_DEFP_UP) = 1
+			event_code_lock(EVENT_CODE_CHAR_SEARCH) = 1
+	
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 38
+			sub_play_music MUSIC_MAIN1
+			sub_map_create_message_center "今日は実戦形式の訓練。４つのチームに分かれて全てのエリアの制圧を目指す。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 1 ; ナレーション
+			sub_map_create_message_center "これまでは１対１の訓練が多かったが、今回はチーム戦だ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 2 ; ナレーション
+			sub_map_create_message_center "リーダーはくじ引きで決まり、初期メンバーは指名制だった。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 3 ; ナレーション
+			sub_map_create_message_center "リオは４つのチームの１つのリーダー。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 4 ; ナレーション
+			sub_map_create_message_center "あまり友人の多くなかった彼は初期メンバーに幼馴染をはじめとした顔見知りを指名した。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 5 ; ナレーション
+			sub_map_create_message_center "見知ったメンバーに安堵しつつも全エリアの制圧には新規人材の確保も必要。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 6 ; ナレーション
+			sub_map_create_message_center "何よりも彼自身が戦いをあまり得意としていなかった。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 7 ; ナレーション
+			sub_map_create_message_center "だが、それでも彼にはやり遂げなければならない理由があった。。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 8 ; キャロライン
+			sub_map_create_message_center "「なーに、深刻そうな顔してんのっ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 9 ; ナレーション
+			sub_play_sound 15
+			sub_play_music MUSIC_EVENT1
+			sub_map_create_message_center "（どんっ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 10 ; リオ
+			sub_map_create_message_center "「！！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, 4, 300
+			swbreak
+		case 11 ; キャロライン
+			sub_map_create_message_center "「訓練なんだから楽しくやろうよ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 12 ; シエーナ
+			sub_map_create_message_center "「いえ、訓練なんだから真剣にやらないとダメですよ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 13 ; シエーナ
+			sub_map_create_message_center "「でも肩の力が入りすぎもダメですよ、リオ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 14 ; リオ
+			sub_map_create_message_center "「、、、、うん、そうだね。ありがと、シエーナ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 15 ; キャロライン
+			sub_map_create_message_center "「リオちゃん、リーダーだもんね！よろしくね！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 16 ; キャロライン
+			sub_map_create_message_center "「で、何すればいいんだっけ。全部の敵をやっつければいいのかな！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 17 ; ルース
+			sub_map_create_message_center "「それはちょっと違うんじゃないかな、、、", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 18 ; キャロライン
+			sub_map_create_message_center "「じゃあ、何をすればいいの？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 3, 300
+			swbreak
+		case 19 ; シエーナ
+			sub_map_create_message_center "「自分たちのエリアを守りながら、少しずつ他のエリアに攻め込んで１つずつ制圧していくのがよいですかね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 20 ; キャロライン
+			sub_map_create_message_center "「うーん、、、、楽しければなんでもいいかな！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 21 ; ルース
+			sub_map_create_message_center "「マナっていうのでＨＰが回復できるんだっけ、戦いに備えて貯めておかないとね", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 22 ; メリンダ
+			sub_map_create_message_center "「わたし、そういうの、とくい、まかせて", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, -1, 300
+			swbreak
+		case 23 ; キャロライン
+			sub_map_create_message_center "「ねーねー、私は探検してきてもいい？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 24 ; キャロライン
+			sub_map_create_message_center "「ちけいをしることは、たたかううえでじゅうよう！　って言ってたよね！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 25 ; リオ
+			sub_map_create_message_center "「えっ、、、えっと、、、", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, 4, 300
+			swbreak
+		case 26 ; シエーナ
+			sub_map_create_message_center "「こら、リオを困らせないで", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 27 ; シエーナ
+			sub_map_create_message_center "「みんなやったことがないことなんだから、いっしょに考えていきましょう。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 28 ; キャロライン
+			sub_map_create_message_center "「はーい、暴れていいときはいいって言ってね！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 29 ; リオ
+			sub_map_create_message_center "「うん、、えっと、、", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 30 ; リオ
+			sub_map_create_message_center "「よろしくね、いっしょにがんばろう", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 31 ; キャロライン
+			sub_map_create_message_center "「おー！！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 32 ; ナレーション
+			sub_map_create_message_center "。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 33 ; ナレーション
+			sub_map_create_message_center "。。。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 34 ; リオ
+			sub_map_create_message_center "「ありがと、シエーナ。もっとしっかりしないとね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 35 ; シエーナ
+			sub_map_create_message_center "「気にしないで、リオ。私はいつでもあなたを守りますよ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 36 ; リオ
+			sub_map_create_message_center "「ありがと、頼りにしてるね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 37 ; ナレーション
+			sub_map_create_message_center "。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		swend
+		swbreak
+	case 102 ; "はじめてのマナ製造機改良"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; キャロライン
+			sub_play_music MUSIC_EVENT1
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 13
+			sub_map_create_message_center "「これがマナってやつだよねー、美味しいよねー", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 1 ; ルース
+			sub_map_create_message_center "「え？美味しいの？味しないと思うけど。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, 4, 300
+			swbreak
+		case 2 ; メリンダ
+			sub_map_create_message_center "「うん、しないはず。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, -1, 300
+			swbreak
+		case 3 ; シエーナ
+			sub_map_create_message_center "「この生産器からちょっとずつ生産されているようですね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 4 ; キャロライン
+			sub_map_create_message_center "「なんかちょっとずつしか作られてなくない？いっぱい食べたいなぁ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 5 ; シエーナ
+			sub_map_create_message_center "「生産器は改良できるみたいですね。改良は１回あたり最大３人がかりで行えるようです。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 6 ; ルース
+			sub_map_create_message_center "「生成の能力が高い人がいると人数も少なくてすむかも。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 7 ; メリンダ
+			sub_map_create_message_center "「わたし、そういうの、とくい、まかせて", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, -1, 300
+			swbreak
+		case 8 ; シエーナ
+			sub_map_create_message_center "「性能が上がれば上がるほど求められる能力は高くなるようです。ほどほどに改良するのがいいかもしれません。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 9 ; キャロライン
+			sub_map_create_message_center "「えー、いっぱい食べたーい", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 10 ; シエーナ
+			sub_map_create_message_center "「マナが枯渇するとＨＰが回復できないので壊滅状態になってしまいます。節約しますよ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 11 ; キャロライン
+			sub_map_create_message_center "「はーい", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 12 ; ナレーション
+			sub_map_create_message_center "マナ製造機改良が行えるようになりました（ついでに今回も改良したそうです）", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			; マナ生産量向上をアンロックする
+			event_code_lock(EVENT_CODE_MANAG_UP) = 0
+			area_info(area_select,AREA_INFO_MANAG) += 1
+			char_info(3, CHAR_INFO_ACTION_CNT) += 1
+			char_info(5, CHAR_INFO_ACTION_CNT) += 1
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		swend
+		swbreak
+	case 103 ; "はじめての人材発掘"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; キャロライン
+			sub_play_music MUSIC_EVENT1
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 8
+			sub_map_create_message_center "「ねーねー、作業したらつかれたー", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 1 ; リオ
+			sub_map_create_message_center "「そうだね、思った以上に人が必要なのかも", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 2 ; キャロライン
+			sub_map_create_message_center "「ひとって増やせないの？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 3 ; シエーナ
+			sub_map_create_message_center "「そうですね、人材発掘して新しい人に手伝ってもらいましょう。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 4 ; キャロライン
+			sub_map_create_message_center "「わーい、美味しいごはん作ってくれる人がいいな！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 5 ; ルース
+			sub_map_create_message_center "「。。。。それ、関係あるのかな。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 6 ; シエーナ
+			sub_map_create_message_center "「人を探すのも人手が必要なので、早めに増やした方がよいですね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 7 ; ナレーション
+			sub_map_create_message_center "人材発掘が行るようになりました。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			event_code_lock(EVENT_CODE_CHAR_SEARCH) = 0
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		swend
+		swbreak
+	case 104 ; "訓練は怠らない"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; ルース
+			sub_play_music MUSIC_EVENT1
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 13
+			sub_map_create_message_center "「えい！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, 1, 300
+			sub_play_sound 19
+			swbreak
+		case 1 ; メリンダ
+			sub_map_create_message_center "「、、、、、えい", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 1, 300
+			sub_play_sound 11
+			swbreak
+		case 2 ; エメリー
+			sub_map_create_message_center "「ふたりともここでも練習するの？疲れないようにほどほどにね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, -1, 300
+			swbreak
+		case 3 ; ルース
+			sub_map_create_message_center "「うん、少しでも強くなりたいし", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 4 ; キャロライン
+			sub_map_create_message_center "「えらーい、わたしもした方がいいのかな？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 5 ; シエーナ
+			sub_map_create_message_center "「手が空いていればしてもいいかもしれませんね。でももうすぐ戦いが始まるような気がします。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 6 ; シエーナ
+			sub_map_create_message_center "「なのでルース、ほどほどにしてくださいね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 7 ; ルース
+			sub_map_create_message_center "「うん、そうだね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 8 ; メリンダ
+			sub_map_create_message_center "「、、、、、", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 7, 300
+			swbreak
+		case 9 ; エメリー
+			sub_map_create_message_center "「まあまあ、きりの良いところまでやればいいんじゃない？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, 4, 300
+			swbreak
+		case 10 ; ルース
+			sub_map_create_message_center "「そうしよっかな。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 11 ; メリンダ
+			sub_map_create_message_center "「、、、、、うん。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 2, 300
+			swbreak
+		case 12 ; ナレーション
+			sub_map_create_message_center "訓練が行えるようになりました", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			event_code_lock(EVENT_CODE_TRAINING) = 0
+			sub_gain_exp_char 4, GLOBAL_INFO_OPERATION_MAP_TRAINING_EXP
+			char_info(4, CHAR_INFO_ACTION_CNT) += 1
+			sub_gain_exp_char 5, GLOBAL_INFO_OPERATION_MAP_TRAINING_EXP
+			char_info(5, CHAR_INFO_ACTION_CNT) += 1
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		swend
+		swbreak
+	case 105 ; "地形の把握"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; キャロライン
+			sub_play_music MUSIC_EVENT1
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 10
+			sub_map_create_message_center "「ねーねー、探検に行ってきてもいい？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 1 ; シエーナ
+			sub_map_create_message_center "「地形を把握することで守りには役に立ちますが、ほどほどにしてくださいね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 2 ; キャロライン
+			sub_map_create_message_center "「はーい、行ってきまーす！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 3 ; リオ
+			sub_map_create_message_center "「元気だなぁ、キャロライン", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 4 ; シエーナ
+			sub_map_create_message_center "「いつもの訓練ばっかりで飽きたってよく言ってますからね", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 5 ; シエーナ
+			sub_map_create_message_center "「でも、探索はエリアごとにやらないと効果がないので、結構大変そうです。優先度は低くてもいいかもしれません。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 6 ; リオ
+			sub_map_create_message_center "「そうだね、やることがいっぱいあるし。。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 7 ; リオ
+			sub_map_create_message_center "「キャロラインにはちょっと可愛そうな気がしてきた", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, 2, 300
+			swbreak
+		case 8 ; シエーナ
+			sub_map_create_message_center "「ふふ、そうかもしれませんね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 9 ; ナレーション
+			sub_map_create_message_center "地形探索ができるようになりました（今回のキャロラインの分も反映済み！）", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			event_code_lock(EVENT_CODE_DEFP_UP) = 0
+			area_info(area_select,AREA_INFO_DEFP) += 1
+			char_info(3, CHAR_INFO_ACTION_CNT) += 1
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		swend
+		swbreak
+	case 106 ; "初戦闘"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; リッキー
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 27
+			sub_map_create_message_center "「おい、リオ。ようやく決着を付けるときがきたな。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, -1, 300	
+			swbreak
+		case 1 ; リッキー
+			sub_map_create_message_center "「軟弱なお前を倒してシエーナを頂く。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, -1, 300	
+			swbreak
+		case 2 ; ナレーション
+			sub_play_music MUSIC_EVENT2
+			sub_map_create_message_center "バシッ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			sub_play_sound 15
+			swbreak
+		case 3 ; リッキー
+			sub_map_create_message_center "「おいっ！てめぇ何すんだ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, 5, 300	
+			swbreak
+		case 4 ; フィオナ
+			sub_map_create_message_center "「あんたね！口のきき方に気をつけなさい。騎士なんでしょ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, -1, 300	
+			swbreak
+		case 5 ; フィオナ
+			sub_map_create_message_center "「リオくんにもシエーナちゃんにも敬意を払いなさい！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, -1, 300	
+			swbreak
+		case 6 ; リッキー
+			sub_map_create_message_center "「うるせぇな！お前も俺に敬意を払えよ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, 1, 300	
+			swbreak
+		case 7 ; フィオナ
+			sub_map_create_message_center "「いやよ！私が敬意を払うのは神様だけよ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, -1, 300	
+			swbreak
+		case 8 ; ナレーション
+			sub_map_create_message_center "「どうやら喧嘩がはじまったようだ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 9 ; キャロライン
+			sub_map_create_message_center "「うんうん、いつも通り仲がいいねぇ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 10 ; リオ
+			sub_map_create_message_center "「、、、、はぁ、まあこうなるよな。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 11 ; シエーナ
+			sub_map_create_message_center "「あいつは私をモノ扱いするので嫌いです。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 1, 300
+			swbreak
+		case 12 ; シエーナ
+			sub_map_create_message_center "「でもこれは宣戦布告でしょう、直ぐに戦闘になる気がします。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 13 ; キャロライン
+			sub_map_create_message_center "「よし、暴れるぞ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 14 ; シエーナ
+			sub_map_create_message_center "「戦闘は１度行動した人も出撃できますが、疲労状態で弱くなるのでお勧めしません。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 15 ; リオ
+			sub_map_create_message_center "「じゃあ、行動してない人で迎撃しないといけないのか。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 16 ; シエーナ
+			sub_map_create_message_center "「ＨＰが減っているのは出撃する際にマナで回復するのでマナが残っていれば現在ＨＰは気にしなくても大丈夫です。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 17 ; リッキー
+			sub_map_create_message_center "「ったく。とりあえず攻め込むぞ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, -1, 300	
+			swbreak
+		case 18 ; ナレーション
+			sub_map_create_message_center "バシッ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			sub_play_sound 15
+			swbreak
+		case 19 ; フィオナ
+			sub_map_create_message_center "「人の話を聞いてた！？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, -1, 300	
+			swbreak
+		case 20 ; キャロライン
+			sub_map_create_message_center "「うーん、無限ループ？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 21 ; リオ
+			sub_map_create_message_center "「ははは、、、", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, 4, 300
+			swbreak
+		case 22 ; シエーナ
+			sub_map_create_message_center "「、、、でも彼らは決して弱くありませんので、油断しないようにしてください。誰が攻めてくるかはわかりませんが。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 23 ; ナレーション
+			sub_map_create_message_center "しばらく夫婦漫才は続いていたが、ようやく攻めてくるようだ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 24 ; リッキー
+			sub_map_create_message_center "「誰が！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, 1, 300	
+			swbreak
+		case 25 ; フィオナ
+			sub_map_create_message_center "「夫婦だ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, -1, 300	
+			event_code_lock(EVENT_CODE_ATTACK_AREA) = 0
+			swbreak
+		case 26
+			; 攻撃対象エリアは selector_map_focus
+			global_info(GLOBAL_INFO_BATTLE_READY_AREA) = 1
+			; 攻撃予定ブロックをglobal_infoに格納する
+			sub_map_calcu_battle_ready_block global_info(GLOBAL_INFO_BATTLE_READY_AREA), global_info(GLOBAL_INFO_TURN_TEAM)
+			; 攻撃するメンバーを選択する
+			sub_create_list_char_from_team global_info(GLOBAL_INFO_TURN_TEAM), BATTLE_CHAR_MAX, -1, 0
+			; 出撃メンバーを自動で決める
+			sub_map_decide_battle_char global_info(GLOBAL_INFO_TURN_TEAM), 1, 2
+			; 攻撃メンバー確定　※特に処理なし
+			
+			; マナを消費してキャラのHPを回復する
+			sub_heal_char_by_mana battle_char_atc
+			; 攻撃チームの行動回数を減らす
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_DECIDE_ATTACK
+			swbreak
+		swend
+		swbreak
+	case 107 ; "チーム・リオ全滅"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 1
+			global_info(GLOBAL_INFO_GAME_OVER) = 1
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_GAME_FINISH
+			swbreak
+		swend
+		swbreak
+	case 108 ; "メリンダのぷれぜんと"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; エメリー
+			sub_play_music MUSIC_EVENT1
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 13
+			sub_map_create_message_center "「ほら、ここまで来たならかんばりなさい", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, 2, 300
+			swbreak
+		case 1 ; メリンダ
+			sub_map_create_message_center "「あ、あの、、ルースくん。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 1, 300
+			swbreak
+		case 2 ; ルース
+			sub_map_create_message_center "「ん？なーに、メリンダ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 3 ; メリンダ
+			sub_map_create_message_center "「これ、ルースくんに作ったので、あげます。おまもりです。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 1, 300
+			swbreak
+		case 4 ; ルース
+			sub_map_create_message_center "「わー、ありがとう！これはメリンダが持っている人形とおそろい？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 5 ; メリンダ
+			sub_map_create_message_center "「うん、きっとルースくんを守ってくれます。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 2, 300
+			swbreak
+		case 6 ; ルース
+			sub_map_create_message_center "「大切に使うね！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, 2, 300
+			swbreak
+		case 7 ; メリンダ
+			sub_map_create_message_center "「えへへ。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 2, 300
+			swbreak
+		case 8 ; ナレーション
+			sub_map_create_message_center "。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 9 ; キャロライン
+			sub_map_create_message_center "「ええっと、あの人形は。。。。ホンモノ？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 10 ; エメリー
+			sub_map_create_message_center "「本物ですよ、ガチの。人形が身を挺してルースくんを守ってくれるものですね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, -1, 300
+			swbreak
+		case 11 ; キャロライン
+			sub_map_create_message_center "「わぉ、、、深い愛情だなぁ。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 12 ; ナレーション
+			sub_map_create_message_center "ルースはお守りの人形を貰いました", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			char_info(4,CHAR_INFO_SKILL+3) = 55
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		swend
+		swbreak
+	case 109 ; "メイドさん登場"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; メイドメイ
+			sub_play_music MUSIC_EVENT2
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 16
+			sub_map_create_message_center "「お嬢様、お待たせしました。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, -1, 300
+			swbreak
+		case 1 ; メリンダ
+			sub_map_create_message_center "「うん、ありがとう", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, -1, 300
+			swbreak
+		case 2 ; エメリー
+			sub_map_create_message_center "「ほ、ホントにきた。さっきメリンダちゃんが呼んだばかりだよね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, 4, 300
+			swbreak
+		case 3 ; メイドメイ
+			sub_map_create_message_center "「お嬢様のためならどこでも直ぐに伺います。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, -1, 300
+			swbreak
+		case 4 ; メイドメイ
+			sub_map_create_message_center "「いやぁ、なにやら色々起きそうで楽しそうな場所ですし（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, 2, 300
+			swbreak
+		case 5 ; メイドメイ
+			sub_map_create_message_center "「ところでお嬢様、アレはお渡しされましたか？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, -1, 300
+			swbreak
+		case 6 ; メリンダ
+			sub_map_create_message_center "「うん、わたした", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, -1, 300
+			swbreak
+		case 7 ; メイドメイ
+			sub_map_create_message_center "（ちらっ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, -1, 300
+			swbreak
+		case 8 ; ルース
+			sub_map_create_message_center "「ん？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 9 ; メイドメイ
+			sub_map_create_message_center "「鈍感野郎（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, 2, 300
+			swbreak
+		case 10 ; メイドメイ
+			sub_map_create_message_center "「リオさま、ご無沙汰しております。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, -1, 300
+			swbreak
+		case 11 ; リオ
+			sub_map_create_message_center "「お久しぶりです。わざわざありがとうございます。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 12 ; メイドメイ
+			sub_map_create_message_center "「お嬢様より許可は頂いておりますので、私も前線で参加いたします。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, -1, 300
+			swbreak
+		case 13 ; メイドメイ
+			sub_map_create_message_center "「いえ、むしろ前線で参加させてください。探索・生成・話術は苦手です（キリッ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, 7, 300
+			swbreak
+		case 14 ; リオ
+			sub_map_create_message_center "「は、、はい、、、", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 15 ; ナレーション
+			sub_map_create_message_center "メイド・メイが仲間になりました。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, -1, 300
+			; キャラクターを指定してチームに所属させる
+			sub_add_char_to_team 23, 1
+			char_info(23, CHAR_INFO_ACTION_CNT) += 1
+			; キャラが経験値を獲得する
+			sub_gain_exp_char 23, 3000
+
+			;; テストプレイ中だけ
+			;; キャラクターを指定してチームに所属させる
+			;sub_add_char_to_team 24, 1
+			;char_info(24, CHAR_INFO_ACTION_CNT) += 1
+			;sub_gain_exp_char 24, 3000
+			;sub_add_char_to_team 25, 1
+			;char_info(25, CHAR_INFO_ACTION_CNT) += 1
+			;sub_gain_exp_char 25, 3000
+			
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		swend
+		swbreak
+	case 110 ; "チームリッキー全滅"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; リッキー
+			sub_play_music MUSIC_THEME2
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 15
+			sub_map_create_message_center "「ちっ、全部取られちまったか。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, 1, 300
+			swbreak
+		case 1 ; フィオナ
+			sub_map_create_message_center "「そうね、、みんな強いわね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, 4, 300
+			swbreak
+		case 2 ; フィオナ
+			sub_map_create_message_center "「珍しく悔しそうね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, -1, 300
+			swbreak
+		case 3 ; リッキー
+			sub_map_create_message_center "「まあ、勝てると思ってたからな。まだまだ鍛錬が足りねぇか。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, -1, 300
+			swbreak
+		case 4 ; フィオナ
+			sub_map_create_message_center "「まったく、真面目にやってればカッコいいのに（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, 2, 300
+			swbreak
+		case 5 ; ナレーション
+			sub_map_create_message_center "つんつん", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 6 ; フィオナ
+			sub_map_create_message_center "「何よ？（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, 2, 300
+			swbreak
+		case 7 ; クレア
+			sub_map_create_message_center "「惚れなおしちゃいましたか？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 9, 2, 300
+			swbreak
+		case 8 ; フィオナ
+			sub_map_create_message_center "「そ、そんなわけないでしょ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, 4, 300
+			swbreak
+		case 9 ; クレア
+			sub_map_create_message_center "「ふふふ、もうちょっと素直になった方が可愛いですよ？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 9, 2, 300
+			swbreak
+		case 10 ; フィオナ
+			sub_map_create_message_center "「うっ、うるさい！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, 4, 300
+			swbreak
+		case 11 ; リッキー
+			sub_map_create_message_center "「おい、うるせぇのはお前だ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, -1, 300
+			swbreak
+		case 12 ; フィオナ
+			sub_map_create_message_center "「そ、、、そうね、悪かったわね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 8, 4, 300
+			swbreak
+		case 13 ; リッキー
+			sub_map_create_message_center "「おっ、おう、、、、", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, 4, 300
+			swbreak
+		case 14 ; リッキー
+			sub_map_create_message_center "（急に素直になんなよ、、、、びっくりするじゃねぇか", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 7, 4, 300
+			swbreak
+		swend
+		swbreak
+	case 111 ; "チームコール全滅"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; コール
+			sub_play_music MUSIC_THEME3
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 12
+			sub_map_create_message_center "「みんな強いじゃねぇかよ、せっかく技を磨いたのにかなわねぇ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 16, -1, 300
+			swbreak
+		case 1 ; ケイ
+			sub_map_create_message_center "「悪くはないと思ったんだけどなぁ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 17, -1, 300
+			swbreak
+		case 2 ; コール
+			sub_map_create_message_center "「俺たちに足りないのはチームワークだな。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 16, -1, 300
+			swbreak
+		case 3 ; ケイ
+			sub_map_create_message_center "「まあ、そうだな。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 17, -1, 300
+			swbreak
+		case 4 ; ケイ
+			sub_map_create_message_center "「で、メリッサとは少しは仲良くなれたのか？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 17, -1, 300
+			swbreak
+		case 5 ; コール
+			sub_map_create_message_center "「いや、全然。素っ気なすぎて手ごたえねぇな。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 16, -1, 300
+			swbreak
+		case 6 ; コール
+			sub_map_create_message_center "「そういうお前はどうなんだよ。シエラとはお近づきになれたのか？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 16, -1, 300
+			swbreak
+		case 7 ; ケイ
+			sub_map_create_message_center "「こっちも全然だよ。なんか脈なしって感じ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 17, -1, 300
+			swbreak
+		case 8 ; コール
+			sub_map_create_message_center "「。。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 16, -1, 300
+			swbreak
+		case 9 ; ケイ
+			sub_map_create_message_center "「。。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 17, -1, 300
+			swbreak
+		case 10 ; コール
+			sub_map_create_message_center "「俺たち何やってんだろうな", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 16, -1, 300
+			swbreak
+		case 11 ; ケイ
+			sub_map_create_message_center "「そうだな、訓練もっと真面目にやるか", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 17, -1, 300
+			swbreak
+		swend
+		swbreak
+	case 112 ; "チームアデルバード全滅"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; アデルパート
+			sub_play_music MUSIC_THEME4
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 11
+			sub_map_create_message_center "「負けたか、、、まあ、仕方ないな。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 26, -1, 300
+			swbreak
+		case 1 ; ジェシカ
+			sub_map_create_message_center "「そうね、、、正直訓練どころではなかったわ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 29, 4, 300
+			swbreak
+		case 2 ; ベランカ
+			sub_map_create_message_center "「ふぅ、、、もうしばらくはこういうのはいいわ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 27, -1, 300
+			swbreak
+		case 3 ; アデルパート
+			sub_map_create_message_center "「お疲れ、ベランカ。今回は苦労かけたな。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 26, 2, 300
+			swbreak
+		case 4 ; ベランカ
+			sub_map_create_message_center "「そうよ、ほとんど訓練してないし。何しに私ここにいたのかしら。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 27, -1, 300
+			swbreak
+		case 5 ; ジェシカ
+			sub_map_create_message_center "「おかげで色々未遂に終わって万事パッピーという感じね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 29, -1, 300
+			swbreak
+		case 6 ; ベランカ
+			sub_map_create_message_center "「私がハッピーじゃなぁぁぁい！！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 27, 1, 300
+			swbreak
+		case 7 ; アデルパート
+			sub_map_create_message_center "「はっはっはっ、今度の休みに街で打ち上げでもしよう。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 26, 2, 300
+			swbreak
+		case 8 ; ベランカ
+			sub_map_create_message_center "「よし！ガツガツ食べるわよ！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 27, 2, 300
+			swbreak
+		case 9 ; ジェシカ
+			sub_map_create_message_center "「ははっ！元気になったわね！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 29, 2, 300
+			swbreak
+		case 10 ; ベランカ
+			sub_map_create_message_center "（そんなことないわよ、あとでキーランに甘やかしてもらおっと", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 27, 7, 300
+			swbreak
+		swend
+		swbreak
+	case 113 ; "アメリア参戦"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; アメリア
+			sub_play_music MUSIC_EVENT1
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 15
+			sub_map_create_message_center "「やっほー、手伝いにきたよー", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 13, 2, 300
+			swbreak
+		case 1 ; キャロライン
+			sub_map_create_message_center "「わーい、アメリアだー！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 2 ; ナレーション
+			sub_map_create_message_center "すりすり", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 3 ; アメリア
+			sub_map_create_message_center "「相変わらずふかふかだぁ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 13, 2, 300
+			swbreak
+		case 4 ; シエーナ
+			sub_map_create_message_center "「ありがとう、アメリア。色々と手が足りなくて。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 5 ; アメリア
+			sub_map_create_message_center "「いいのいいの、あの２人も連れてきてるよ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 13, 2, 300
+			swbreak
+		case 6 ; ハーヴィー
+			sub_map_create_message_center "「エレナがいればどんな敵も楽勝だな", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 14, 2, 300
+			swbreak
+		case 7 ; エレナ
+			sub_map_create_message_center "「そんなことないよぅ、ハーヴィーのほうが強いでしょ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 15, 2, 300
+			swbreak
+		case 8 ; ハーヴィー
+			sub_map_create_message_center "「よし！じゃあ、ずっと一緒に戦うか！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 14, 2, 300
+			swbreak
+		case 9 ; エレナ
+			sub_map_create_message_center "「うん、それがいいね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 15, 2, 300
+			swbreak
+		case 10 ; キャロライン
+			sub_map_create_message_center "「はいはい、バカップル、バカップル", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 11 ; アメリア
+			sub_map_create_message_center "「まあ、やることはやってくれるし、頼りになるよ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 13, 2, 300
+			swbreak
+		case 12 ; アメリア
+			sub_map_create_message_center "「じゃあ、リオくん、よろしくね！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 13, 2, 300
+			swbreak
+		case 13 ; リオ
+			sub_map_create_message_center "「うん、こちらこそ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 14 ; ナレーション
+			sub_map_create_message_center "アメリア、ハーヴィー、エレナが仲間になりました！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			; キャラクターを指定してチームに所属させる
+			sub_add_char_to_team 13, 1
+			char_info(13, CHAR_INFO_ACTION_CNT) += 1
+			sub_gain_exp_char 13, 800
+			sub_add_char_to_team 14, 1
+			char_info(14, CHAR_INFO_ACTION_CNT) += 1
+			sub_gain_exp_char 14, 800
+			sub_add_char_to_team 15, 1
+			char_info(15, CHAR_INFO_ACTION_CNT) += 1
+			sub_gain_exp_char 15, 800
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		swend
+		swbreak
+	case 114 ; "トレッサ参戦"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; ナレーション
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 1
+			sub_map_create_message_center "メリッサの幼馴染のトレッサが加わったらしい", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 22, -1, 300
+			; キャラクターを指定してチームに所属させる
+			sub_add_char_to_team 22, 3
+			char_info(22, CHAR_INFO_ACTION_CNT) += 1
+			sub_gain_exp_char 22, 1000
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		swend
+		swbreak
+	case 115 ; "チームアデルバード強化"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; ナレーション
+			sub_play_music MUSIC_EVENT3
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 7
+			sub_map_create_message_center "何やら強そうなメンバーが加入したようだ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			; キャラクターを指定してチームに所属させる
+			sub_add_char_to_team 32, 4
+			char_info(32, CHAR_INFO_ACTION_CNT) += 1
+			sub_gain_exp_char 32, 1000
+			sub_add_char_to_team 33, 4
+			char_info(33, CHAR_INFO_ACTION_CNT) += 1
+			sub_gain_exp_char 33, 1000
+			sub_add_char_to_team 34, 4
+			char_info(34, CHAR_INFO_ACTION_CNT) += 1
+			sub_gain_exp_char 34, 1000
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		case 1 ; キャロライン
+			sub_map_create_message_center "「うーん、なんだろ。目つきの悪い人たちが入っていったような", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 2 ; シエーナ
+			sub_map_create_message_center "「目つき、、、って良く見えましたね", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 4, 300
+			swbreak
+		case 3 ; キャロライン
+			sub_map_create_message_center "「結構遠くまで見えるよー、いつもリオくんが森の向こうの丘の上で特訓しているのも見てるよー", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 4 ; リオ
+			sub_map_create_message_center "「え？？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, 4, 300
+			swbreak
+		case 5 ; シエーナ
+			sub_map_create_message_center "「最近見ないときが多いと思ったらそんなことをしているのですね（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 6 ; シエーナ
+			sub_map_create_message_center "「それよりも、大幅な戦力増強というのは間違いなさそうです。警戒しましょう。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		swend
+		swbreak
+	case 116 ; "チームアデルバード弱体化"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; ナレーション
+			sub_play_music MUSIC_EVENT3
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 9
+			sub_map_create_message_center "何やらごたごたがあったようだ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			sub_del_char_from_team 32, 4
+			sub_del_char_from_team 33, 4
+			sub_del_char_from_team 34, 4
+			sub_del_char_from_team 31, 4
+			char_info(26, CHAR_INFO_ACTION_CNT) += 1
+			char_info(27, CHAR_INFO_ACTION_CNT) += 1
+			char_info(28, CHAR_INFO_ACTION_CNT) += 1
+			char_info(29, CHAR_INFO_ACTION_CNT) += 1
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 2
+			swbreak
+		case 1 ; リオ
+			sub_map_create_message_center "「なんか慌ただしく動いてるね", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 2 ; シエーナ
+			sub_map_create_message_center "「今回は私たちでも分かるくらい慌ただしいですね。何があったのでしょうか。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 3 ; キャロライン
+			sub_map_create_message_center "「うーん、人が訓練エリア外に移動しているような。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 4 ; キャロライン
+			sub_map_create_message_center "「、、、、、えっ？使えない人はクビとかそんなシステムあるの？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 5 ; リオ
+			sub_map_create_message_center "「いや、ないでしょ。みんなで訓練して強くならないといけないのに", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 6 ; キャロライン
+			sub_map_create_message_center "「じゃあ、なんでどっか行っちゃったのかな", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+			swbreak
+		case 7 ; シエーナ
+			sub_map_create_message_center "「分かりませんが、教官からの合図もありませんし、訓練は続行なのではないでしょうか", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 8 ; シエーナ
+			sub_map_create_message_center "「いずれにしてもまだ戦うわけですから、その時の様子も見ましょう", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		swend
+		swbreak
+	case 117 ; "チームアデルバード弱体化2"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; ナレーション
+			sub_play_music MUSIC_EVENT3
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 3
+			sub_map_create_message_center "まだ何か色々やっているようだ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			; キャラクターを指定してチームに所属させる
+			char_info(27, CHAR_INFO_ACTION_CNT) += 1
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 2
+			swbreak
+		case 1 ; リオ
+			sub_map_create_message_center "「何かしてそうなんだけど、戦っても普通なんだよな", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 2 ; キャロライン
+			sub_map_create_message_center "「喧嘩でもしたんじゃない？色々やってそうな割には普通だね", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		swend
+		swbreak
+	case 118 ; "チームアデルバード弱体化3"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; ナレーション
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 1
+			sub_map_create_message_center "何やらごたごたがあったようだ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			; キャラクターを指定してチームに所属させる
+			char_info(27, CHAR_INFO_ACTION_CNT) += 1
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 2
+			swbreak
+		swend
+		swbreak
+	case 119 ; "天下統一！"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; リオ
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 30
+			sub_play_music MUSIC_EPILOGUE
+			sub_map_create_message_center "「勝った、、、、よね？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, 2, 300
+			swbreak
+		case 1 ; シエーナ
+			sub_map_create_message_center "「そうですね！私たちが勝ちました！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 2 ; キャロライン
+			sub_map_create_message_center "「わーい！勝ったー！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 3 ; ルース
+			sub_map_create_message_center "「僕も活躍できたよね？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, 2, 300
+			swbreak
+		case 4 ; シエーナ
+			sub_map_create_message_center "「もちろんです", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 5 ; メリンダ
+			sub_map_create_message_center "「わたしも、やくにたったかな？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 2, 300
+			swbreak
+		case 6 ; シエーナ
+			sub_map_create_message_center "「メリンダも活躍しましたね", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 7 ; メリンダ
+			sub_map_create_message_center "「ルースくん、どうだった？お人形も役に立ったかな。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 2, 300
+			swbreak
+		case 8 ; ルース
+			sub_map_create_message_center "「そうだね、ものすごく守ってもらえたよ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, 2, 300
+			swbreak
+		case 9 ; メリンダ
+			sub_map_create_message_center "「よかった。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 2, 300
+			swbreak
+		case 10 ; エメリー
+			sub_map_create_message_center "「うんうん、メリンダも言いたいことが言えてよかった（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, 2, 300
+			swbreak
+		case 11 ; シエーナ
+			sub_map_create_message_center "「毎度毎度大変ですね（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 12 ; エメリー
+			sub_map_create_message_center "「シエーナこそ、リオくんにアタックしたら？（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, 2, 300
+			swbreak
+		case 13 ; シエーナ
+			sub_map_create_message_center "「まあ、そうなんですけど（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 6, 300
+			swbreak
+		case 14 ; リオ
+			sub_map_create_message_center "「僕こそ、役に立ったのかな。。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 15 ; シエーナ
+			sub_map_create_message_center "「何を言ってるんですか。弱点が多いのに全然倒れないって、結構相手が恐れてましたよ？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 16 ; シエーナ
+			sub_map_create_message_center "「頑張って鍛えたんですね、リオ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 17 ; リオ
+			sub_map_create_message_center "「そ、そっか。それならよかった。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 18 ; シエーナ
+			sub_map_create_message_center "「リオの指示のおかげてみんなで勝てたんです。胸を張ってください。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 19 ; リオ
+			sub_map_create_message_center "「シエーナが支えてくれたおかげだよ、ありがとう。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, 2, 300
+			swbreak
+		case 20 ; ナレーション
+			sub_map_create_message_center "すすすすす。。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			swbreak
+		case 21 ; キャロライン
+			sub_map_create_message_center "「やっと二人もいい感じになってきたねぇ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 22 ; エメリー
+			sub_map_create_message_center "「ホントホント、リオくんも守られてるばっかりじゃやだって意地張っちゃって", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, 2, 300
+			swbreak
+		case 23 ; ルース
+			sub_map_create_message_center "「お似合いだよね、ふたり。いいなぁ。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 24 ; エメリー
+			sub_map_create_message_center "「。。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, 4, 300
+			swbreak
+		case 25 ; エメリー
+			sub_map_create_message_center "「鈍感野郎（ボソッ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, 2, 300
+			swbreak
+		case 26 ; エメリー
+			sub_map_create_message_center "「メリンダ！、次の作戦を練りますよ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, 2, 300
+			swbreak
+		case 27 ; メリンダ
+			sub_map_create_message_center "「うん、がんばる", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 2, 300
+			swbreak
+		case 28 ; キャロライン
+			sub_map_create_message_center "「うーん、みんなくっついてもいいけど、私とも遊んでね？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 29 ; ナレーション
+			global_info(GLOBAL_INFO_GAME_CLEAR) = 1
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_GAME_FINISH
+			swbreak
+		swend
+		swbreak
+	case 120 ; "エリアが増えた"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; シエーナ
+			sub_play_music MUSIC_EVENT1
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 11
+			sub_map_create_message_center "「やりましたね、リオ！エリアが１つ増えました。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, 2, 300
+			swbreak
+		case 1 ; キャロライン
+			sub_map_create_message_center "「わーいわーい、新しいエリア！", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 2 ; リオ
+			sub_map_create_message_center "「そうだね、新しいエリアでも何かした方がいいのかな", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 3 ; シエーナ
+			sub_map_create_message_center "「マナ生産量の向上と地形探索はエリアごとにやる必要があるみたいですね", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 4 ; シエーナ
+			sub_map_create_message_center "「それ以外はどのエリアにいても変わらないようです", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 5 ; キャロライン
+			sub_map_create_message_center "「へー、シエーナは物知りだなぁ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 6 ; シエーナ
+			sub_map_create_message_center "「いえ、配られた訓練ガイドに書いてますよ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		case 7 ; キャロライン
+			sub_map_create_message_center "「え、そんなの配られたっけ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 8 ; キャロライン
+			sub_map_create_message_center "「。。。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 9 ; キャロライン
+			sub_map_create_message_center "「あ、昨日まくらを高くするのに使ったやつがそれかも", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 10 ; シエーナ
+			sub_map_create_message_center "「。。。。。まあ、キャロラインらしいですね。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+			swbreak
+		swend
+		swbreak
+	case 121 ; "メイドさん登場2"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; ナレーション
+			sub_play_music MUSIC_EVENT2
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 16
+			sub_map_create_message_center "どかーん", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+			sub_play_sound 36
+			swbreak
+		case 1 ; リオ
+			sub_map_create_message_center "「て、敵襲！？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+			swbreak
+		case 2 ; メイドモモ
+			sub_map_create_message_center "「ふぅ、やっと着いた", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 24, -1, 300
+			swbreak
+		case 3 ; メイドメイ
+			sub_map_create_message_center "「モモ、遅いじゃないですか", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, -1, 300
+			swbreak
+		case 4 ; メイドモモ
+			sub_map_create_message_center "「私、今日は非番ですよ？寄り道くらいさせてください", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 24, 1, 300
+			swbreak
+		case 5 ; メイドモモ
+			sub_map_create_message_center "「申し遅れました。私はメイド・モモ。メイとは同じ組織に所属しております。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 24, 7, 300
+			swbreak
+		case 6 ; メイドモモ
+			sub_map_create_message_center "「本日はお手伝いに伺いました。よろしくお願いします。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 24, 7, 300
+			swbreak
+		case 7 ; リオ
+			sub_map_create_message_center "「は、、、はい、よろしくお願いします", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, 4, 300
+			swbreak
+		case 8 ; ルース
+			sub_map_create_message_center "「組織ってメイド協会ですか？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+			swbreak
+		case 9 ; メイドモモ
+			sub_map_create_message_center "「いえ、お掃除し隊という、、、、", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 24, 7, 300
+			swbreak
+		case 10 ; メイドモモ
+			sub_map_create_message_center "「簡単にいうと掃除専門の私設傭兵団ですね（キリッ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 24, 2, 300
+			swbreak
+		case 11 ; ルース
+			sub_map_create_message_center "「えっ？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, 4, 300
+			swbreak
+		case 12 ; メイドメイ
+			sub_map_create_message_center "「こらこら、変なこと言わない。街を綺麗にするのに、傭兵団はひどいですよ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, 7, 300
+			swbreak
+		case 13 ; メイドモモ
+			sub_map_create_message_center "「まあ、そういうゴミが多いということですね", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 24, 7, 300
+			swbreak
+		case 14 ; キャロライン
+			sub_map_create_message_center "「この人たちを怒らせるのはやめておこう。。。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 15 ; ナレーション
+			sub_map_create_message_center "メイド・モモが仲間になりました（壊したものは直したそうです）", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 24, -1, 300
+			; キャラクターを指定してチームに所属させる
+			sub_add_char_to_team 24, 1
+			char_info(24, CHAR_INFO_ACTION_CNT) += 1
+			; キャラが経験値を獲得する
+			sub_gain_exp_char 24, 3000
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		swend
+		swbreak
+	case 122 ; "メイドさん登場3"
+		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+		case 0 ; キャロライン
+			sub_play_music MUSIC_EVENT2
+			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 15
+			sub_map_create_message_center "「あれー？いい香りがするー", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 1 ; メイドソラ
+			sub_map_create_message_center "「みなさん、お疲れ様です。紅茶を入れましたので一息ついてください", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 25, 7, 300
+			swbreak
+		case 2 ; キャロライン
+			sub_map_create_message_center "「わーい、お茶菓子もあるー", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 2, 300
+			swbreak
+		case 3 ; リオ
+			sub_map_create_message_center "「あれ、、、どちらさま。。。？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, 4, 300
+			swbreak
+		case 4 ; メイドソラ
+			sub_map_create_message_center "「私はメイド・ソラ、メイと同じ組織に所属しております。本日はメイよりお手伝いに、と。", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 25, 7, 300
+			swbreak
+		case 5 ; キャロライン
+			sub_map_create_message_center "「メイドキャップしてよー、怖いお姉さんだったよー（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 6 ; メイドソラ
+			sub_map_create_message_center "「メイかモモに変なことを吹き込まれてませんか？私は野蛮なことはしませんよ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 25, -1, 300
+			swbreak
+		case 7 ; キャロライン
+			sub_map_create_message_center "「野蛮って言っちゃったよ（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 8 ; メイドモモ
+			sub_map_create_message_center "「あー、真打登場", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 24, 2, 300
+			swbreak
+		case 9 ; メイドメイ
+			sub_map_create_message_center "「ソラ、お疲れ様です。今日の現場はどうでしたか？", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 23, -1, 300
+			swbreak
+		case 10 ; メイドソラ
+			sub_map_create_message_center "「すぐに片付きましたよ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 25, -1, 300
+			swbreak
+		case 11 ; メイドソラ
+			sub_map_create_message_center "「私に立てつくなんて１００兆年早いですね（キリッ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 25, 7, 300
+			swbreak
+		case 12 ; メリンダ
+			sub_map_create_message_center "「あ、やっぱりふつうの、そうじじゃないんだ（こごえ", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, 4, 300
+			swbreak
+		case 13 ; キャロライン
+			sub_map_create_message_center "「もしかして一番ヤバイお姉さん来ちゃったんじゃない？（小声", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, 4, 300
+			swbreak
+		case 14 ; ナレーション
+			sub_map_create_message_center "メイド・ソラが仲間になりました", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 25, -1, 300
+			; キャラクターを指定してチームに所属させる
+			sub_add_char_to_team 25, 1
+			char_info(25, CHAR_INFO_ACTION_CNT) += 1
+			; キャラが経験値を獲得する
+			sub_gain_exp_char 25, 3000
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			swbreak
+		swend
+		swbreak
+;	case x ; "x"
+;		switch event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS)
+;		case x(0からスタート) ; キャロライン
+;			event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) = 13
+;			sub_map_create_message_center "x", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 3, -1, 300
+;			swbreak
+;		case x ; リオ
+;			sub_map_create_message_center "x", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 1, -1, 300
+;			swbreak
+;		case x ; ルース
+;			sub_map_create_message_center "x", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 4, -1, 300
+;			swbreak
+;		case x ; メリンダ
+;			sub_map_create_message_center "x", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 5, -1, 300
+;			swbreak
+;		case x ; シエーナ
+;			sub_map_create_message_center "x", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 2, -1, 300
+;			swbreak
+;		case x ; エメリー
+;			sub_map_create_message_center "x", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, 6, -1, 300
+;			swbreak
+;		case x ; ナレーション
+;			sub_map_create_message_center "x", GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL, -1, -1, 300
+;			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+;			swbreak
+;		swend
+;		swbreak
+	default
+		swbreak
+	swend
+
+	if event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS) >= event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS_END) {
+		
+		switch event_trigger_info(arg_eventtriggerid,EVENT_TRIGGER_INFO_TIMING)
+		case EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_NEXT_TURN_AGAIN
+			swbreak
+		case EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントメニューで指定
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+			; チームが行動できる状態にする
+			sub_set_active_team
+			swbreak
+		case EVENT_TRIGGER_INFO_TIMING_TURN_END		; ターン終了時（全チームの行動後）
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+			swbreak
+		swend
+	}
+
+	if DEBUG_LEVEL & LOG_ERROR :logmes strf("D sub_call_event_data is done  eventdata=%d, progress=%d, eventtrigger=%d OPERATION_MAP=%d",arg_eventdataid,event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS),arg_eventtriggerid,global_info(GLOBAL_INFO_OPERATION_MAP))
+	
+	event_data_info(arg_eventdataid,EVENT_DATA_INFO_PROGRESS) += 1
+	
+	return
+
+*end_of_slgm_sub_event

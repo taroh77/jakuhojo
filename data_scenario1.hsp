@@ -1,0 +1,286 @@
+	goto *end_of_data_scenario1
+; ##################################################################################################
+; # 
+; # サブルーチン　汎用
+; # 
+; ##################################################################################################
+
+; シナリオ1の設定
+#deffunc sub_load_data_scenario1
+
+	; チーム
+
+	id = 1
+	team_sinfo(id,TEAM_SINFO_NAME) = "チーム・リオ"
+	team_info(id,TEAM_INFO_LEADER) = 1
+	team_info(id,TEAM_INFO_BASEAREA) = 1
+	team_info(id,TEAM_INFO_ACTIONP_MAX) = 2
+	
+	sub_add_char_to_team 1, 1	; リオ
+	sub_add_char_to_team 2, 1	; シエーナ
+	sub_add_char_to_team 3, 1	; キャロライン
+	sub_add_char_to_team 4, 1	; ルース
+	sub_add_char_to_team 5, 1	; メリンダ
+	sub_add_char_to_team 6, 1	; エメリー
+	
+	id = 2
+	team_sinfo(id,TEAM_SINFO_NAME) = "チーム・リッキー"
+	team_info(id,TEAM_INFO_LEADER) = 7
+	team_info(id,TEAM_INFO_BASEAREA) = 3
+	team_info(id,TEAM_INFO_ACTIONP_MAX) = 2
+
+	sub_add_char_to_team 7, 2	; リッキー
+	sub_add_char_to_team 8, 2	; フィオナ
+	sub_add_char_to_team 9, 2	; クレア
+	sub_add_char_to_team 10, 2	; エレノア
+	sub_add_char_to_team 11, 2	; ドウェイン
+	sub_add_char_to_team 12, 2	; ダグラス
+
+	id = 3
+	team_sinfo(id,TEAM_SINFO_NAME) = "チーム・コール"
+	team_info(id,TEAM_INFO_LEADER) = 16
+	team_info(id,TEAM_INFO_BASEAREA) = 7
+	team_info(id,TEAM_INFO_ACTIONP_MAX) = 2
+
+	sub_add_char_to_team 16, 3	; コール
+	sub_add_char_to_team 17, 3	; ケイ
+	sub_add_char_to_team 18, 3	; シエラ
+	sub_add_char_to_team 19, 3	; ネヴァ
+	sub_add_char_to_team 20, 3	; ブルネッタ
+	sub_add_char_to_team 21, 3	; メリッサ
+
+	id = 4
+	team_sinfo(id,TEAM_SINFO_NAME) = "チーム・アデルパート"
+	team_info(id,TEAM_INFO_LEADER) = 26
+	team_info(id,TEAM_INFO_BASEAREA) = 9
+	team_info(id,TEAM_INFO_ACTIONP_MAX) = 2
+
+	sub_add_char_to_team 26, 4	; アデルパート
+	sub_add_char_to_team 27, 4	; ベランカ
+	sub_add_char_to_team 28, 4	; キーラン
+	sub_add_char_to_team 29, 4	; ジェシカ
+	sub_add_char_to_team 30, 4	; ローラ
+	sub_add_char_to_team 31, 4	; ダニエラ
+
+	; レベルの補正
+	char_info(38,CHAR_INFO_LV) = 20
+	char_info(39,CHAR_INFO_LV) = 20
+	char_info(40,CHAR_INFO_LV) = 20
+	char_info(41,CHAR_INFO_LV) = 20
+	char_info(42,CHAR_INFO_LV) = 20
+	char_info(43,CHAR_INFO_LV) = 20
+	char_info(44,CHAR_INFO_LV) = 20
+	char_info(45,CHAR_INFO_LV) = 20
+
+	
+	; エリア
+
+	id = 1
+	area_sinfo(id,AREA_SINFO_NAME) = "赤の砦"
+	area_sinfo(id,AREA_SINFO_DESC) = ""
+	area_info(id,AREA_INFO_ICONT)  = 40
+	area_info(id,AREA_INFO_ICONP)  = 3
+	area_info(id,AREA_INFO_MAPX)  = 20
+	area_info(id,AREA_INFO_MAPY)  = 20
+	area_info(id,AREA_INFO_TEAM)  = 1
+	area_info(id,AREA_INFO_MANAG) = 12
+	area_info(id,AREA_INFO_BLOCKS) = 4
+	area_neighber(id,0) = 2
+	area_neighber(id,1) = 4
+	area_neighber(id,2) = -1
+	area_neighber(id,3) = -1
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,0) = 50
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,1) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,2) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,3) = 0
+
+	id = 2
+	area_sinfo(id,AREA_SINFO_NAME) = "北の森"
+	area_sinfo(id,AREA_SINFO_DESC) = ""
+	area_info(id,AREA_INFO_ICONT)  = 35
+	area_info(id,AREA_INFO_ICONP)  = 1
+	area_info(id,AREA_INFO_MAPX)  = 220
+	area_info(id,AREA_INFO_MAPY)  = 20
+	area_info(id,AREA_INFO_TEAM)  = 2
+	area_info(id,AREA_INFO_MANAG) = 4
+	area_info(id,AREA_INFO_BLOCKS) = 2
+	area_neighber(id,0) = 1
+	area_neighber(id,1) = 3
+	area_neighber(id,2) = 5
+	area_neighber(id,3) = -1
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,0) = 0
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,1) = 0
+
+	id = 3
+	area_sinfo(id,AREA_SINFO_NAME) = "青の砦"
+	area_sinfo(id,AREA_SINFO_DESC) = ""
+	area_info(id,AREA_INFO_ICONT)  = 40
+	area_info(id,AREA_INFO_ICONP)  = 2
+	area_info(id,AREA_INFO_MAPX)  = 420
+	area_info(id,AREA_INFO_MAPY)  = 20
+	area_info(id,AREA_INFO_TEAM)  = 2
+	area_info(id,AREA_INFO_MANAG) = 9
+	area_info(id,AREA_INFO_BLOCKS) = 3
+	area_neighber(id,0) = 2
+	area_neighber(id,1) = 6
+	area_neighber(id,2) = -1
+	area_neighber(id,3) = -1
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,0) = 20
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,1) = 20
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,2) = 20
+
+	id = 4
+	area_sinfo(id,AREA_SINFO_NAME) = "西の川沿い"
+	area_sinfo(id,AREA_SINFO_DESC) = ""
+	area_info(id,AREA_INFO_ICONT)  = 17
+	area_info(id,AREA_INFO_ICONP)  = 1
+	area_info(id,AREA_INFO_MAPX)  = 20
+	area_info(id,AREA_INFO_MAPY)  = 220
+	area_info(id,AREA_INFO_TEAM)  = 3
+	area_info(id,AREA_INFO_MANAG) = 4
+	area_info(id,AREA_INFO_BLOCKS) = 2
+	area_neighber(id,0) = 1
+	area_neighber(id,1) = 5
+	area_neighber(id,2) = 7
+	area_neighber(id,3) = -1
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,0) = 0
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,1) = 0
+
+	id = 5
+	area_sinfo(id,AREA_SINFO_NAME) = "廃村"
+	area_sinfo(id,AREA_SINFO_DESC) = ""
+	area_info(id,AREA_INFO_ICONT)  = 22
+	area_info(id,AREA_INFO_ICONP)  = 2
+	area_info(id,AREA_INFO_MAPX)  = 220
+	area_info(id,AREA_INFO_MAPY)  = 220
+	area_info(id,AREA_INFO_TEAM)  = 3
+	area_info(id,AREA_INFO_MANAG) = 8
+	area_info(id,AREA_INFO_BLOCKS) = 4
+	area_neighber(id,0) = 2
+	area_neighber(id,1) = 4
+	area_neighber(id,2) = 6
+	area_neighber(id,3) = 8
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,0) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,1) = 0
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,2) = 0
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,3) = 0
+
+	id = 6
+	area_sinfo(id,AREA_SINFO_NAME) = "東の鉱山地帯"
+	area_sinfo(id,AREA_SINFO_DESC) = ""
+	area_info(id,AREA_INFO_ICONT)  = 13
+	area_info(id,AREA_INFO_ICONP)  = 1
+	area_info(id,AREA_INFO_MAPX)  = 420
+	area_info(id,AREA_INFO_MAPY)  = 220
+	area_info(id,AREA_INFO_TEAM)  = 4
+	area_info(id,AREA_INFO_MANAG) = 4
+	area_info(id,AREA_INFO_BLOCKS) = 4
+	area_neighber(id,0) = 3
+	area_neighber(id,1) = 5
+	area_neighber(id,2) = 9
+	area_neighber(id,3) = -1
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,0) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,1) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,2) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,3) = 10
+
+	id = 7
+	area_sinfo(id,AREA_SINFO_NAME) = "緑の砦"
+	area_sinfo(id,AREA_SINFO_DESC) = ""
+	area_info(id,AREA_INFO_ICONT)  = 40
+	area_info(id,AREA_INFO_ICONP)  = 4
+	area_info(id,AREA_INFO_MAPX)  = 20
+	area_info(id,AREA_INFO_MAPY)  = 420
+	area_info(id,AREA_INFO_TEAM)  = 3
+	area_info(id,AREA_INFO_MANAG) = 10
+	area_info(id,AREA_INFO_BLOCKS) = 4
+	area_neighber(id,0) = 4
+	area_neighber(id,1) = 8
+	area_neighber(id,2) = -1
+	area_neighber(id,3) = -1
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,0) = 20
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,1) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,2) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,3) = 10
+
+	id = 8
+	area_sinfo(id,AREA_SINFO_NAME) = "南の山岳"
+	area_sinfo(id,AREA_SINFO_DESC) = ""
+	area_info(id,AREA_INFO_ICONT)  = 4
+	area_info(id,AREA_INFO_ICONP)  = 1
+	area_info(id,AREA_INFO_MAPX)  = 220
+	area_info(id,AREA_INFO_MAPY)  = 420
+	area_info(id,AREA_INFO_TEAM)  = 4
+	area_info(id,AREA_INFO_MANAG) = 4
+	area_info(id,AREA_INFO_BLOCKS) = 5
+	area_neighber(id,0) = 5
+	area_neighber(id,1) = 7
+	area_neighber(id,2) = 9
+	area_neighber(id,3) = -1
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,0) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,1) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,2) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,3) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,4) = 10
+
+	id = 9
+	area_sinfo(id,AREA_SINFO_NAME) = "紫の砦"
+	area_sinfo(id,AREA_SINFO_DESC) = ""
+	area_info(id,AREA_INFO_ICONT)  = 40
+	area_info(id,AREA_INFO_ICONP)  = 5
+	area_info(id,AREA_INFO_MAPX)  = 420
+	area_info(id,AREA_INFO_MAPY)  = 420
+	area_info(id,AREA_INFO_TEAM)  = 4
+	area_info(id,AREA_INFO_MANAG) = 11
+	area_info(id,AREA_INFO_BLOCKS) = 6
+	area_neighber(id,0) = 6
+	area_neighber(id,1) = 8
+	area_neighber(id,2) = -1
+	area_neighber(id,3) = -1
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,0) = 20
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,1) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,2) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,3) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,4) = 10
+	area_block_info(id,AREA_BLOCK_INFO_DEFP,5) = 0
+
+;	id = x
+;	area_sinfo(id,AREA_SINFO_NAME) = ""
+;	area_sinfo(id,AREA_SINFO_DESC) = ""
+;	area_info(id,AREA_INFO_ICONT)  = 
+;	area_info(id,AREA_INFO_ICONP)  = 
+;	area_info(id,AREA_INFO_BLOCKS) = 
+;	area_info(id,AREA_INFO_MAPX)  = 
+;	area_info(id,AREA_INFO_MAPY)  = 
+;	area_info(id,AREA_INFO_TEAM)  = 
+;	area_info(id,AREA_INFO_MANAG) = 
+;	area_neighber(id,0) = 
+;	area_neighber(id,1) = 
+;	area_neighber(id,2) = 
+;	area_neighber(id,3) = 
+;	area_block_info(id,AREA_BLOCK_INFO_DEFP,0) = 
+;	area_block_info(id,AREA_BLOCK_INFO_DEFP,1) = 
+;	area_block_info(id,AREA_BLOCK_INFO_DEFP,2) = 
+;	area_block_info(id,AREA_BLOCK_INFO_DEFP,3) = 
+;	area_block_info(id,AREA_BLOCK_INFO_DEFP,4) = 
+;	area_block_info(id,AREA_BLOCK_INFO_DEFP,5) = 
+
+	; ブロックごとの支配チームはエリアの支配チームで初期化
+	for sub_i,0,AREA_MAX
+		for sub_j,0,area_info(sub_i,AREA_INFO_BLOCKS)
+			area_block_info(sub_i,AREA_BLOCK_INFO_TEAM,sub_j) = area_info(sub_i,AREA_INFO_TEAM)
+		next
+	next
+
+	; グローバル
+
+	global_info(GLOBAL_INFO_SELECT_TEAM) = 1	; チーム・リオ
+	global_info(GLOBAL_INFO_SELECT_CHAR) = 1	; リオ
+
+	; 全てのデータをロードしたら初期化する
+	sub_init_global
+
+	return
+
+*end_of_data_scenario1
+	

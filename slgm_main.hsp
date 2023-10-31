@@ -1,0 +1,150 @@
+; ##################################################################################################
+; # 
+; # メイン部分
+; # 
+; ##################################################################################################
+
+
+	#include "hsp3dish.as"	; HSP3Dishランタイムを使用する
+
+	#packopt name "jakuhojo"
+	#packopt xsize 640
+	#packopt ysize 960
+	#packdir "image/*"
+	#packdir "sound/*"
+
+	randomize ; 乱数の初期化
+
+	#include "const.hsp"		; 定数の読み込み
+	#include "gloval_var.hsp"	; グローバル変数の設定
+	#include "data.hsp"			; データの設定（テストデータ含む）
+	#include "load_media.hsp"	; メディアデータのロード
+
+	; gosubで呼び出す用の処理の読み込み
+	#include "slgm_sub.hsp"		
+	#include "slgm_sub_draw.hsp"
+	#include "slgm_sub_input.hsp"
+	#include "slgm_sub_random.hsp"
+	#include "slgm_sub_event.hsp"
+	#include "data_scenario1.hsp"
+		
+	; 各loop処理を含むプログラムの読み込み（全てスキップ）
+	#include "slgm_title.hsp"
+	#include "slgm_map.hsp"
+	#include "slgm_battle.hsp"
+	#include "slgm_debug.hsp"
+
+	title "弱点だらけの補助魔導士"
+
+	gsel 0			; 操作先IDを0に戻す
+	font "",18
+
+	; タイトル画面へ
+	goto *title_preloop
+
+; メイン処理
+
+*main_preloop
+
+	if ( global_info(GLOBAL_INFO_GAME_CLEAR) == 1 ) and ( global_info(GLOBAL_INFO_GAME_OVER) == 1 ) : goto *force_end
+	if ( global_info(GLOBAL_INFO_GAME_CLEAR) == 0 ) and ( global_info(GLOBAL_INFO_GAME_OVER) == 0 ) : goto *force_end
+	
+	if global_info(GLOBAL_INFO_GAME_CLEAR) = 1 : sub_play_music MUSIC_GAMECLEAR
+	if global_info(GLOBAL_INFO_GAME_OVER) = 1 : sub_play_music MUSIC_GAMEOVER
+	
+*main_loop
+	
+
+	; 表示
+	redraw 0
+	
+	color 0,0,0
+	boxf
+
+	gmode 0
+	pos 0,0
+	bid = 1
+	
+	sizex = imgdef_back_info(1,IMGDEF_BACK_INFO_SIZEY) * WINDOW_SIZEX / WINDOW_SIZEY
+	sizey = imgdef_back_info(1,IMGDEF_BACK_INFO_SIZEY)
+	posx = ( imgdef_back_info(1,IMGDEF_BACK_INFO_SIZEX) - sizex ) /2
+	gzoom WINDOW_SIZEX, WINDOW_SIZEY, IMGDEF_BACK_BUFFER_OFFSET+bid,posx,0,sizex,imgdef_back_info(1,IMGDEF_BACK_INFO_SIZEY)
+
+	
+	color 255,255,255: font "",36
+
+	if global_info(GLOBAL_INFO_GAME_CLEAR) == 0 {	
+		; メッセージを指定した座標に表示する
+		sub_show_message_char "ざんねん、私たちの冒険はここで終わってしまった", -1, 50, 3, 2
+		sub_show_message_char "もっと強くならないと、、、、、", -1, 180, 1, 5
+		sub_show_message_char "リオ、今回は訓練です。色々学んでいっしょに強くなりましょう", -1, 310, 2, 2
+		sub_show_message_char "ねぇ、もうあきらめちゃうの？", -1, 440, 5, 7
+	} else {
+		; メッセージを指定した座標に表示する
+		sub_show_message_char "最後までプレイしてくれてどうもありがとう！", -1, 50, 3, 2
+		sub_show_message_char "もっと活躍できるようにこれからもがんばらないと", -1, 180, 1, 3
+		sub_show_message_char "リオ、十分活躍したと思いますよ、かっこよかったです", -1, 310, 2, 2
+		sub_show_message_char "いちゃいちゃするならあっちでやってね", -1, 440, 3, 4
+	}
+	
+	gmode 2
+
+	; 味方キャラ
+	sizex = IMGDEF_CHAR_SIZEX *50 /100
+	sizey = IMGDEF_CHAR_SIZEX *50 /100
+
+	pos 60, 570 ; キャロライン
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(3,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+
+	pos 370, 550 ; メリンダ
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(5,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+
+	sizex = IMGDEF_CHAR_SIZEX *80 /100
+	sizey = IMGDEF_CHAR_SIZEX *80 /100
+
+	pos 60, 630 ; シエーナ
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(2,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+	pos 310, 630 ; ルース
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(4,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+
+	sizex = IMGDEF_CHAR_SIZEX
+	sizey = IMGDEF_CHAR_SIZEX
+
+	pos 130, 560 ; リオ
+	gzoom sizex, sizey, IMGDEF_CHAR_BUFFER_OFFSET+chardef_info(1,CHARDEF_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+
+	color 255,255,255: font "",12	
+
+	pos 100, 850
+	color 255,255,255: font "",12,1
+	mes "動作を終了しました",4
+	mes "再度プレイする場合はお手数ですがアプリケーションを再起動してください",4
+
+	redraw 1
+
+	; 待機時間
+	await 1000/FRAME_RATE		; 時間待ち
+
+;	; 入力待ち
+;	sub_check_keyinput
+;
+;	; 処理
+;	for i,0,KEY_MAX
+;		if input_key(i) == 1 : goto *force_end
+;	next
+;	
+;	; ループの終わり
+;	sub_reduce_input_cooldown ; 入力のクールダウン時間経過
+	goto *main_loop
+
+*force_end
+
+	mmstop
+	redraw 0	
+	color 0,0,0
+	boxf
+	color 255,255,255: font "",12
+	pos 50,50
+	mes "動作を終了しました"
+	mes "再度プレイする場合はお手数ですがアプリケーションを再起動してください"
+	redraw 1

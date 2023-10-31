@@ -1,0 +1,112 @@
+; ##################################################################################################
+; # 
+; # メディアデータの読み込み
+; # 
+; ##################################################################################################
+
+; 顔画像定義
+
+	for i,0,IMGDEF_FACE_MAX
+		if strlen(imgdef_face_path(i)) > 0 {
+			buffer IMGDEF_FACE_BUFFER_OFFSET+i
+			picload IMGDEF_FACE_BASEPATH+imgdef_face_path(i)
+		}
+	next
+
+; キャラ画像定義
+
+	for i,0,IMGDEF_CHAR_MAX
+		if strlen(imgdef_face_path(i)) > 0 {
+			buffer IMGDEF_CHAR_BUFFER_OFFSET+i
+			picload IMGDEF_CHAR_BASEPATH+imgdef_char_path(i)
+		}
+	next
+
+; キャラ歩行画像定義
+
+	for i,0,IMGDEF_WALK_MAX
+		if strlen(imgdef_walk_path(i)) > 0 {
+			buffer IMGDEF_WALK_BUFFER_OFFSET+i
+			picload IMGDEF_WALK_BASEPATH+imgdef_walk_path(i)
+		}
+	next
+
+; アイコン画像定義
+
+	num = 0
+	for i,0,IMGDEF_ICON_TYPE_MAX
+		for j,0,IMGDEF_ICON_PATTERN_MAX
+			if ( num >= IMGDEF_ICON_MAX ) {
+				logmes(strf("E icon image buffer over. num=%d, max=%d",num,IMGDEF_ICON_MAX))
+				_break
+
+			}
+			exist IMGDEF_ICON_BASEPATH+"skill icon_"+i+"_"+j+".png"
+			; 存在する場合はコピーする
+			if strsize > 0 {
+				buffer IMGDEF_ICON_BUFFER_OFFSET+num
+				picload IMGDEF_ICON_BASEPATH+"skill icon_"+i+"_"+j+".png"
+				imgdef_icon_id(i,j) = IMGDEF_ICON_BUFFER_OFFSET+num
+				if DEBUG_MODE : logmes(strf("I icon image loaded. type=%d, pattern=%d, buffer id=%d", i, j, imgdef_icon_id(i,j)))
+				num += 1
+			}
+		next
+	next
+
+
+; マップチップ画像定義
+
+	num = 0
+	for i,0,IMGDEF_MAPCHIP_TYPE_MAX
+		for j,0,IMGDEF_MAPCHIP_PATTERN_MAX
+			if ( num >= IMGDEF_MAPCHIP_MAX ) {
+				logmes(strf("E mapchip image buffer over. num=%d, max=%d",num,IMGDEF_MAPCHIP_MAX))
+				_break
+
+			}
+			tmppath = strf("%smap icon_%03d_%d.png",IMGDEF_MAPCHIP_BASEPATH,i,j)
+			exist tmppath
+			; 存在する場合はコピーする
+			if strsize > 0 {
+				buffer IMGDEF_MAPCHIP_BUFFER_OFFSET+num
+				picload tmppath
+				imgdef_mapchip_id(i,j) = IMGDEF_MAPCHIP_BUFFER_OFFSET+num
+				if DEBUG_MODE : logmes(strf("I mapchip image loaded. type=%d, pattern=%d, buffer id=%d", i, j, imgdef_mapchip_id(i,j)))
+				num += 1
+			}
+		next
+	next
+
+; 背景画像定義
+
+	for i,0,IMGDEF_BACK_MAX
+		if strlen(imgdef_back_path(i)) > 0 {
+			buffer IMGDEF_BACK_BUFFER_OFFSET+i
+			picload IMGDEF_BACK_BASEPATH+imgdef_back_path(i)
+		}
+	next
+
+; アニメーション画像定義
+
+	for i,0,IMGDEF_ANIME_MAX
+		if strlen(imgdef_anime_path(i)) > 0 {
+			buffer IMGDEF_ANIME_BUFFER_OFFSET+i
+			picload IMGDEF_ANIME_BASEPATH+imgdef_anime_path(i)
+		}
+	next
+
+; 音楽定義
+
+	for i,0,MUSIC_MAX
+		if strlen(music_path(i)) > 0 {
+			mmload MUSIC_BASEPATH+music_path(i),MUSIC_BUFFER_OFFSET+i,1
+		}
+	next
+
+; 効果音定義
+
+	for i,0,SOUND_MAX
+		if strlen(sound_path(i)) > 0 {
+			mmload SOUND_BASEPATH+sound_path(i),SOUND_BUFFER_OFFSET+i,0
+		}
+	next

@@ -1,0 +1,306 @@
+	goto *end_of_slgm_sub_input
+; ##################################################################################################
+; # 
+; # サブルーチン　入力処理系
+; # 
+; ##################################################################################################
+
+; 連投防止の検知クールダウン時間を減らす
+#deffunc sub_reduce_input_cooldown
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_reduce_input_cooldown")
+
+	for sub_i,0,KEY_MAX
+		if input_key_cooldown(sub_i) > 0 {
+			input_key_cooldown(sub_i) -= 1
+		}
+	next
+
+	return
+
+; キー入力を判定する
+#deffunc sub_check_keyinput
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_check_keyinput")
+	
+	; キー入力を処理
+	for sub_i,0,KEY_MAX
+		input_key(sub_i) = 0
+		if input_key_cooldown(sub_i) <= 0{
+			getkey input_key(sub_i) ,input_key_keycode(sub_i)
+			if input_key(sub_i) == 1 : input_key_cooldown(sub_i) += INPUT_KEY_COOLDOWN_DEFAULT
+		}
+	next
+
+	return
+
+
+; メニュー（リスト、キャラ）：キー入力を判定する
+#deffunc sub_check_menu_list_char
+
+	; menu_list_char_activeが1の場合のみ使用中
+	if menu_list_char_active != 1 : return
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_check_menu_list_char")
+
+	; ページめくりの検出
+	if menu_list_char_show_start+MENU_LIST_CHAR_SHOW_MAX < MENU_LIST_CHAR_MAX {
+		if menu_list_char(menu_list_char_show_start+MENU_LIST_CHAR_SHOW_MAX) != 0{
+			if input_key(KEY_D) == 1{
+				menu_list_char_show_start += MENU_LIST_CHAR_SHOW_MAX
+			}
+		}	
+	}
+	if menu_list_char_show_start-MENU_LIST_CHAR_SHOW_MAX >= 0 {
+		if menu_list_char(menu_list_char_show_start-MENU_LIST_CHAR_SHOW_MAX) != 0{
+			if input_key(KEY_A) == 1{
+				menu_list_char_show_start -= MENU_LIST_CHAR_SHOW_MAX
+			}
+		}	
+	}
+
+	; 決定/キャンセルの検出
+	sub_num = 0
+	for sub_i,0,menu_list_char_pickup_num
+		if menu_list_char_pickup(sub_i) >=0 {
+			sub_num += 1
+		}
+	next
+	if sub_num > 0 {
+		if input_key(KEY_Z) == 1{
+			; 決定
+			menu_list_char_active = 0
+			menu_list_char_returncode = 1
+		}
+	}
+	if input_key(KEY_C) == 1{
+		; キャンセル
+		menu_list_char_pickup(0) = -1
+		menu_list_char_pickup(1) = -1
+		menu_list_char_pickup(2) = -1
+		menu_list_char_active = 0
+		menu_list_char_returncode = -1
+	}
+
+	; 押されている数字の検出
+	sub_select = -1	; これは押されているキーではなくリストの全体の番号（表示されているリストは一部のため）
+	for sub_i,0,MENU_LIST_CHAR_SHOW_MAX
+		if input_key(KEY_1+sub_i) == 1{
+			if menu_list_char_disable(menu_list_char_show_start+sub_i) == 1 : _continue
+			sub_select = menu_list_char_show_start+sub_i
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D push key delected. key=%d, select_char=%d",sub_i+1,menu_list_char(menu_list_char_show_start+sub_i))
+			_break
+		}
+	next
+
+	; 何も数字を選択してなければ何もしない
+	if sub_select == -1 : return
+	; キャラクタIDが入っている番号でなければ何もしない
+	if menu_list_char(sub_select) == 0 : return
+
+	menu_list_char_focus = sub_select	; これは押されているキーではなくリストの全体の番号（表示されているリストは一部のため）
+
+	; select数の集計
+	;  2はmenu_list_char_pickup_num個まで、1は1個までなのでその集計
+	dim sub_sum_select,MENU_LIST_CHAR_SELECT_MAX
+	sub_selected = -1 ; 既に選択されている（リスト全体から見た時の）番号
+	for sub_i,0,MENU_LIST_CHAR_MAX
+		sub_sum_select(menu_list_char_selects(sub_i)) += 1
+		if menu_list_char_selects(sub_i) == 1{
+			sub_selected = sub_i
+		}
+	next
+
+	; 既に選択されている番号が今回選択した番号と異なる場合は既に選択されている番号を解除する
+	if sub_selected != -1{
+		if ( menu_list_char_selects(sub_selected) == 1 ) and ( sub_selected != sub_select ) {
+			menu_list_char_selects(sub_selected) = 0
+		}
+	}
+
+	; 選択した番号に応じて選択状態を変更
+	switch menu_list_char_selects(sub_select)
+	case 0
+		; 押されてた数字は何も選択されてない
+		; 既に選択されたものがあればそれを解除
+		if sub_selected != -1{
+			menu_list_char_selects(sub_select) = 0
+		}
+		menu_list_char_selects(sub_select) = 1
+		swbreak
+	case 1
+		; 押されてた数字は選択済み
+		; 確定がmenu_list_char_pickup_num個未満なら確定状態に
+		if sub_sum_select(2) < menu_list_char_pickup_num{
+			menu_list_char_selects(sub_select) = 2
+		}
+		swbreak
+	case 2
+		; 押されてた数字は確定
+		; 確定を解除
+		menu_list_char_selects(sub_select) = 1
+		swbreak
+	swend	
+
+	; menu_list_char_pickupの更新
+	sub_num = 0
+	menu_list_char_pickup(0) = -1
+	menu_list_char_pickup(1) = -1
+	menu_list_char_pickup(2) = -1
+	menu_list_char_pickup_sumparam = 0
+	for sub_i,0,MENU_LIST_CHAR_MAX
+		if menu_list_char_selects(sub_i) == 2{
+			menu_list_char_pickup(sub_num) = menu_list_char(sub_i)
+			if menu_list_char_pickup_param > 0{
+				menu_list_char_pickup_sumparam += char_info(menu_list_char(sub_i),char_info_param_mapping(menu_list_char_pickup_param))
+			}
+			sub_num += 1
+		}
+	next
+	
+	return
+
+; メニュー（リスト、イベント）：キー入力を判定する
+#deffunc sub_check_menu_list_event
+
+	; menu_list_event_activeが1の場合のみ使用中
+	if menu_list_event_active != 1 : return
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_check_menu_list_event")
+
+	; 押されている数字の検出
+	sub_select = -1	; これは押されているキーではなくリストの全体の番号（表示されているリストは一部のため）
+	for sub_i,0,MENU_LIST_EVENT_SHOW_MAX
+		if input_key(KEY_1+sub_i) == 1{
+			if ( menu_list_event_focus == sub_i ){
+				; 同じキーを2回押したら確定
+				menu_list_event_active = 0
+				menu_list_event_returncode = 1
+				if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D menu list event finished in sub_check_menu_list_event. select=%d",menu_list_event_focus)
+
+			}
+			menu_list_event_focus = sub_i
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D push key delected in sub_check_menu_list_event. key=%d",sub_i)
+			_break
+		}
+	next
+	
+	return
+	
+; 汎用選択肢：キー入力を判定する
+#deffunc sub_check_selector_list
+
+	; selector_list_activeが1の場合のみ使用中
+	if selector_list_active != 1 : return
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_check_selector_list")
+
+	; 押されている数字の検出
+	sub_select = -1	; これは押されているキーではなくリストの全体の番号（表示されているリストは一部のため）
+	for sub_i,0,MENU_LIST_CHAR_SHOW_MAX
+		if input_key(KEY_1+sub_i) == 1{
+			if ( strlen(selector_list(sub_i)) > 0 ) and ( selector_list_disable(sub_i) == 0 ) {
+				if ( selector_list_focus == sub_i ){
+					; 同じキーを2回押したら確定
+					selector_list_active = 0
+					selector_list_returncode = 1
+					if DEBUG_MODE == 1 : logmes strf("D selector list finished in sub_check_selector_list. select=%d",selector_list_focus)
+	
+				}
+				selector_list_focus = sub_i
+				if DEBUG_MODE == 1 :logmes strf("D push key delected in sub_check_selector_list. key=%d",sub_i)
+				_break
+			}
+		}
+	next
+	
+	return
+
+; マップ選択肢：キー入力を判定する
+#deffunc sub_check_selector_map
+
+	; selector_map_activeが1の場合のみ使用中
+	if selector_map_active != 1 : return
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_check_selector_map")
+
+	; 押されている数字の検出
+	sub_select_map = -1	; これは押されているキーではなくリストの全体の番号（表示されているリストは一部のため）
+	for sub_i,0,SELECTOR_MAP_MAX
+		if input_key(KEY_1+sub_i) == 1{
+			if ( selector_map_focus == selector_map(sub_i) ){
+				; 同じキーを2回押したら確定
+				selector_map_active = 0
+				selector_map_returncode = 1
+				if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D selector map finished in sub_map_selector_list. select=%d",selector_map_focus)
+			}
+			selector_map_focus = selector_map(sub_i)
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D push key delected in sub_check_selector_map. key=%d",sub_i)
+			_break
+		}
+	next
+	
+	return
+
+; スキル選択メニュー：キー入力を判定する
+#deffunc sub_check_menu_battle
+
+	; menu_list_battle_activeが1の場合のみ使用中
+	if menu_list_battle_active != 1 : return
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_check_menu_battle")
+
+	; 押されている数字の検出
+	sub_select = -1	; これは押されているキーではなくリストの全体の番号（表示されているリストは一部のため）
+	for sub_i,0,menu_list_battle_num
+		if input_key(KEY_1+sub_i) == 1{
+
+			if menu_list_battle_disable(sub_i) == 1 : _continue	; 選択不可能フラグが1なら表示するが選択できない
+			
+			if ( menu_list_battle_focus == sub_i ){
+				; 同じキーを2回押したら確定
+				menu_list_battle_active = 2
+				menu_list_battle_returncode = 1
+				menu_list_battle_select = sub_i
+				if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D menu list event finished in sub_check_menu_battle. select=%d",menu_list_battle_focus)
+
+			}
+			menu_list_battle_focus = sub_i
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D push key delected in sub_check_menu_battle. key=%d",sub_i)
+			_break
+		}
+	next
+	
+	return
+
+; Bキャラ選択メニュー：キー入力を判定する
+#deffunc sub_check_menu_bchar
+
+	; menu_list_battle_activeが1の場合のみ使用中
+	if menu_list_bchar_active != 1 : return
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_check_menu_bchar")
+
+	; 押されている数字の検出
+	sub_select = -1	; これは押されているキーではなくリストの全体の番号（表示されているリストは一部のため）
+	for sub_i,0,menu_list_bchar_num
+		if input_key(KEY_1+sub_i) == 1{
+			if ( menu_list_bchar_focus == sub_i ){
+				; 同じキーを2回押したら確定
+				menu_list_bchar_active = 2
+				menu_list_bchar_returncode = 1
+				menu_list_bchar_select = sub_i
+				menu_list_bchar_select_bchar(0) = menu_list_bchar(sub_i)
+				menu_list_bchar_select_bchar_num = 1
+				if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D menu list event finished in sub_check_menu_bchar. select=%d, select_bchar=%d",menu_list_bchar_focus,menu_list_bchar_select_bchar(0))
+
+			}
+			menu_list_bchar_focus = sub_i
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D push key delected in sub_check_menu_bchar. key=%d",sub_i)
+			_break
+		}
+	next
+	
+	return
+
+*end_of_slgm_sub_input

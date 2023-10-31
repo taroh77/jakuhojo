@@ -1,0 +1,74 @@
+; ##################################################################################################
+; # 
+; # データ部分（音系）
+; # 
+; ##################################################################################################
+
+; 音楽定義
+
+	music_path(MUSIC_TITLE) = "Future_2.mp3"			; タイトル画面
+	music_path(MUSIC_DEBUG1) = "kinematic_02.mp3"		; デバッグ画面
+	music_path(MUSIC_MAIN1) = "kinematic_04.mp3"		; マップ表示画面のメインBGM（序盤～中盤）
+	music_path(MUSIC_MAIN2) = "cinema2.mp3"				; マップ表示画面のメインBGM（終盤）
+	music_path(MUSIC_BATTLE1) = "FrenchPop_02.mp3"		; 戦闘画面のメインBGM（通常攻撃戦）
+	music_path(MUSIC_BATTLE2) = "Digi_Rock_04.mp3"		; 戦闘画面のメインBGM（通常防衛戦）
+	music_path(MUSIC_BATTLE3) = "RPG_Battle_03.mp3"		; 戦闘画面のメインBGM（ボス攻撃戦）
+	music_path(MUSIC_BATTLE4) = "Trance_01.mp3"			; 戦闘画面のメインBGM（ボス防衛戦）
+	music_path(MUSIC_PREBATTLE1) = "Ska_01.mp3"			; 戦闘準備画面のBGM（通常攻撃戦）
+	music_path(MUSIC_PREBATTLE2) = "Shooting_03.mp3"	; 戦闘準備画面のBGM（通常防衛戦）
+	music_path(MUSIC_PREBATTLE3) = "Digi_Rock_02.mp3"	; 戦闘準備画面のBGM（ボス攻撃戦）
+	music_path(MUSIC_PREBATTLE4) = "Shooting_01.mp3"	; 戦闘準備画面のBGM（ボス防衛戦）
+	music_path(MUSIC_THEME1) = "kinematic_01.mp3"		; チーム1のテーマBGM
+	music_path(MUSIC_THEME2) = "Drumnbass_01.mp3"		; チーム2のテーマBGM
+	music_path(MUSIC_THEME3) = "FrenchPop_01.mp3"		; チーム3のテーマBGM
+	music_path(MUSIC_THEME4) = "Fusion_02.mp3"			; チーム4のテーマBGM
+	music_path(MUSIC_THEME5) = "Digi_Rock_01.mp3"		; チーム5のテーマBGM
+	music_path(MUSIC_WIN) = "Party_01.mp3"				; 勝利BGM
+	music_path(MUSIC_LOSE) = "Fantasy8_Sad.mp3"			; 敗北BGM
+	music_path(MUSIC_GAMECLEAR) = "Shooting_02.mp3"		; ゲームクリアBGM
+	music_path(MUSIC_GAMEOVER) = "Shooting_05.mp3"		; ゲームオーバーBGM
+	music_path(MUSIC_EVENT1) = "Fantasy5-Talk.mp3"		; イベント（平和）
+	music_path(MUSIC_EVENT2) = "Nature_04.mp3"			; イベント（ギャグ）
+	music_path(MUSIC_EVENT3) = "Fantasy4-Progress.mp3"	; イベント（シリアス）
+	music_path(MUSIC_EPILOGUE) = "Pops_01.mp3"			; エピローグ
+
+
+; 効果音定義
+	sound_path(1) = "Furimawasu.wav"
+	sound_path(2) = "Zangeki4.wav"
+	sound_path(3) = "Raise1.wav"
+	sound_path(4) = "Down1.wav"
+	sound_path(5) = "SWind3.wav"
+	sound_path(6) = "Battou.wav"
+	sound_path(7) = "Fire1.wav"
+	sound_path(8) = "Freeze1.wav"
+	sound_path(9) = "Shoot1.wav"
+	sound_path(10) = "Shoot2.wav"
+	sound_path(11) = "Dark.wav"
+	sound_path(12) = "Magic3.wav"
+	sound_path(13) = "RZangeki1.wav"
+	sound_path(14) = "Zangeki8.wav"
+	sound_path(15) = "Dageki6.wav"
+	sound_path(16) = "Hakai_short.wav"
+	sound_path(17) = "Zangeki6.wav"
+	sound_path(18) = "Dageki1.wav"
+	sound_path(19) = "Fire3.wav"
+	sound_path(20) = "IceMagic.wav"
+	sound_path(21) = "SWind1.wav"
+	sound_path(22) = "BoltMagic2.wav"
+	sound_path(23) = "Magic1.wav"
+	sound_path(24) = "Energy1.wav"
+	sound_path(25) = "Raise2.wav"
+	sound_path(26) = "EnergyCol.wav"
+	sound_path(27) = "SWind2.wav"
+	sound_path(28) = "Break_Many.wav"
+	sound_path(29) = "Raise3.wav"
+	sound_path(30) = "Jaja-n3.wav"
+	sound_path(31) = "Gaga-n.wav"
+	sound_path(32) = "Decide11.wav"
+	sound_path(33) = "Magic2.wav"
+	sound_path(34) = "Shock.wav"
+	sound_path(35) = "BoltMagic1.wav"
+	sound_path(36) = "Taihou1.wav"
+;	sound_path(x) = ""
+

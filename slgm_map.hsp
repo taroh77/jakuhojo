@@ -1,0 +1,448 @@
+; ##################################################################################################
+; # 
+; # マップシーン部分
+; # 
+; ##################################################################################################
+
+	#include "slgm_map_sub.hsp"
+
+	goto *map_end
+
+*map_preloop_first
+
+	; キャラクタ定義があれば一通りキャラクタを生成
+	sub_map_create_allchar_by_chardef
+
+	; シナリオ1の設定
+	sub_load_data_scenario1
+
+	; 全チームの総合的な強さを再計算する
+	sub_culcu_allteam_power
+
+	; 全チームの支配エリア数を再計算する
+	sub_culcu_allteam_member_num
+
+	; 全チームの攻撃可能エリアを team_attackable_area に格納する
+	sub_calcu_allteam_attackable_area
+
+	; 次のチームに進める（ターンを1にする）
+	sub_map_exec_next_team
+	
+*map_preloop
+
+	
+
+*map_loop
+
+	; 表示
+	redraw 0
+	
+	color 0,0,0
+	boxf
+
+	; グローバル情報の表示
+	sub_show_global 0, WINDOW_SIZEY-30
+
+	; マップを表示
+	sub_show_map 100, 200, 4
+	if area_select >= 0 {
+		; エリア情報を表示
+		if strlen(area_sinfo(area_select,AREA_SINFO_NAME)) > 0 {
+			sub_show_area 200, 705, area_select
+			; チーム情報
+			if area_info(area_select,AREA_INFO_TEAM) > 0 {
+				sub_show_team_summary 350, 10, area_info(area_select,AREA_INFO_TEAM)
+			}
+
+			if global_info(GLOBAL_INFO_TURN_TEAM) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+				; イベント選択メニュー
+				sub_show_menu_event 10, 10
+			}
+		}
+	}
+
+	; キャラ選択リストが有効な場合
+	if menu_list_char_active >= 1 {
+		; キャラクタリストを表示
+		sub_show_list_char 40, 40
+	
+		; 選択状態のキャラはキャラクタ情報を表示
+		if menu_list_char_focus != -1 {
+			sub_show_char 60, 520, menu_list_char(menu_list_char_focus), -1
+		}
+	}
+	; 中央に決まった時間のみ表示するメッセージ（お知らせなどなど）
+	if global_info(GLOBAL_INFO_OPERATION_MAP) == GLOBAL_INFO_OPERATION_MAP_CENTOR_MESSAGE {
+		sub_show_message_char global_sinfo(GLOBAL_SINFO_MESSAGE_CENTOR), -1, -1, global_info(GLOBAL_INFO_OPERATION_MAP_MESSAGE_CENTOR_CHAR), global_info(GLOBAL_INFO_OPERATION_MAP_MESSAGE_CENTOR_CHAR_FACE)
+	}
+
+	redraw 1
+
+	; 待機時間
+	await 1000/FRAME_RATE		; 時間待ち
+
+	; 入力待ち
+	sub_check_keyinput
+
+	; 処理
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D GLOBAL_INFO_OPERATION_MAP is %d in map_loop",global_info(GLOBAL_INFO_OPERATION_MAP))
+
+	switch global_info(GLOBAL_INFO_OPERATION_MAP)
+	case GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+		if global_info(GLOBAL_INFO_TURN_TEAM) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+			;;; イベント選択肢メニューを選ぶ状態の処理
+			sub_check_menu_list_event
+			if ( menu_list_event_active == 0 ) and ( menu_list_event_returncode == 1 ) {
+				switch menu_list_event_code(menu_list_event_focus)
+				case EVENT_CODE_ATTACK_AREA	; 隣接エリアを攻撃
+					if team_attackable_area_num(global_info(GLOBAL_INFO_TURN_TEAM)) > 0 { ; 攻められるエリアがある場合
+						global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "攻撃するエリアを選択してください"
+						global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_SELECT_ATTACK_AREA
+						sub_create_selector_map_from_team_attackable_area global_info(GLOBAL_INFO_TURN_TEAM)
+					} else {
+						sub_map_create_message_center "攻撃可能なエリアがありません", GLOBAL_INFO_OPERATION_MAP_MENU_EVENT, -1, -1, -1
+						; 次のイベント選択肢メニューを準備しておく
+						global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+						sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+					}
+					swbreak
+				case EVENT_CODE_TRAINING	;	2: 訓練（一部ユニットの経験値Up）
+					menu_list_event_returncode = 0
+					; メンバーリストを表示する
+					global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "訓練を行うキャラを選んでください"
+					sub_create_list_char_from_team global_info(GLOBAL_INFO_TURN_TEAM), 3, -1, 1
+					global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_TRAINING
+					swbreak
+				case EVENT_CODE_MANAG_UP	;	3: 自国のマナ生産量向上
+					; メンバーリストを表示する
+					global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = strf("開発を行うキャラを選んでください[要%s%d]",PARAM_LABEL(PARAM_PRD),area_info(area_select,AREA_INFO_MANAG)*10)
+					sub_create_list_char_from_team global_info(GLOBAL_INFO_TURN_TEAM), 3, PARAM_PRD, 1
+					global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_DEVELOP
+					swbreak
+				case EVENT_CODE_DEFP_UP		;	4: 自国の防衛設備構築（一時的に地形効果Up）
+					; メンバーリストを表示する
+					global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = strf("探索を行うキャラを選んでください[要%s%d]",PARAM_LABEL(PARAM_SRC),area_info(area_select,AREA_INFO_DEFP)*10+100)
+					sub_create_list_char_from_team global_info(GLOBAL_INFO_TURN_TEAM), 3, PARAM_SRC, 1
+					global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_SEARCH_DEFP
+					swbreak
+				case EVENT_CODE_CHAR_SEARCH	;   5: 人材発掘
+					; メンバーリストを表示する
+					global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = strf("交渉を行うキャラを選んでください[要%s%d]",PARAM_LABEL(PARAM_COM),team_info(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_INFO_RANDOM_CHAR)*10+100)
+					sub_create_list_char_from_team global_info(GLOBAL_INFO_TURN_TEAM), 3, PARAM_COM, 1
+					global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_RANDOM_CHAR
+					swbreak
+				case EVENT_CODE_CHAR_LIST	;  97: 自チームのユニット一覧確認と回復 ※ここで回復する機能は未実装
+					menu_list_event_returncode = 0
+					; メンバーリストを表示する
+					sub_create_list_char_from_team global_info(GLOBAL_INFO_TURN_TEAM), 0, -1, 0 
+					global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_SHOW_CHAR_LIST
+					swbreak
+				case EVENT_CODE_SELECT_AREA ; 他エリアの選択
+					sub_create_selector_map
+					global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_SELECTOR_MAP
+					swbreak
+				case EVENT_CODE_TURN_END
+					global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_TURN_END
+					swbreak
+				default
+					if menu_list_event_code(menu_list_event_focus) > 100 {
+						; イベントスクリプト定義イベント
+						global_info(GLOBAL_INFO_EVENT_TRIGGER_ID) = menu_list_event_code(menu_list_event_focus)
+						event_trigger_info(menu_list_event_code(menu_list_event_focus),EVENT_TRIGGER_INFO_FLAG) = 1
+						global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL
+					} else {
+						global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+						sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+					}
+				swend
+				menu_list_event_returncode = 0
+			}
+			swbreak
+		} else {
+			; 中央に表示するメッセージを生成する
+			sub_map_create_message_center strf("%sが行動中です",team_sinfo(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_SINFO_NAME)), GLOBAL_INFO_OPERATION_MAP_AUTO_DECIDE, team_info(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_INFO_LEADER), -1, -1
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = strf("%sが行動中です",team_sinfo(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_SINFO_NAME))
+		}
+	case GLOBAL_INFO_OPERATION_MAP_SELECTOR_MAP
+		;;; エリアを選ぶ状態の処理
+		sub_check_selector_map
+		if ( selector_map_active == 0 ) and ( selector_map_returncode == 1 ) {
+			area_select = selector_map_focus
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+			selector_map_returncode = 0
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+		}
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_CENTOR_MESSAGE
+		;;; 中央にメッセージが表示され待機している状態の処理
+		global_info(GLOBAL_INFO_OPERATION_MAP_CONTINUE_FRAME) -= 1
+		if input_key(KEY_Z) == 1 : global_info(GLOBAL_INFO_OPERATION_MAP_CONTINUE_FRAME) = 0
+		if global_info(GLOBAL_INFO_OPERATION_MAP_CONTINUE_FRAME) <= 0{
+			global_info(GLOBAL_INFO_OPERATION_MAP_CONTINUE_FRAME) = 0
+			global_info(GLOBAL_INFO_OPERATION_MAP) = global_info(GLOBAL_INFO_OPERATION_MAP_NEXT)
+			global_info(GLOBAL_INFO_OPERATION_MAP_NEXT) = GLOBAL_INFO_OPERATION_MAP_NONE
+		}
+
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_SELECT_ATTACK_AREA ; 攻撃エリアを選択
+		;;; エリアを選ぶ状態の処理
+		sub_check_selector_map
+		if ( selector_map_active == 0 ) and ( selector_map_returncode == 1 ) {
+			; 攻撃対象エリアは selector_map_focus
+			global_info(GLOBAL_INFO_BATTLE_READY_AREA) = selector_map_focus
+			; 攻撃予定ブロックをglobal_infoに格納する
+			sub_map_calcu_battle_ready_block global_info(GLOBAL_INFO_BATTLE_READY_AREA), global_info(GLOBAL_INFO_TURN_TEAM)
+			; 攻撃するメンバーを選択する
+			sub_create_list_char_from_team global_info(GLOBAL_INFO_TURN_TEAM), BATTLE_CHAR_MAX, -1, 0
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "攻撃するメンバーを選択してください（最大3人）"
+			selector_map_returncode = 0
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_SELECT_ATTACK_CHAR
+		}
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_SELECT_ATTACK_CHAR ; 攻撃メンバーを選択
+		;;; メンバーを選ぶ状態の処理
+		sub_check_menu_list_char
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == 1) {
+			; 攻撃メンバー確定
+			for i,0,BATTLE_CHAR_MAX
+				battle_char_atc(i) = menu_list_char_pickup(i)
+			next
+			; マナを消費してキャラのHPを回復する
+			sub_heal_char_by_mana battle_char_atc
+			; 攻撃チームの行動回数を減らす
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			
+			; 防衛側の出撃メンバーを自動で決める
+			if global_info(GLOBAL_INFO_BATTLE_READY_BLOCK) == 0 {
+				sub_map_decide_battle_char global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM), 2, 5
+			} else {
+				sub_map_decide_battle_char global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM), 2, 2
+			}
+			; マナを消費してキャラのHPを回復する
+			sub_heal_char_by_mana battle_char_def
+			
+			; バトルシーンの初期設定する
+			sub_battle_init global_info(GLOBAL_INFO_BATTLE_READY_AREA), global_info(GLOBAL_INFO_TURN_TEAM), battle_char_atc, battle_char_def
+			; 戻ってきたときのマップシーンを設定
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+			goto *battle_preloop_first
+		}
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == -1) {
+			; 攻撃キャンセル
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+		}
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_TURN_END		; ターン終了
+		; 次のチームに進める
+		sub_map_exec_next_team
+		if global_info(GLOBAL_INFO_OPERATION_MAP) == GLOBAL_INFO_OPERATION_MAP_NEXT_TURN {
+			; ターンが進んだ場合は次のチームへの引き渡しはターン開始処理後に
+		} else {
+			; チームが行動できる状態にする
+			sub_set_active_team
+		}
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_NEXT_TURN		; 次ターンに移行（開始時）
+		; 中央に表示するメッセージを生成する
+		sub_map_create_message_center "ターン"+global_info(GLOBAL_INFO_TURN), GLOBAL_INFO_OPERATION_MAP_NEXT_TURN_AGAIN, -1, -1, -1
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_NEXT_TURN_AGAIN	; 次ターンに移行（開始時）　※イベントがあり再び
+		; イベントトリガーチェック
+		sub_check_event_trigger EVENT_TRIGGER_INFO_TIMING_TURN_START
+		if global_info(GLOBAL_INFO_EVENT_TRIGGER_ID) == -1 {
+			; チームが行動できる状態にする
+			sub_set_active_team
+		}
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_SHOW_CHAR_LIST	; キャラリストの表示
+		;;; メンバーを選ぶ状態の処理
+		sub_check_menu_list_char
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == -1) {
+			; キャンセル
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+		}
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_TRAINING		 ; 訓練のキャラ選択
+		;;; メンバーを選ぶ状態の処理
+		sub_check_menu_list_char
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == 1) {
+			; 訓練を実行する ※メニュー（リスト、キャラ）で選択確定済みであること
+			sub_map_exec_training
+			
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+		}
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == -1) {
+			; キャンセル
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+		}
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_DEVELOP		 ; マナ生産量の向上
+		;;; メンバーを選ぶ状態の処理
+		sub_check_menu_list_char
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == 1) {
+			; 実施メンバー確定
+			for i,0,MENU_LIST_CHAR_SELECT_MAX
+				if menu_list_char_pickup(i) <= 0 : _continue
+				; キャラが経験値を獲得する（訓練の半分）
+				sub_gain_exp_char menu_list_char_pickup(i), GLOBAL_INFO_OPERATION_MAP_TRAINING_EXP/2
+				char_info(menu_list_char_pickup(i), CHAR_INFO_ACTION_CNT) += 1
+			next
+			; 行動回数を減らす
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+
+			; 成功
+			if menu_list_char_pickup_sumparam >= area_info(area_select,AREA_INFO_MANAG)*10 {
+				area_info(area_select,AREA_INFO_MANAG) += 1
+				sub_map_create_message_center strf("開発に成功しマナ生産量が向上した(%d→%d)",area_info(area_select,AREA_INFO_MANAG)-1,area_info(area_select,AREA_INFO_MANAG)), GLOBAL_INFO_OPERATION_MAP_MENU_EVENT, menu_list_char_pickup(0), -1, -1
+			} else {
+				sub_map_create_message_center "失敗しました。。。。。", GLOBAL_INFO_OPERATION_MAP_MENU_EVENT, menu_list_char_pickup(0), -1, -1
+			}
+			; 中央に表示するメッセージを生成する
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+		}
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == -1) {
+			; キャンセル
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+		}
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_SEARCH_DEFP		; 自国の地形探索（地形効果Up）
+		;;; メンバーを選ぶ状態の処理
+		sub_check_menu_list_char
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == 1) {
+			; 実施メンバー確定
+			for i,0,MENU_LIST_CHAR_SELECT_MAX
+				if menu_list_char_pickup(i) <= 0 : _continue
+				; キャラが経験値を獲得する（訓練の半分）
+				sub_gain_exp_char menu_list_char_pickup(i), GLOBAL_INFO_OPERATION_MAP_TRAINING_EXP/2
+				char_info(menu_list_char_pickup(i), CHAR_INFO_ACTION_CNT) += 1
+			next
+			; 行動回数を減らす
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+
+			; 成功
+			if menu_list_char_pickup_sumparam >= area_info(area_select,AREA_INFO_DEFP)*10+100 {
+				area_info(area_select,AREA_INFO_DEFP) += 1
+				sub_map_create_message_center strf("探索に成功し地形効果加算率が上昇した(+%d→+%d)",area_info(area_select,AREA_INFO_DEFP)-1,area_info(area_select,AREA_INFO_DEFP)), GLOBAL_INFO_OPERATION_MAP_MENU_EVENT, menu_list_char_pickup(0), -1, -1
+			} else {
+				sub_map_create_message_center "失敗しました。。。。。", GLOBAL_INFO_OPERATION_MAP_MENU_EVENT, menu_list_char_pickup(0), -1, -1
+			}
+			; 中央に表示するメッセージを生成する
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+		}
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == -1) {
+			; キャンセル
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+		}
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_RANDOM_CHAR		 ; ランダムキャラの雇用
+		;;; メンバーを選ぶ状態の処理
+		sub_check_menu_list_char
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == 1) {		
+			; 人材発掘を実行する ※メニュー（リスト、キャラ）で選択確定済みであること
+			sub_map_exec_char_search
+			
+			; 中央に表示するメッセージを生成する
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+		}
+		if (menu_list_char_active != 1) and (menu_list_char_returncode == -1) {
+			; キャンセル
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+		}
+		swbreak	
+	case GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL	 ; イベントコントロール
+		; イベントデータを呼び出す
+		sub_call_event_data event_trigger_info(global_info(GLOBAL_INFO_EVENT_TRIGGER_ID), EVENT_TRIGGER_INFO_EVENTDATA), global_info(GLOBAL_INFO_EVENT_TRIGGER_ID)
+		swbreak	
+	case GLOBAL_INFO_OPERATION_MAP_EVENT_PLAY		 ; イベントの再生中
+		swbreak	
+	case GLOBAL_INFO_OPERATION_MAP_AUTO_DECIDE		 ; コンピューターが自動で行動を決める
+		; コンピュータが行動を自動で選ぶ
+		sub_map_decide_action
+		swbreak	
+	case GLOBAL_INFO_OPERATION_MAP_DECIDE_ATTACK		; 攻撃エリア確定時の演出
+		sub_map_create_message_center strf("%sが%s支配の%sに攻め込みました！",team_sinfo(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_SINFO_NAME), team_sinfo(global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM),TEAM_SINFO_NAME), area_sinfo(global_info(GLOBAL_INFO_BATTLE_READY_AREA)) ), GLOBAL_INFO_OPERATION_MAP_DECIDE_ATTACK2, -1, -1, -1
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_DECIDE_ATTACK2		; 攻撃エリア確定時の演出
+		if global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+			if global_info(GLOBAL_INFO_BATTLE_READY_BLOCK) == 0 {
+				sub_play_music MUSIC_PREBATTLE4
+			} else {
+				sub_play_music MUSIC_PREBATTLE2
+			}
+			sub_create_list_char_from_team global_info(GLOBAL_INFO_SELECT_TEAM), BATTLE_CHAR_MAX, -1, 0
+			global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "迎撃するメンバーを選択してください（最大3人）"
+		}
+		global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_SELECT_DEF_MEMBER
+		swbreak
+	case GLOBAL_INFO_OPERATION_MAP_SELECT_DEF_MEMBER	; 防衛チームを編成する
+		; 防衛側の出撃メンバーを自動で決める
+		if global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM) != global_info(GLOBAL_INFO_SELECT_TEAM) {
+			if global_info(GLOBAL_INFO_BATTLE_READY_BLOCK) == 0 {
+				sub_map_decide_battle_char global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM), 2, 5
+			} else {
+				sub_map_decide_battle_char global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM), 2, 2
+			}
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_PRE_ATTACK
+		} else {
+			;;; メンバーを選ぶ状態の処理
+			sub_check_menu_list_char
+			if (menu_list_char_active != 1) and (menu_list_char_returncode == 1) {
+				; 防衛メンバー確定
+				for i,0,BATTLE_CHAR_MAX
+					battle_char_def(i) = menu_list_char_pickup(i)
+				next
+				menu_list_char_active = 0
+				global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_PRE_ATTACK
+			}
+			if (menu_list_char_active != 1) and (menu_list_char_returncode == -1) {
+				; 防衛メンバーを誰も出さない
+				for i,0,BATTLE_CHAR_MAX
+					battle_char_def(i) = -1
+				next
+				global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = ""
+				
+				menu_list_char_active = 0
+				global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_PRE_ATTACK
+			}
+		}
+		swbreak	
+	case GLOBAL_INFO_OPERATION_MAP_PRE_ATTACK			; バトルシーンに移行する
+
+		; （防衛側）マナを消費してキャラのHPを回復する
+		sub_heal_char_by_mana battle_char_def		
+		; バトルシーンの初期設定する
+		sub_battle_init global_info(GLOBAL_INFO_BATTLE_READY_AREA), global_info(GLOBAL_INFO_TURN_TEAM), battle_char_atc, battle_char_def
+		; 戻ってきたときのマップシーンを設定
+		global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+		
+		goto *battle_preloop_first
+		swbreak	
+	case GLOBAL_INFO_OPERATION_MAP_GAME_FINISH			 ; ゲームクリアかゲームオーバーに移行する
+		goto *main_preloop
+		swbreak	
+	swend
+
+	
+	; ループの終わり
+	sub_reduce_input_cooldown ; 入力のクールダウン時間経過
+
+	goto *map_loop
+
+*map_end
+

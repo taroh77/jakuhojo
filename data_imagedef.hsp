@@ -1,0 +1,705 @@
+; ##################################################################################################
+; # 
+; # データ部分（画像系）
+; # 
+; ##################################################################################################
+
+; 顔画像定義
+
+	imgdef_face_path(0) = "yhmv278.png"
+	imgdef_face_path(1) = "yhmv003.png"
+	imgdef_face_path(2) = "yhmv005.png"
+	imgdef_face_path(3) = "yhmv006.png"
+	imgdef_face_path(4) = "yhmv007.png"
+	imgdef_face_path(5) = "yhmv010.png"
+	imgdef_face_path(6) = "yhmv016.png"
+	imgdef_face_path(7) = "yhmv017.png"
+	imgdef_face_path(8) = "yhmv019.png"
+	imgdef_face_path(9) = "yhmv021.png"
+	imgdef_face_path(10) = "yhmv031.png"
+	imgdef_face_path(11) = "yhmv032.png"
+	imgdef_face_path(12) = "yhmv033.png"
+	imgdef_face_path(13) = "yhmv034.png"
+	imgdef_face_path(14) = "yhmv038.png"
+	imgdef_face_path(15) = "yhmv040.png"
+	imgdef_face_path(16) = "yhmv042.png"
+	imgdef_face_path(17) = "yhmv053.png"
+	imgdef_face_path(18) = "yhmv054.png"
+	imgdef_face_path(19) = "yhmv057.png"
+	imgdef_face_path(20) = "yhmv058.png"
+	imgdef_face_path(21) = "yhmv060.png"
+	imgdef_face_path(22) = "yhmv063.png"
+	imgdef_face_path(23) = "yhmv065.png"
+	imgdef_face_path(24) = "yhmv066.png"
+	imgdef_face_path(25) = "yhmv067.png"
+	imgdef_face_path(26) = "yhmv071.png"
+	imgdef_face_path(27) = "yhmv072.png"
+	imgdef_face_path(28) = "yhmv074.png"
+	imgdef_face_path(29) = "yhmv076.png"
+	imgdef_face_path(30) = "yhmv078.png"
+	imgdef_face_path(31) = "yhmv082.png"
+	imgdef_face_path(32) = "yhmv083.png"
+	imgdef_face_path(33) = "yhmv085.png"
+	imgdef_face_path(34) = "yhmv086.png"
+	imgdef_face_path(35) = "yhmv087.png"
+	imgdef_face_path(36) = "yhmv088.png"
+	imgdef_face_path(37) = "yhmv092.png"
+	imgdef_face_path(38) = "yhmv093.png"
+	imgdef_face_path(39) = "yhmv094.png"
+	imgdef_face_path(40) = "yhmv097.png"
+	imgdef_face_path(41) = "yhmv106.png"
+	imgdef_face_path(42) = "yhmv109.png"
+	imgdef_face_path(43) = "yhmv115.png"
+	imgdef_face_path(44) = "yhmv118.png"
+	imgdef_face_path(45) = "yhmv120.png"
+	imgdef_face_path(46) = "yhmv122.png"
+	imgdef_face_path(47) = "yhmv123.png"
+	imgdef_face_path(48) = "yhmv124.png"
+	imgdef_face_path(49) = "yhmv132.png"
+	imgdef_face_path(50) = "yhmv135.png"
+	imgdef_face_path(51) = "yhmv138.png"
+	imgdef_face_path(52) = "yhmv140.png"
+	imgdef_face_path(53) = "yhmv141.png"
+	imgdef_face_path(54) = "yhmv142.png"
+	imgdef_face_path(55) = "yhmv145.png"
+	imgdef_face_path(56) = "yhmv146.png"
+	imgdef_face_path(57) = "yhmv148.png"
+	imgdef_face_path(58) = "yhmv150.png"
+	imgdef_face_path(59) = "yhmv150b.png"
+	imgdef_face_path(60) = "yhmv153.png"
+	imgdef_face_path(61) = "yhmv154.png"
+	imgdef_face_path(62) = "yhmv155.png"
+	imgdef_face_path(63) = "yhmv156.png"
+	imgdef_face_path(64) = "yhmv157.png"
+	imgdef_face_path(65) = "yhmv158.png"
+	imgdef_face_path(66) = "yhmv161.png"
+	imgdef_face_path(67) = "yhmv171.png"
+	imgdef_face_path(68) = "yhmv172.png"
+	imgdef_face_path(69) = "yhmv194.png"
+	imgdef_face_path(70) = "yhmv202.png"
+	imgdef_face_path(71) = "yhmv213.png"
+	imgdef_face_path(72) = "yhmv214.png"
+	imgdef_face_path(73) = "yhmv223.png"
+	imgdef_face_path(74) = "yhmv225.png"
+	imgdef_face_path(75) = "yhmv225.png"
+	imgdef_face_path(76) = "yhmv228.png"
+	imgdef_face_path(77) = "yhmv230.png"
+	imgdef_face_path(78) = "yhmv233.png"
+	imgdef_face_path(79) = "yhmv234.png"
+	imgdef_face_path(80) = "yhmv239.png"
+	imgdef_face_path(81) = "yhmv241.png"
+	imgdef_face_path(82) = "yhmv247.png"
+	imgdef_face_path(83) = "yhmv249.png"
+	imgdef_face_path(84) = "yhmv255.png"
+	imgdef_face_path(85) = "yhmv260.png"
+	imgdef_face_path(86) = "yhmv277.png"
+	imgdef_face_path(87) = "yhmv280.png"
+	imgdef_face_path(88) = "yhmv282.png"
+	imgdef_face_path(89) = "yhmv284.png"
+	imgdef_face_path(90) = "yhmv287.png"
+	imgdef_face_path(91) = "yhmv289.png"
+	imgdef_face_path(92) = "yhmv294.png"
+	imgdef_face_path(93) = "yhmv295.png"
+	imgdef_face_path(94) = "yhmv298.png"
+	imgdef_face_path(95) = "yhmv304.png"
+	imgdef_face_path(96) = "yhmv306.png"
+	imgdef_face_path(97) = "yhmv308.png"
+	imgdef_face_path(98) = "yhmv311.png"
+	imgdef_face_path(99) = "yhmv317.png"
+	imgdef_face_path(100) = "yhmv320.png"
+	imgdef_face_path(101) = "yhmv321.png"
+	imgdef_face_path(102) = "yhmv322.png"
+	imgdef_face_path(103) = "yhmv329.png"
+	imgdef_face_path(104) = "yhmv329.png"
+	imgdef_face_path(105) = "yhmv330.png"
+	imgdef_face_path(106) = "yhmv335.png"
+	imgdef_face_path(107) = "yhmv337.png"
+	imgdef_face_path(108) = "yhmv343.png"
+	imgdef_face_path(109) = "yhmv344.png"
+	imgdef_face_path(110) = "yhmv349.png"
+	imgdef_face_path(111) = "yhmv350.png"
+	imgdef_face_path(112) = "yhmv353.png"
+	imgdef_face_path(113) = "yhmv366.png"
+	imgdef_face_path(114) = "yhmv375.png"
+	imgdef_face_path(115) = "yhmv377.png"
+	imgdef_face_path(116) = "yhmv378.png"
+	imgdef_face_path(117) = "yhmv379.png"
+	imgdef_face_path(118) = "yhmv380.png"
+	imgdef_face_path(119) = "yhmv381.png"
+	imgdef_face_path(120) = "yhmv384.png"
+	imgdef_face_path(121) = "yhmv387.png"
+	imgdef_face_path(122) = "yhmv389.png"
+	imgdef_face_path(123) = "yhmv392.png"
+	imgdef_face_path(124) = "yhmv395.png"
+	imgdef_face_path(125) = "yhmv396.png"
+	imgdef_face_path(126) = "yhmv400.png"
+	imgdef_face_path(127) = "yhmv400b.png"
+	imgdef_face_path(128) = "yhmv089.png"
+
+; キャラ画像定義
+
+	imgdef_char_path(0) = "yh278.png"
+	imgdef_char_path(1) = "yh003.png"
+	imgdef_char_path(2) = "yh005.png"
+	imgdef_char_path(3) = "yh006.png"
+	imgdef_char_path(4) = "yh007.png"
+	imgdef_char_path(5) = "yh010.png"
+	imgdef_char_path(6) = "yh016.png"
+	imgdef_char_path(7) = "yh017.png"
+	imgdef_char_path(8) = "yh019.png"
+	imgdef_char_path(9) = "yh021.png"
+	imgdef_char_path(10) = "yh031.png"
+	imgdef_char_path(11) = "yh032.png"
+	imgdef_char_path(12) = "yh033.png"
+	imgdef_char_path(13) = "yh034.png"
+	imgdef_char_path(14) = "yh038.png"
+	imgdef_char_path(15) = "yh040.png"
+	imgdef_char_path(16) = "yh042.png"
+	imgdef_char_path(17) = "yh053.png"
+	imgdef_char_path(18) = "yh054.png"
+	imgdef_char_path(19) = "yh057.png"
+	imgdef_char_path(20) = "yh058.png"
+	imgdef_char_path(21) = "yh060.png"
+	imgdef_char_path(22) = "yh063.png"
+	imgdef_char_path(23) = "yh065.png"
+	imgdef_char_path(24) = "yh066.png"
+	imgdef_char_path(25) = "yh067.png"
+	imgdef_char_path(26) = "yh071.png"
+	imgdef_char_path(27) = "yh072.png"
+	imgdef_char_path(28) = "yh074.png"
+	imgdef_char_path(29) = "yh076.png"
+	imgdef_char_path(30) = "yh078.png"
+	imgdef_char_path(31) = "yh082.png"
+	imgdef_char_path(32) = "yh083.png"
+	imgdef_char_path(33) = "yh085.png"
+	imgdef_char_path(34) = "yh086.png"
+	imgdef_char_path(35) = "yh087.png"
+	imgdef_char_path(36) = "yh088.png"
+	imgdef_char_path(37) = "yh092.png"
+	imgdef_char_path(38) = "yh093.png"
+	imgdef_char_path(39) = "yh094.png"
+	imgdef_char_path(40) = "yh097.png"
+	imgdef_char_path(41) = "yh106.png"
+	imgdef_char_path(42) = "yh109.png"
+	imgdef_char_path(43) = "yh115.png"
+	imgdef_char_path(44) = "yh118.png"
+	imgdef_char_path(45) = "yh120.png"
+	imgdef_char_path(46) = "yh122.png"
+	imgdef_char_path(47) = "yh123.png"
+	imgdef_char_path(48) = "yh124.png"
+	imgdef_char_path(49) = "yh132.png"
+	imgdef_char_path(50) = "yh135.png"
+	imgdef_char_path(51) = "yh138.png"
+	imgdef_char_path(52) = "yh140.png"
+	imgdef_char_path(53) = "yh141.png"
+	imgdef_char_path(54) = "yh142.png"
+	imgdef_char_path(55) = "yh145.png"
+	imgdef_char_path(56) = "yh146.png"
+	imgdef_char_path(57) = "yh148.png"
+	imgdef_char_path(58) = "yh150.png"
+	imgdef_char_path(59) = "yh150b.png"
+	imgdef_char_path(60) = "yh153.png"
+	imgdef_char_path(61) = "yh154.png"
+	imgdef_char_path(62) = "yh155.png"
+	imgdef_char_path(63) = "yh156.png"
+	imgdef_char_path(64) = "yh157.png"
+	imgdef_char_path(65) = "yh158.png"
+	imgdef_char_path(66) = "yh161.png"
+	imgdef_char_path(67) = "yh171.png"
+	imgdef_char_path(68) = "yh172.png"
+	imgdef_char_path(69) = "yh194_2r.png"
+	imgdef_char_path(70) = "yh202.png"
+	imgdef_char_path(71) = "yh213.png"
+	imgdef_char_path(72) = "yh214.png"
+	imgdef_char_path(73) = "yh223.png"
+	imgdef_char_path(74) = "yh225.png"
+	imgdef_char_path(75) = "yh225b.png"
+	imgdef_char_path(76) = "yh228.png"
+	imgdef_char_path(77) = "yh230.png"
+	imgdef_char_path(78) = "yh233.png"
+	imgdef_char_path(79) = "yh234.png"
+	imgdef_char_path(80) = "yh239.png"
+	imgdef_char_path(81) = "yh241.png"
+	imgdef_char_path(82) = "yh247.png"
+	imgdef_char_path(83) = "yh249.png"
+	imgdef_char_path(84) = "yh255.png"
+	imgdef_char_path(85) = "yh260.png"
+	imgdef_char_path(86) = "yh277.png"
+	imgdef_char_path(87) = "yh280.png"
+	imgdef_char_path(88) = "yh282.png"
+	imgdef_char_path(89) = "yh284.png"
+	imgdef_char_path(90) = "yh287.png"
+	imgdef_char_path(91) = "yh289.png"
+	imgdef_char_path(92) = "yh294.png"
+	imgdef_char_path(93) = "yh295.png"
+	imgdef_char_path(94) = "yh298.png"
+	imgdef_char_path(95) = "yh304.png"
+	imgdef_char_path(96) = "yh306.png"
+	imgdef_char_path(97) = "yh308.png"
+	imgdef_char_path(98) = "yh311.png"
+	imgdef_char_path(99) = "yh317.png"
+	imgdef_char_path(100) = "yh320.png"
+	imgdef_char_path(101) = "yh321.png"
+	imgdef_char_path(102) = "yh322.png"
+	imgdef_char_path(103) = "yh329.png"
+	imgdef_char_path(104) = "yh329b.png"
+	imgdef_char_path(105) = "yh330.png"
+	imgdef_char_path(106) = "yh335.png"
+	imgdef_char_path(107) = "yh337.png"
+	imgdef_char_path(108) = "yh343.png"
+	imgdef_char_path(109) = "yh344.png"
+	imgdef_char_path(110) = "yh349.png"
+	imgdef_char_path(111) = "yh350.png"
+	imgdef_char_path(112) = "yh353.png"
+	imgdef_char_path(113) = "yh366.png"
+	imgdef_char_path(114) = "yh375.png"
+	imgdef_char_path(115) = "yh377.png"
+	imgdef_char_path(116) = "yh378.png"
+	imgdef_char_path(117) = "yh379.png"
+	imgdef_char_path(118) = "yh380.png"
+	imgdef_char_path(119) = "yh381.png"
+	imgdef_char_path(120) = "yh384.png"
+	imgdef_char_path(121) = "yh387.png"
+	imgdef_char_path(122) = "yh389.png"
+	imgdef_char_path(123) = "yh392.png"
+	imgdef_char_path(124) = "yh395.png"
+	imgdef_char_path(125) = "yh396.png"
+	imgdef_char_path(126) = "yh400.png"
+	imgdef_char_path(127) = "yh400b.png"
+	imgdef_char_path(128) = "yh089.png"
+	
+; キャラ歩行画像定義
+
+	imgdef_walk_path(0) = "walkcharm278.png"
+	imgdef_walk_path(1) = "walkcharm003.png"
+	imgdef_walk_path(2) = "walkcharm005.png"
+	imgdef_walk_path(3) = "walkcharm006.png"
+	imgdef_walk_path(4) = "walkcharm007.png"
+	imgdef_walk_path(5) = "walkcharm010.png"
+	imgdef_walk_path(6) = "walkcharm016.png"
+	imgdef_walk_path(7) = "walkcharm017.png"
+	imgdef_walk_path(8) = "walkcharm019.png"
+	imgdef_walk_path(9) = "walkcharm021.png"
+	imgdef_walk_path(10) = "walkcharm031.png"
+	imgdef_walk_path(11) = "walkcharm032.png"
+	imgdef_walk_path(12) = "walkcharm033.png"
+	imgdef_walk_path(13) = "walkcharm034.png"
+	imgdef_walk_path(14) = "walkcharm038.png"
+	imgdef_walk_path(15) = "walkcharm040.png"
+	imgdef_walk_path(16) = "walkcharm042.png"
+	imgdef_walk_path(17) = "walkcharm053.png"
+	imgdef_walk_path(18) = "walkcharm054.png"
+	imgdef_walk_path(19) = "walkcharm057.png"
+	imgdef_walk_path(20) = "walkcharm058.png"
+	imgdef_walk_path(21) = "walkcharm060.png"
+	imgdef_walk_path(22) = "walkcharm063.png"
+	imgdef_walk_path(23) = "walkcharm065.png"
+	imgdef_walk_path(24) = "walkcharm066.png"
+	imgdef_walk_path(25) = "walkcharm067.png"
+	imgdef_walk_path(26) = "walkcharm071.png"
+	imgdef_walk_path(27) = "walkcharm072.png"
+	imgdef_walk_path(28) = "walkcharm074.png"
+	imgdef_walk_path(29) = "walkcharm076.png"
+	imgdef_walk_path(30) = "walkcharm078.png"
+	imgdef_walk_path(31) = "walkcharm082.png"
+	imgdef_walk_path(32) = "walkcharm083.png"
+	imgdef_walk_path(33) = "walkcharm085.png"
+	imgdef_walk_path(34) = "walkcharm086.png"
+	imgdef_walk_path(35) = "walkcharm087.png"
+	imgdef_walk_path(36) = "walkcharm088.png"
+	imgdef_walk_path(37) = "walkcharm092.png"
+	imgdef_walk_path(38) = "walkcharm093.png"
+	imgdef_walk_path(39) = "walkcharm094.png"
+	imgdef_walk_path(40) = "walkcharm097.png"
+	imgdef_walk_path(41) = "walkcharm106.png"
+	imgdef_walk_path(42) = "walkcharm109.png"
+	imgdef_walk_path(43) = "walkcharm115.png"
+	imgdef_walk_path(44) = "walkcharm118.png"
+	imgdef_walk_path(45) = "walkcharm120.png"
+	imgdef_walk_path(46) = "walkcharm122.png"
+	imgdef_walk_path(47) = "walkcharm123.png"
+	imgdef_walk_path(48) = "walkcharm124.png"
+	imgdef_walk_path(49) = "walkcharm132.png"
+	imgdef_walk_path(50) = "walkcharm135.png"
+	imgdef_walk_path(51) = "walkcharm138.png"
+	imgdef_walk_path(52) = "walkcharm140.png"
+	imgdef_walk_path(53) = "walkcharm141.png"
+	imgdef_walk_path(54) = "walkcharm142.png"
+	imgdef_walk_path(55) = "walkcharm145.png"
+	imgdef_walk_path(56) = "walkcharm146.png"
+	imgdef_walk_path(57) = "walkcharm148.png"
+	imgdef_walk_path(58) = "walkcharm150.png"
+	imgdef_walk_path(59) = "walkcharm150b.png"
+	imgdef_walk_path(60) = "walkcharm153.png"
+	imgdef_walk_path(61) = "walkcharm154.png"
+	imgdef_walk_path(62) = "walkcharm155.png"
+	imgdef_walk_path(63) = "walkcharm156.png"
+	imgdef_walk_path(64) = "walkcharm157.png"
+	imgdef_walk_path(65) = "walkcharm158.png"
+	imgdef_walk_path(66) = "walkcharm161.png"
+	imgdef_walk_path(67) = "walkcharm171.png"
+	imgdef_walk_path(68) = "walkcharm172.png"
+	imgdef_walk_path(69) = "walkcharm194r.png"
+	imgdef_walk_path(70) = "walkcharm202.png"
+	imgdef_walk_path(71) = "walkcharm213.png"
+	imgdef_walk_path(72) = "walkcharm214.png"
+	imgdef_walk_path(73) = "walkcharm223.png"
+	imgdef_walk_path(74) = "walkcharm225.png"
+	imgdef_walk_path(75) = "walkcharm225.png"
+	imgdef_walk_path(76) = "walkcharm228.png"
+	imgdef_walk_path(77) = "walkcharm230.png"
+	imgdef_walk_path(78) = "walkcharm233.png"
+	imgdef_walk_path(79) = "walkcharm234.png"
+	imgdef_walk_path(80) = "walkcharm239.png"
+	imgdef_walk_path(81) = "walkcharm241.png"
+	imgdef_walk_path(82) = "walkcharm247.png"
+	imgdef_walk_path(83) = "walkcharm249.png"
+	imgdef_walk_path(84) = "walkcharm255.png"
+	imgdef_walk_path(85) = "walkcharm260.png"
+	imgdef_walk_path(86) = "walkcharm277.png"
+	imgdef_walk_path(87) = "walkcharm280.png"
+	imgdef_walk_path(88) = "walkcharm282.png"
+	imgdef_walk_path(89) = "walkcharm284.png"
+	imgdef_walk_path(90) = "walkcharm287.png"
+	imgdef_walk_path(91) = "walkcharm289.png"
+	imgdef_walk_path(92) = "walkcharm294.png"
+	imgdef_walk_path(93) = "walkcharm295.png"
+	imgdef_walk_path(94) = "walkcharm298.png"
+	imgdef_walk_path(95) = "walkcharm304.png"
+	imgdef_walk_path(96) = "walkcharm278.png"
+	imgdef_walk_path(97) = "walkcharm308.png"
+	imgdef_walk_path(98) = "walkcharm311.png"
+	imgdef_walk_path(99) = "walkcharm317.png"
+	imgdef_walk_path(100) = "walkcharm320.png"
+	imgdef_walk_path(101) = "walkcharm321.png"
+	imgdef_walk_path(102) = "walkcharm322.png"
+	imgdef_walk_path(103) = "walkcharm329.png"
+	imgdef_walk_path(104) = "walkcharm329b.png"
+	imgdef_walk_path(105) = "walkcharm330.png"
+	imgdef_walk_path(106) = "walkcharm335.png"
+	imgdef_walk_path(107) = "walkcharm337.png"
+	imgdef_walk_path(108) = "walkcharm343.png"
+	imgdef_walk_path(109) = "walkcharm344.png"
+	imgdef_walk_path(110) = "walkcharm349.png"
+	imgdef_walk_path(111) = "walkcharm350.png"
+	imgdef_walk_path(112) = "walkcharm353.png"
+	imgdef_walk_path(113) = "walkcharm366.png"
+	imgdef_walk_path(114) = "walkcharm375.png"
+	imgdef_walk_path(115) = "walkcharm377.png"
+	imgdef_walk_path(116) = "walkcharm378.png"
+	imgdef_walk_path(117) = "walkcharm379.png"
+	imgdef_walk_path(118) = "walkcharm380.png"
+	imgdef_walk_path(119) = "walkcharm381.png"
+	imgdef_walk_path(120) = "walkcharm384.png"
+	imgdef_walk_path(121) = "walkcharm387.png"
+	imgdef_walk_path(122) = "walkcharm389.png"
+	imgdef_walk_path(123) = "walkcharm392.png"
+	imgdef_walk_path(124) = "walkcharm395.png"
+	imgdef_walk_path(125) = "walkcharm396.png"
+	imgdef_walk_path(126) = "walkcharm400.png"
+	imgdef_walk_path(127) = "walkcharm400b.png"
+	imgdef_walk_path(128) = "walkcharm089.png"
+	
+; 背景画像定義
+
+	imgdef_back_path(0) = "blue3-scaled.jpg"
+	imgdef_back_info(0,IMGDEF_BACK_INFO_SIZEX) = 2560
+	imgdef_back_info(0,IMGDEF_BACK_INFO_SIZEY) = 2560
+
+	imgdef_back_path(1) = "blue12-scaled.jpg"
+	imgdef_back_info(1,IMGDEF_BACK_INFO_SIZEX) = 2560
+	imgdef_back_info(1,IMGDEF_BACK_INFO_SIZEY) = 2064
+
+; アニメーション画像定義
+
+	; 斜め斬撃
+	id = 1
+	imgdef_anime_path(id) = "pipo-btleffect084.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 弾ける1つの光球
+	id = 2
+	imgdef_anime_path(id) = "pipo-btleffect003.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 5
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 上矢印
+	id = 3
+	imgdef_anime_path(id) = "pipo-btleffect019.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 10
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 下矢印
+	id = 4
+	imgdef_anime_path(id) = "pipo-btleffect020.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 10
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 風（弱）
+	id = 5
+	imgdef_anime_path(id) = "pipo-btleffect026.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 横斬撃
+	id = 6
+	imgdef_anime_path(id) = "pipo-btleffect096.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 1620/9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 横斬撃（赤）
+	id = 7
+	imgdef_anime_path(id) = "pipo-btleffect100.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 1620/9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 火（弱）
+	id = 8
+	imgdef_anime_path(id) = "pipo-btleffect024.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 氷（弱）
+	id = 9
+	imgdef_anime_path(id) = "pipo-btleffect025.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 雷（弱）
+	id = 10
+	imgdef_anime_path(id) = "pipo-btleffect027.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 光（弱）
+	id = 11
+	imgdef_anime_path(id) = "pipo-btleffect108a.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 10
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 闇（弱）
+	id = 12
+	imgdef_anime_path(id) = "pipo-btleffect108b.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 10
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 回復（弱）
+	id = 13
+	imgdef_anime_path(id) = "pipo-btleffect015.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 弾ける魔法陣
+	id = 14
+	imgdef_anime_path(id) = "pipo-btleffect007.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 1680/14
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 14
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; ふり下ろし
+	id = 15
+	imgdef_anime_path(id) = "pipo-btleffect090.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 1080/9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 180
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 連打
+	id = 16
+	imgdef_anime_path(id) = "pipo-btleffect002.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 1080/9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 地面に衝撃
+	id = 17
+	imgdef_anime_path(id) = "pipo-btleffect004.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 840/7
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 7
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 刺す（上から下）
+	id = 18
+	imgdef_anime_path(id) = "pipo-btleffect005_.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 1080/9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 9
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 叩く（上から下）
+	id = 19
+	imgdef_anime_path(id) = "pipo-btleffect006_.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 840/7
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 7
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 火（強）
+	id = 20
+	imgdef_anime_path(id) = "pipo-btleffect037.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 氷（強）
+	id = 21
+	imgdef_anime_path(id) = "pipo-btleffect042.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 風（強）
+	id = 22
+	imgdef_anime_path(id) = "pipo-btleffect039.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+	
+	; 雷（強）
+	id = 23
+	imgdef_anime_path(id) = "pipo-btleffect040.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 光（強）
+	id = 24
+	imgdef_anime_path(id) = "pipo-btleffect107a.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 10
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 闇（強）
+	id = 25
+	imgdef_anime_path(id) = "pipo-btleffect107b.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 10
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; ハート
+	id = 26
+	imgdef_anime_path(id) = "pipo-btleffect016.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 960/8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 光の収束
+	id = 27
+	imgdef_anime_path(id) = "pipo-btleffect021.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 320
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 840/7
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 7
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+	
+	; 淡い光の発散
+	id = 28
+	imgdef_anime_path(id) = "pipo-btleffect010.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 960/8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; どくろ
+	id = 29
+	imgdef_anime_path(id) = "pipo-btleffect018.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 960/8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 紫のもや
+	id = 30
+	imgdef_anime_path(id) = "pipo-btleffect014.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 960/8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+	; 超音波
+	id = 31
+	imgdef_anime_path(id) = "pipo-btleffect017.png"
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 960/8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 120
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 8
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+;	; 説明
+;	id = 0
+;	imgdef_anime_path(id) = ""
+;	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEX) = 
+;	imgdef_anime_info(id,IMGDEF_ANIME_INFO_SIZEY) = 
+;	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXX) = 
+;	imgdef_anime_info(id,IMGDEF_ANIME_INFO_MAXY) = 1
+;	imgdef_anime_info(id,IMGDEF_ANIME_INFO_GMODE) = 2
+
+
+
+

@@ -1,0 +1,159 @@
+; ##################################################################################################
+; # 
+; # デバッグ部分
+; # 
+; ##################################################################################################
+
+	goto *debug_end
+
+*debug_preloop
+
+	; キャラクタ定義があれば一通りキャラクタを生成
+	sub_map_create_allchar_by_chardef
+
+	; シナリオ1の設定
+	sub_load_data_scenario1
+
+	; 全チームの総合的な強さを再計算する
+	sub_culcu_allteam_power
+
+	; デバッグメニューの生成
+	debug_menu_select = -1
+	debug_menu_exec = 0
+	sdim tmp_sdim,64,4
+	tmp_sdim(0) = "終了"
+	tmp_sdim(1) = "キャラクタ一覧"
+	tmp_sdim(2) = "マップ表示"
+	tmp_sdim(3) = "バトル表示"
+
+	sub_create_selector tmp_sdim
+
+	; BGMをDEBUGの中からランダムにかける
+	mucis_id = MUSIC_DEBUG1
+	mucis_name = music_path(mucis_id)
+	
+	sub_play_music mucis_id
+
+	; 現在のBGM名
+	global_sinfo(GLOBAL_SINFO_MESSAGE) = strf("現在のBGMは %s",mucis_name)
+
+*debug_loop
+	
+	; 表示
+	redraw 0
+	color 0,0,0 : boxf
+
+	switch debug_menu_exec
+	case 0 
+		; デバッグ画面のメニュー
+		sub_show_selector 40,40
+		swbreak
+	case 1
+		; キャラクタリストを表示
+		sub_show_list_char 40, 40
+	
+		; 選択状態のキャラはキャラクタ情報を表示
+		if menu_list_char_focus != -1 {
+			sub_show_char 60, 520, menu_list_char(menu_list_char_focus), -1
+		}
+		swbreak
+	case 2
+		; マップを表示
+		color 255,255,255: font "",12: pos 0,0: mes "エリアを選択確定（同じエリアを2連続で選択）すれば終了します"
+		sub_show_map 100, 200, 4
+		if area_select >= 0 {
+			; エリア情報を表示
+			if strlen(area_sinfo(area_select,AREA_SINFO_NAME)) > 0 {
+				sub_show_area 200, 705, area_select
+				; チーム情報
+				if area_info(area_select,AREA_INFO_TEAM) > 0 {
+					sub_show_team_summary 350, 10, area_info(area_select,AREA_INFO_TEAM)
+				}
+				; イベント選択メニュー
+				sub_show_menu_event 10, 10
+			}
+		}
+		swbreak
+	case 3
+
+		swbreak
+	swend
+
+	; グローバル情報の表示
+	sub_show_global 0, WINDOW_SIZEY-30
+	
+	redraw 1
+	; 表示ここまで
+
+	; 待機時間
+	await 1000/FRAME_RATE		; 時間待ち
+	
+	; 入力待ち
+	sub_check_keyinput
+	
+	; 処理
+	switch debug_menu_exec
+	case 0 
+		; デバッグメニューの処理
+		sub_check_selector_list
+		if (selector_list_active == 0) and (selector_list_returncode == 1){
+			if selector_list_focus == 0 : goto *force_end
+			if selector_list_focus == 1 : debug_menu_select = 0
+			if selector_list_focus == 2 : debug_menu_select = 1
+			if selector_list_focus == 3 : debug_menu_select = 2
+		}
+		if debug_menu_select == 0{
+			sub_create_list_char list_char_all,3,-1,0
+			debug_menu_exec = 1
+		}
+		if debug_menu_select == 1{
+			sub_create_selector_map
+			debug_menu_exec = 2
+		}
+		if debug_menu_select == 2{
+			debug_menu_exec = 3
+
+			sub_play_music MUSIC_BATTLE1
+			
+			; バトル画面は本物のbattle_loopにテストデータを流して実行
+			dim atcmem,BATTLE_CHAR_MAX
+			dim defmem,BATTLE_CHAR_MAX
+			atcmem(0)=1
+			atcmem(1)=2
+			atcmem(2)=5
+			defmem(0)=7
+			defmem(1)=8
+			defmem(2)=9
+			sub_battle_init 2, 1, atcmem, defmem
+			goto *battle_preloop_first
+		}
+		swbreak
+	case 1
+		; キャラクタ一覧の処理
+		sub_check_menu_list_char
+		if menu_list_char_active != 1 { ; 選択が終わったらデバッグメニューに戻る
+			debug_menu_select = -1
+			debug_menu_exec = 0
+			sub_create_selector tmp_sdim
+		}
+		swbreak
+	case 2
+		sub_check_selector_map
+		if ( selector_map_active == 1 ) and ( selector_map_focus >= 0 ) {
+			area_select = selector_map_focus
+			sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+		}
+		if selector_map_active != 1 { ; 選択が終わったらデバッグメニューに戻る
+			debug_menu_select = -1
+			debug_menu_exec = 0
+			sub_create_selector tmp_sdim
+		}
+		swbreak
+	swend
+	
+	; ループの終わり
+	sub_reduce_input_cooldown ; 入力のクールダウン時間経過
+	goto *debug_loop
+	
+*debug_end
+

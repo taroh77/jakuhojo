@@ -1,0 +1,579 @@
+	goto *end_of_slgm_map_sub
+; ##################################################################################################
+; # 
+; # マップシーンのサブルーチン
+; # 
+; ##################################################################################################
+
+; キャラクタ定義があれば一通りキャラクタを生成
+#deffunc sub_map_create_allchar_by_chardef
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_map_create_allchar_by_chardef")
+	
+	dim list_char_all
+	for sub_chardef,1,CHARDEF_MAX
+		if ( chardef_info(sub_chardef,CHARDEF_INFO_FACEIMGID) > 0 ) and ( strlen(chardef_sinfo(sub_chardef,CHARDEF_SINFO_NAME)) > 0) and ( chardef_info(sub_chardef,CHARDEF_INFO_CLASS) > 0){
+			sub_create_char sub_chardef, sub_chardef
+			list_char_all(sub_chardef-1) = sub_chardef
+			if chardef_info(sub_chardef,CHARDEF_INFO_RANDOM) = 1 {
+				; ランダムテーブルにキャラを追加する
+				sub_add_random_table_char sub_chardef
+				; ランダムキャラにスキルを追加する
+				sub_add_skill_random_char sub_chardef
+			}
+		}
+	next
+
+	return
+
+; 中央に表示するメッセージを生成する
+;   arg1(message):  メッセージ
+;   arg2(next):     表示が終わったら遷移する操作状態 
+;   arg3(charid):   メッセージを表示するときのキャラID （-1:なし）
+;   arg4(faceindex):メッセージを表示するときのキャラのfaceindex（-1:default）
+;   arg5(frame):    メッセージを表示するフレーム数（-1:120フレーム）
+#deffunc sub_map_create_message_center str arg_message, int arg_next, int arg_charid, int arg_faceindex, int arg_frame
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_map_create_message_center args=%s,%d,%d,%d,%d",arg_message,arg_next,arg_charid,arg_faceindex,arg_frame)
+
+	global_sinfo(GLOBAL_SINFO_MESSAGE_CENTOR) = arg_message
+	global_info(GLOBAL_INFO_OPERATION_MAP_NEXT) = arg_next
+	global_info(GLOBAL_INFO_OPERATION_MAP_MESSAGE_CENTOR_CHAR) = arg_charid
+	global_info(GLOBAL_INFO_OPERATION_MAP_MESSAGE_CENTOR_CHAR_FACE) = arg_faceindex
+	if arg_frame == -1 {
+		global_info(GLOBAL_INFO_OPERATION_MAP_CONTINUE_FRAME) = 120
+	} else {
+		global_info(GLOBAL_INFO_OPERATION_MAP_CONTINUE_FRAME) = arg_frame
+	}
+	global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_CENTOR_MESSAGE
+
+	return
+
+; コンピュータが行動を自動で選ぶ
+#deffunc sub_map_decide_action
+
+	if DEBUG_LEVEL & LOG_ERROR :logmes strf("I call sub_map_decide_action")
+
+	sub_decide_action = EVENT_CODE_TURN_END
+
+	if team_info(global_info(GLOBAL_INFO_TURN_TEAM) ,TEAM_INFO_ACTIONP) == 0 {
+		sub_decide_action = EVENT_CODE_TURN_END
+	} else {
+		; 行動可能な人数を集計する
+		sub_calcu_team_active_member global_info(GLOBAL_INFO_TURN_TEAM)
+		
+		if team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIVE_MEMBER) >= 6 {
+			; 6人以上いれば何かする
+			if team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_RANDOM_CHAR) < 10 {
+				; 人材発掘は3ターン目以降（20ターン目以降は人数追加）
+				if global_info(GLOBAL_INFO_TURN) >= 20 {
+					if rnd(14) > team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_RANDOM_CHAR) {
+						sub_decide_action = EVENT_CODE_CHAR_SEARCH
+					}
+				} else {
+					if global_info(GLOBAL_INFO_TURN) >= 3 {
+						if rnd(10) > team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_RANDOM_CHAR) {
+							sub_decide_action = EVENT_CODE_CHAR_SEARCH
+						}
+					}
+				}
+			}
+			if sub_decide_action == EVENT_CODE_TURN_END {
+				if team_attackable_area_num(global_info(GLOBAL_INFO_TURN_TEAM)) > 0 {
+					; 攻撃可能エリアがあれば攻撃
+					if team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_TOTAL_MANA) >= ( global_info(GLOBAL_INFO_TURN) * 100 + 2000 ) {
+						; マナがある程度残ってないと攻めない
+						; 攻めるのは5ターン目以降、2回目の行動を攻撃にするのは12ターン目以降
+						if global_info(GLOBAL_INFO_TURN) >= 5 {
+							if team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) == 2 {
+								sub_decide_action = EVENT_CODE_ATTACK_AREA
+							} else {
+								if global_info(GLOBAL_INFO_TURN) >= 12 {
+									sub_decide_action = EVENT_CODE_ATTACK_AREA
+								}
+							}
+						}
+					}
+				}
+			}
+			if sub_decide_action == EVENT_CODE_TURN_END {
+				; とりあえず訓練
+				; 訓練は2ターン目以降
+				if global_info(GLOBAL_INFO_TURN) >= 2 {
+					sub_decide_action = EVENT_CODE_TRAINING
+				}
+			}
+		}
+	}
+	; イベントトリガーをチェック（優先発動）
+	if team_info(global_info(GLOBAL_INFO_TURN_TEAM) ,TEAM_INFO_ACTIONP) > 0 {
+		sub_check_event_trigger EVENT_TRIGGER_INFO_TIMING_EVENT_MENU
+		if global_info(GLOBAL_INFO_WAIT_EVENT_ID) > 0 {
+			sub_decide_action = global_info(GLOBAL_INFO_WAIT_EVENT_ID)
+		}
+	}
+	
+	switch sub_decide_action
+	case EVENT_CODE_ATTACK_AREA	;	1: 隣接エリアを攻撃
+		sub_create_selector_map_from_team_attackable_area global_info(GLOBAL_INFO_TURN_TEAM)
+		
+		; 自動でエリアを決める
+		; スキル選択メニューで選択肢に重みをつける
+		sub_vote_selector_map SELECTOR_MAP_VOTE_RANDOM, 1
+		sub_vote_selector_map SELECTOR_MAP_VOTE_NEAR_ZERO, 5
+		sub_vote_selector_map SELECTOR_MAP_VOTE_PLAYER, 5
+		sub_decide_selector_map SELECTOR_MAP_DECIDE_ELECTION
+
+		if ( selector_map_active == 0 ) and ( selector_map_returncode == 1 ) {
+			; 攻撃対象エリアは selector_map_focus
+			global_info(GLOBAL_INFO_BATTLE_READY_AREA) = selector_map_focus
+			; 攻撃予定ブロックをglobal_infoに格納する
+			sub_map_calcu_battle_ready_block global_info(GLOBAL_INFO_BATTLE_READY_AREA), global_info(GLOBAL_INFO_TURN_TEAM)
+			; 攻撃するメンバーを選択する
+			sub_create_list_char_from_team global_info(GLOBAL_INFO_TURN_TEAM), BATTLE_CHAR_MAX, -1, 0
+			selector_map_returncode = 0
+						
+			; 出撃メンバーを自動で決める
+			sub_map_decide_battle_char global_info(GLOBAL_INFO_TURN_TEAM), 1, 2
+			; 攻撃メンバー確定　※特に処理なし
+			
+			; マナを消費してキャラのHPを回復する
+			sub_heal_char_by_mana battle_char_atc
+			; 攻撃チームの行動回数を減らす
+			team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+			
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_DECIDE_ATTACK
+		}
+
+		swbreak
+	case EVENT_CODE_TRAINING	;	2: 訓練（一部ユニットの経験値Up）
+		
+		sub_create_list_char_from_team global_info(GLOBAL_INFO_TURN_TEAM), 3, -1, 1
+		; キャラクターのリスト選択メニューで選択肢に重みをつける
+		sub_vote_list_char MENU_LIST_CHAR_VOTE_NOTIRED, 100
+		for sub_cnt,0,3
+			; キャラクターのリスト選択メニューで1人自動で決定する
+			sub_decide_list_char MENU_LIST_CHAR_DECIDE_ELECTION
+		next
+		menu_list_char_active = 0
+		; 訓練を実行する ※メニュー（リスト、キャラ）で選択確定済みであること
+		sub_map_exec_training
+		swbreak
+	case EVENT_CODE_MANAG_UP	;	3: 自国のマナ生産量向上　※現在の 生産量×10 の生成が必要
+		; 今のバージョンでこれが選ばれることはない
+		swbreak
+	case EVENT_CODE_DEFP_UP		;	4: 自国の地形探索（地形効果Up）　※現在の エリアDEFP×10+100 の探索が必要
+		; 今のバージョンでこれが選ばれることはない
+		swbreak
+	case EVENT_CODE_CHAR_SEARCH	;   5: 人材発掘
+		sub_create_list_char_from_team global_info(GLOBAL_INFO_TURN_TEAM), 3, PARAM_COM, 1
+
+		; キャラクターのリスト選択メニューで選択肢に重みをつける
+		sub_vote_list_char MENU_LIST_CHAR_VOTE_PARAM_COM, 1
+		sub_vote_list_char MENU_LIST_CHAR_VOTE_NOTIRED, 100
+		for sub_cnt,0,3
+			; キャラクターのリスト選択メニューで1人自動で決定する
+			sub_decide_list_char MENU_LIST_CHAR_DECIDE_MAX
+			if menu_list_char_pickup_sumparam > team_info(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_INFO_RANDOM_CHAR)*10+100 : _break
+		next
+		menu_list_char_active = 0
+		; 人材発掘を実行する ※メニュー（リスト、キャラ）で選択確定済みであること
+		sub_map_exec_char_search
+		
+		swbreak
+	case EVENT_CODE_TURN_END	;  99: ターン終了
+		global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_TURN_END
+		swbreak
+	default ; イベント
+		if sub_decide_action > 100 {
+			global_info(GLOBAL_INFO_EVENT_TRIGGER_ID) = sub_decide_action
+			event_trigger_info(sub_decide_action,EVENT_TRIGGER_INFO_FLAG) = 1
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL
+		} else {
+			global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_TURN_END
+		}
+		swbreak	
+	swend
+
+	return
+
+; 人材発掘を実行する ※メニュー（リスト、キャラ）で選択確定済みであること
+#deffunc sub_map_exec_char_search
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_map_exec_char_search")
+
+	if team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) <= 0 : return
+
+	; 実施メンバー確定
+	for sub_charpickup,0,MENU_LIST_CHAR_SELECT_MAX
+		if menu_list_char_pickup(sub_charpickup) <= 0 : _continue
+		; キャラが経験値を獲得する（訓練の半分）
+		sub_gain_exp_char menu_list_char_pickup(sub_charpickup), GLOBAL_INFO_OPERATION_MAP_TRAINING_EXP/2
+		char_info(menu_list_char_pickup(sub_charpickup), CHAR_INFO_ACTION_CNT) += 1
+	next
+	; 行動回数を減らす
+	team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+
+	; 成功
+	if menu_list_char_pickup_sumparam >= team_info(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_INFO_RANDOM_CHAR)*10+100 {
+		; ランダムテーブルからキャラを1人選ぶ
+		sub_pickup_random_table_char
+		; キャラクターを指定してチームに所属させる
+		sub_add_char_to_team random_table_char_info_pickup, global_info(GLOBAL_INFO_TURN_TEAM)
+		; キャラが経験値を獲得する
+		sub_gain_exp_char random_table_char_info_pickup, global_info(GLOBAL_INFO_TURN)*20
+		
+		team_info(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_INFO_RANDOM_CHAR) += 1
+		; 仲間にしたキャラはこのターンは行動済み
+		char_info(random_table_char_info_pickup,CHAR_INFO_ACTION_CNT) += 1
+		if global_info(GLOBAL_INFO_TURN_TEAM) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+			sub_map_create_message_center strf("%sを仲間にしました",char_sinfo(random_table_char_info_pickup,CHAR_SINFO_NAME)), GLOBAL_INFO_OPERATION_MAP_MENU_EVENT, random_table_char_info_pickup, -1, -1
+		} else {
+			sub_map_create_message_center strf("%sを仲間にしたようです",char_sinfo(random_table_char_info_pickup,CHAR_SINFO_NAME)), GLOBAL_INFO_OPERATION_MAP_MENU_EVENT, random_table_char_info_pickup, -1, -1
+		}
+	} else {
+		if global_info(GLOBAL_INFO_TURN_TEAM) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+			sub_map_create_message_center strf("%sを仲間にしました",char_sinfo(random_table_char_info_pickup,CHAR_SINFO_NAME)), GLOBAL_INFO_OPERATION_MAP_MENU_EVENT, random_table_char_info_pickup, -1, -1
+		}
+	}
+
+	return
+
+; 訓練を実行する ※メニュー（リスト、キャラ）で選択確定済みであること
+#deffunc sub_map_exec_training
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_map_exec_training")
+
+	if team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) <= 0 : return
+
+	; 訓練メンバー確定
+	for sub_charpickup,0,MENU_LIST_CHAR_SELECT_MAX
+		if menu_list_char_pickup(sub_charpickup) <= 0 : _continue
+		; キャラが経験値を獲得する
+		sub_gain_exp_char menu_list_char_pickup(sub_charpickup), GLOBAL_INFO_OPERATION_MAP_TRAINING_EXP
+		char_info(menu_list_char_pickup(sub_charpickup), CHAR_INFO_ACTION_CNT) += 1
+	next
+	; 行動回数を減らす
+	team_info(global_info(GLOBAL_INFO_TURN_TEAM), TEAM_INFO_ACTIONP) -= 1
+	; 中央に表示するメッセージを生成する
+	if global_info(GLOBAL_INFO_TURN_TEAM) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+		sub_map_create_message_center "訓練を行い、経験値を得た", GLOBAL_INFO_OPERATION_MAP_MENU_EVENT, menu_list_char_pickup(0), -1, -1
+	} else {
+		sub_map_create_message_center "何やらがんばっているようです", GLOBAL_INFO_OPERATION_MAP_MENU_EVENT, menu_list_char_pickup(0), -1, -1
+	}
+	
+	return
+	
+; 次のターンに進める
+#deffunc sub_map_exec_next_turn
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_map_exec_next_turn.")
+	
+	; チームの行動順番を決める
+	for sub_i,0,TEAM_MAX
+		global_turn_teams(sub_i) = 0
+	next
+	sub_num = 0
+	; エリアを持っていて1名以上が所属しているチームのみターンが回ってくる
+	for sub_i,0,TEAM_MAX
+		if ( team_info(sub_i,TEAM_INFO_TOTAL_MEMBER) > 0 ) and ( team_info(sub_i,TEAM_INFO_AREA_CNT) > 0 ) {
+			global_turn_teams(sub_num) = sub_i
+			sub_num += 1
+			if DEBUG_MODE == 1 :logmes strf("D add team %d to global_turn_teams in sub_map_exec_next_turn.",sub_i)
+
+			; ついでに各チームのターン開始時の処理
+			team_info(sub_i,TEAM_INFO_ACTIONP) = team_info(sub_i,TEAM_INFO_ACTIONP_MAX)
+
+			; 所属チームメンバーの処理
+			for sub_j,0,team_info(sub_i,TEAM_INFO_TOTAL_MEMBER)
+				if team_member(sub_i,sub_j) <= 0 : _continue
+				if char_info(team_member(sub_i,sub_j), CHAR_INFO_ACTION_CNT) > 0 {
+					; キャラのHPを割合で回復する
+					sub_heal_char_by_rate team_member(sub_i,sub_j), 10
+				} else {
+					; キャラのHPを割合で回復する
+					sub_heal_char_by_rate team_member(sub_i,sub_j), 30
+				}
+				; キャラの行動回数を初期化
+				char_info(team_member(sub_i,sub_j), CHAR_INFO_ACTION_CNT) = 0
+			next
+		}
+	next
+	; シャッフルする
+	for sub_i,0,99
+		sub_a = rnd(sub_num)
+		sub_b = rnd(sub_num)
+		if sub_a != sub_b {
+			sub_tmp = global_turn_teams(sub_a)
+			global_turn_teams(sub_a) = global_turn_teams(sub_b)
+			global_turn_teams(sub_b) = sub_tmp
+		}
+	next
+
+	; 全てのチームが生産量に基づいてマナを得る
+	sub_gain_mana_allteam
+
+	global_info(GLOBAL_INFO_TURN) += 1
+	global_info(GLOBAL_INFO_TURN_INDEX) = 0
+	global_info(GLOBAL_INFO_TURN_TEAM) = global_turn_teams(global_info(GLOBAL_INFO_TURN_INDEX))
+	global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_NEXT_TURN	; マップシーンでの操作状態
+	
+	return
+
+; 次のチームに進める
+#deffunc sub_map_exec_next_team
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_map_exec_next_team.")
+
+	if global_info(GLOBAL_INFO_TURN) > 0 {
+		global_info(GLOBAL_INFO_TURN_INDEX) += 1
+		global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = ""
+		global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_TURN_END	; マップシーンでの操作状態
+	
+		if global_turn_teams(global_info(GLOBAL_INFO_TURN_INDEX)) > 0 {
+			global_info(GLOBAL_INFO_TURN_TEAM) = global_turn_teams(global_info(GLOBAL_INFO_TURN_INDEX))
+		} else {
+			; 次のターンに進める
+			sub_map_exec_next_turn
+		}
+	} else {
+		; 次のターンに進める
+		sub_map_exec_next_turn
+	}
+
+	return
+
+; チームが行動できる状態にする
+#deffunc sub_set_active_team
+
+	; ターンのチームの本拠地を選択した状態に
+	global_sinfo(GLOBAL_SINFO_MESSAGE_BOTTOM) = "行動を左上の選択肢から選んでください"
+	area_select = team_info(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_INFO_BASEAREA)  
+	sub_create_menu_event area_select, area_info(area_select,AREA_INFO_TEAM)
+	global_info(GLOBAL_INFO_OPERATION_MAP) = GLOBAL_INFO_OPERATION_MAP_MENU_EVENT
+
+	switch global_info(GLOBAL_INFO_TURN_TEAM)
+	case 1
+		sub_play_music MUSIC_THEME1
+		; ゲームデータを保存する
+		sub_save_gamedata "autosave"
+		swbreak
+	case 2
+		sub_play_music MUSIC_THEME2
+		swbreak
+	case 3
+		sub_play_music MUSIC_THEME3
+		swbreak
+	case 4
+		sub_play_music MUSIC_THEME4
+		swbreak
+	swend
+
+	return
+	
+; 全てのチームが生産量に基づいてマナを得る
+#deffunc sub_gain_mana_allteam
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_gain_mana")
+
+	for sub_teamid,0,TEAM_MAX
+		if team_info(sub_teamid,TEAM_INFO_TOTAL_MEMBER) > 0 {
+			; 指定したチームが生産量に基づいてマナを得る
+			sub_gain_mana sub_teamid
+		}
+	next
+
+	return
+
+; 指定したチームが生産量に基づいてマナを得る
+;   arg1(teamid):  チームID
+#deffunc sub_gain_mana int arg_teamid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_gain_mana args=%d",arg_teamid)
+
+	sub_summana = 0
+	for sub_i,0,AREA_MAX
+		if area_info(sub_i,AREA_INFO_TEAM) == arg_teamid {
+			sub_summana += area_info(sub_i,AREA_INFO_MANAG) * 100
+		}
+	next
+
+	team_info(arg_teamid,TEAM_INFO_TOTAL_MANA) += sub_summana
+	
+	return
+
+; 攻撃予定ブロックをglobal_infoに格納する
+;   arg1(areaid): エリアID
+;   arg2(teamid): チームID
+#deffunc sub_map_calcu_battle_ready_block int arg_areaid, int arg_teamid
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_map_calcu_battle_ready_block args=%d,%d", arg_areaid , arg_teamid)
+
+	for sub_i,0,AREA_BLOCK_MAX
+		if arg_teamid != area_info(arg_areaid, AREA_INFO_TEAM) {
+			; 自分のエリアではないとき
+			sub_block = area_info(arg_areaid,AREA_INFO_BLOCKS) - sub_i -1
+			if sub_block < 0 {
+				sub_abort strf("E Unexpected error in sub_map_calcu_battle_ready_block sub_block=%d",sub_block)
+			}
+			if area_block_info(arg_areaid,AREA_BLOCK_INFO_TEAM,sub_block) == area_info(arg_areaid, AREA_INFO_TEAM) {
+				global_info(GLOBAL_INFO_BATTLE_READY_BLOCK) = sub_block						; 戦うブロック
+				global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM) = area_block_info(arg_areaid,AREA_BLOCK_INFO_TEAM,sub_block)
+				_break
+			}
+		} else {
+			; 自分のエリアのとき
+			sub_block = sub_i
+			if area_block_info(arg_areaid,AREA_BLOCK_INFO_TEAM,sub_block) != arg_teamid {
+				global_info(GLOBAL_INFO_BATTLE_READY_BLOCK) = sub_block						; 戦うブロック
+				global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM) = area_block_info(arg_areaid,AREA_BLOCK_INFO_TEAM,sub_block)
+				_break
+			}
+		}
+	next
+	if DEBUG_LEVEL & LOG_ERROR :logmes strf("D GLOBAL_INFO_BATTLE_READY_BLOCK=%d, GLOBAL_INFO_BATTLE_READY_DEF_TEAM=%d", global_info(GLOBAL_INFO_BATTLE_READY_BLOCK) , global_info(GLOBAL_INFO_BATTLE_READY_DEF_TEAM))
+
+	return
+	
+; 出撃メンバーを自動で決める
+;   arg1(teamid):  チームID
+;   arg2(side):  1:攻撃軍、2:防衛軍
+;   arg3(mode):  1:ランダム、2:バランス、3:攻撃寄り、4:防御寄り、5:決戦
+#deffunc sub_map_decide_battle_char int arg_teamid , int arg_side , int arg_mode
+
+	if DEBUG_LEVEL & LOG_ERROR :logmes strf("I call sub_map_decide_battle_char args=%d,%d,%d",arg_teamid , arg_side , arg_mode)
+
+	; キャラクターのリストをチームメンバーから生成する
+	sub_create_list_char_from_team arg_teamid, 3, -1, 0
+
+	for sub_cnt,0,3
+		; 投票箱を初期化する
+		sub_vote_list_char MENU_LIST_CHAR_VOTE_CLEAR, 0
+		; 投票モード（ランダム）
+		sub_vote_list_char MENU_LIST_CHAR_VOTE_RANDOM, 1
+		switch arg_mode
+		case 1	; 1:ランダム
+			; 投票モード（非疲労持ち）
+			sub_vote_list_char MENU_LIST_CHAR_VOTE_NOTIRED, 1
+			; 投票モード（リーダー以外）
+			sub_vote_list_char MENU_LIST_CHAR_VOTE_NOT_LEADER, 1
+			; キャラクターのリスト選択メニューで1人自動で決定する
+			sub_decide_list_char MENU_LIST_CHAR_DECIDE_ELECTION
+			swbreak
+		case 2	; 2:バランス
+			switch sub_cnt
+			case 0
+				; 投票モード（火力持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_ATTACK, 1
+				swbreak
+			case 1
+				; 投票モード（味方ガード持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_COVER, 1
+				swbreak
+			case 2
+				; 投票モード（回復持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_HEAL, 1
+				swbreak
+			swend
+			; 投票モード（リーダー以外）
+			sub_vote_list_char MENU_LIST_CHAR_VOTE_NOT_LEADER, 1
+			; 投票モード（非疲労持ち）
+			sub_vote_list_char MENU_LIST_CHAR_VOTE_NOTIRED, 1
+			; キャラクターのリスト選択メニューで1人自動で決定する
+			sub_decide_list_char MENU_LIST_CHAR_DECIDE_ELECTION
+			swbreak
+		case 3	; 3:攻撃寄り
+			switch sub_cnt
+			case 0
+			case 1
+				; 投票モード（火力持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_ATTACK, 1
+				swbreak
+			case 2
+				; 投票モード（回復持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_HEAL, 1
+				; 投票モード（味方ガード持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_COVER, 1
+				swbreak
+			swend
+			; 投票モード（リーダー以外）
+			sub_vote_list_char MENU_LIST_CHAR_VOTE_NOT_LEADER, 1
+			; 投票モード（非疲労持ち）
+			sub_vote_list_char MENU_LIST_CHAR_VOTE_NOTIRED, 1
+			; キャラクターのリスト選択メニューで1人自動で決定する
+			sub_decide_list_char MENU_LIST_CHAR_DECIDE_ELECTION
+			swbreak
+		case 4	; 4:防御寄り
+			switch sub_cnt
+			case 0
+				; 投票モード（味方ガード持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_COVER, 1
+				swbreak
+			case 1
+				; 投票モード（回復持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_HEAL, 1
+				swbreak
+			case 2
+				; 投票モード（味方ガード持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_COVER, 1
+				; 投票モード（回復持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_HEAL, 1
+				swbreak
+			swend
+			; 投票モード（リーダー以外）
+			sub_vote_list_char MENU_LIST_CHAR_VOTE_NOT_LEADER, 1
+			; 投票モード（非疲労持ち）
+			sub_vote_list_char MENU_LIST_CHAR_VOTE_NOTIRED, 1
+			; キャラクターのリスト選択メニューで1人自動で決定する
+			sub_decide_list_char MENU_LIST_CHAR_DECIDE_ELECTION
+			swbreak
+		case 5	; 5:決戦
+			switch sub_cnt
+			case 0
+				; 投票モード（リーダー）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_LEADER, 1
+				; キャラクターのリスト選択メニューで1人自動で決定する
+				sub_decide_list_char MENU_LIST_CHAR_DECIDE_MAX
+				swbreak
+			case 1
+				; 投票モード（火力持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_ATTACK, 1
+				; 投票モード（非疲労持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_NOTIRED, 1
+				; キャラクターのリスト選択メニューで1人自動で決定する
+				sub_decide_list_char MENU_LIST_CHAR_DECIDE_ELECTION
+				swbreak
+			case 2
+				; 投票モード（味方ガード持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_COVER, 1
+				; 投票モード（回復持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_HEAL, 1
+				; 投票モード（非疲労持ち）
+				sub_vote_list_char MENU_LIST_CHAR_VOTE_NOTIRED, 1
+				; キャラクターのリスト選択メニューで1人自動で決定する
+				sub_decide_list_char MENU_LIST_CHAR_DECIDE_ELECTION
+				swbreak
+			swend
+			swbreak
+		swend
+		if ( menu_list_char_active == 0 ) and ( menu_list_char_returncode == 1 ) {
+			_break
+		}
+	next
+	if arg_side == 1 {
+		for sub_i,0,BATTLE_CHAR_MAX
+			battle_char_atc(sub_i) = menu_list_char_pickup(sub_i)
+		next
+		if DEBUG_LEVEL & LOG_ERROR :logmes strf("D decide atc member team=%d, side=%d, member=(%d,%d,%d)",arg_teamid,arg_side,battle_char_atc(0),battle_char_atc(1),battle_char_atc(2))
+
+	}
+	if arg_side == 2 {
+		for sub_i,0,BATTLE_CHAR_MAX
+			battle_char_def(sub_i) = menu_list_char_pickup(sub_i)
+		next
+		if DEBUG_LEVEL & LOG_ERROR :logmes strf("D decide def member team=%d, side=%d, member=(%d,%d,%d)",arg_teamid,arg_side,battle_char_def(0),battle_char_def(1),battle_char_def(2))
+	}
+
+	return
+
+*end_of_slgm_map_sub

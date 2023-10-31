@@ -1,0 +1,514 @@
+; ##################################################################################################
+; # 
+; # イベント部分
+; # 
+; ##################################################################################################
+
+	id = 101
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "オープニングとチームリオの紹介"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =	EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					-1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+
+	id = 102
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "はじめてのマナ製造機改良"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+
+	id = 103
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "人材発掘の必要性"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				102	; 発動条件：特定のイベントが発動したかどうか
+
+	id = 104
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "訓練は怠らない"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				2	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+
+	id = 105
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "地形の把握"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				3	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+
+	id = 106
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "初戦闘"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					2	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				4	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 107
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "チーム・リオ全滅"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) = 						EVENT_TRIGGER_INFO_TIMING_TURN_START	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			0	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			0	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 108
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "メリンダのぷれぜんと"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				104	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 109
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "メイドさん登場"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				7	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				108	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 110
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "チームリッキー全滅"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_TURN_START	; イベントが発動するタイミング
+		; EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+		; EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントメニューで指定
+		; EVENT_TRIGGER_INFO_TIMING_TURN_END	; ターン終了時（全チームの行動後）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					2	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			0	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			0	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 111
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "チームコール全滅"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_TURN_START	; イベントが発動するタイミング
+		; EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+		; EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントメニューで指定
+		; EVENT_TRIGGER_INFO_TIMING_TURN_END	; ターン終了時（全チームの行動後）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					3	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			0	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			0	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 112
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "チームアデルバード全滅"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_TURN_START	; イベントが発動するタイミング
+		; EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+		; EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントメニューで指定
+		; EVENT_TRIGGER_INFO_TIMING_TURN_END	; ターン終了時（全チームの行動後）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					4	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			0	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			0	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 113
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "アメリア参戦"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+		; EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+		; EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントメニューで指定
+		; EVENT_TRIGGER_INFO_TIMING_TURN_END	; ターン終了時（全チームの行動後）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			3	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 114
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "トレッサ参戦"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+		; EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+		; EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントメニューで指定
+		; EVENT_TRIGGER_INFO_TIMING_TURN_END	; ターン終了時（全チームの行動後）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					3	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			2	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 115
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "チームアデルバード強化"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+		; EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+		; EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントメニューで指定
+		; EVENT_TRIGGER_INFO_TIMING_TURN_END	; ターン終了時（全チームの行動後）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					4	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			2	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 116
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "チームアデルバード弱体化"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+		; EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+		; EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントメニューで指定
+		; EVENT_TRIGGER_INFO_TIMING_TURN_END	; ターン終了時（全チームの行動後）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					4	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				115	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 117
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "チームアデルバード弱体化2"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+		; EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+		; 	; イベントメニューで指定
+		; EVENT_TRIGGER_INFO_TIMING_TURN_END	; ターン終了時（全チームの行動後）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					4	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				116	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 118
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "チームアデルバード弱体化3"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						x	; イベントが発動するタイミング
+		; EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+		; EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントメニューで指定
+		; EVENT_TRIGGER_INFO_TIMING_TURN_END	; ターン終了時（全チームの行動後）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					4	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				117	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+		
+	id = 119
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "天下統一！"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_TURN_START	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			9	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			9	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+	
+	id = 120
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "エリアが増えた"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_TURN_START	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			2	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			2	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 121
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "メイドさん登場2"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				17	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				109	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+	id = 122
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = "メイドさん登場3"
+	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+	
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントが発動するタイミング
+	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					1	; 発動条件：チーム
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				27	; 発動条件：ターン（最速）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				109	; 発動条件：特定のイベントが発動したかどうか
+	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか
+
+		
+;	id = 1
+;	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_NAME) = ""
+;	event_trigger_sinfo(id,EVENT_TRIGGER_SINFO_DESC) = ""
+;	
+;	; イベント発動条件はモノによっては0が入るので-1で初期化
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_TIMING) =						x	; イベントが発動するタイミング
+;		; EVENT_TRIGGER_INFO_TIMING_TURN_START	; ターン開始時（全チームの行動前）
+;		; EVENT_TRIGGER_INFO_TIMING_EVENT_MENU	; イベントメニューで指定
+;		; EVENT_TRIGGER_INFO_TIMING_TURN_END	; ターン終了時（全チームの行動後）
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_EVENTDATA) =					id	; 実行するイベントデータID
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM) =					-1	; 発動条件：チーム
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN) =			-1	; 発動条件：チームの支配エリア数（最小）
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX) =			-1	; 発動条件：チームの支配エリア数（最大）
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA) =			-1	; 発動条件：チームが特定のエリアを支配
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK) =		-1	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK) =	-1	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR) =			-1	; 発動条件：チームに特定キャラがいる
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR) =	-1	; 発動条件：チームに特定キャラがいない
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_EARLY) =				-1	; 発動条件：ターン（最速）
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_TURN_LATE) =				-1	; 発動条件：ターン（最遅）
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_EVENT) =				-1	; 発動条件：特定のイベントが発動したかどうか
+;	event_trigger_info(id,EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT) =		-1	; 発動条件：特定のイベントが発動していないかどうか

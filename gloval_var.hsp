@@ -1,0 +1,985 @@
+; ##################################################################################################
+; # 
+; # 変数定義部分
+; # 
+; ##################################################################################################
+
+; ######################################
+; # 顔画像定義
+; ######################################
+	sdim imgdef_face_path,64,IMGDEF_FACE_MAX
+
+; ######################################
+; # キャラ画像定義
+; ######################################
+	sdim imgdef_char_path,64,IMGDEF_CHAR_MAX
+
+; ######################################
+; # キャラ歩行画像定義
+; ######################################
+	sdim imgdef_walk_path,64,IMGDEF_WALK_MAX
+
+; ######################################
+; # アイコン画像定義
+; ######################################
+	dim imgdef_icon_id,IMGDEF_ICON_TYPE_MAX,IMGDEF_ICON_PATTERN_MAX	; 2つの数字を指定してアイコンのbuffer idを特定する
+
+; ######################################
+; # マップチップ画像定義
+; ######################################
+	dim imgdef_mapchip_id,IMGDEF_MAPCHIP_TYPE_MAX,IMGDEF_MAPCHIP_PATTERN_MAX	; 2つの数字を指定してマップチップのbuffer idを特定する
+
+; ######################################
+; # 背景画像定義
+; ######################################
+	sdim imgdef_back_path,64,IMGDEF_BACK_MAX
+
+	#const IMGDEF_BACK_INFO_SIZEX 0	; xサイズ
+	#const IMGDEF_BACK_INFO_SIZEY 1	; yサイズ
+	#const IMGDEF_BACK_INFO_MAX 2
+	dim imgdef_back_info,IMGDEF_BACK_MAX,IMGDEF_BACK_INFO_MAX
+
+; ######################################
+; # アニメーション画像定義
+; ######################################
+
+	sdim imgdef_anime_path,64,IMGDEF_ANIME_MAX
+
+	#const IMGDEF_ANIME_INFO_SIZEX   0 	; 1つのアニメーション画像のサイズX軸
+	#const IMGDEF_ANIME_INFO_SIZEY   1	; 1つのアニメーション画像のサイズY軸
+	#const IMGDEF_ANIME_INFO_MAXX    2	; X軸に何個並んでいるか
+	#const IMGDEF_ANIME_INFO_MAXY    3	; Y軸に何個並んでいるか
+	#const IMGDEF_ANIME_INFO_GMODE   4	; gmodeは何で描画するか
+	#const IMGDEF_ANIME_INFO_MAX 5 
+	dim imgdef_anime_info,IMGDEF_ANIME_MAX,IMGDEF_ANIME_INFO_MAX
+
+; ######################################
+; # アニメーション定義
+; ######################################
+
+	#const ANIME_INFO_IMGDEF        0	; 使用するアニメーション画像定義ID
+	#const ANIME_INFO_FRAME_SOUND   1	; 効果音を出すフレーム数
+	#const ANIME_INFO_SOUNDID       2	; 効果音ID
+	#const ANIME_INFO_FRAME_HIT     3	; 命中判定のあるフレーム数
+	#const ANIME_INFO_HIT_ANIME     4	; 命中時のアニメーション
+	#const ANIME_INFO_FRAME_FINISH  5	; 表示終了するフレーム数（自動計算）　※このインデックス-1までしか表示するデータは存在しない
+	#const ANIME_INFO_REVERSE       6	; 左右逆転(1:する)
+	#const ANIME_INFO_MAX 7
+	dim anime_info,ANIME_MAX,ANIME_INFO_MAX
+
+	#const ANIME_EXEC_MAX 100	; 最大の表示命令数
+
+	#const ANIME_INFO_FRAME_IMGID   0	; 何枚目の画像を使うか
+	#const ANIME_INFO_FRAME_START   1	; 何フレームから表示するか
+	#const ANIME_INFO_FRAME_RANGE   2	; 何フレーム同じ画像を表示するか
+	#const ANIME_INFO_FRAME_OFFSETX 3	; 基準からX軸でどれだけずらして表示するか
+	#const ANIME_INFO_FRAME_OFFSETY 4	; 基準からY軸でどれだけずらして表示するか
+	#const ANIME_INFO_FRAME_MAX 4
+	dim anime_info_frame,ANIME_MAX,ANIME_EXEC_MAX,ANIME_INFO_FRAME_MAX
+	
+; ######################################
+; # 音楽定義
+; ######################################
+	sdim music_path,64,MUSIC_MAX
+
+	#const MUSIC_TITLE  1		; タイトル画面
+	#const MUSIC_DEBUG1 2		; デバッグ画面
+	#const MUSIC_DEBUG2 3		; デバッグ画面
+	#const MUSIC_DEBUG3 4		; デバッグ画面
+	#const MUSIC_DEBUG4 5		; デバッグ画面
+	#const MUSIC_DEBUG5 6		; デバッグ画面
+	#const MUSIC_DEBUG6 7		; デバッグ画面
+	#const MUSIC_DEBUG7 8		; デバッグ画面
+	#const MUSIC_DEBUG8 9		; デバッグ画面
+	#const MUSIC_DEBUG9 10		; デバッグ画面
+	#const MUSIC_MAIN1    11		; マップ表示画面のメインBGM（序盤～中盤）
+	#const MUSIC_MAIN2    12		; マップ表示画面のメインBGM（終盤）
+	#const MUSIC_BATTLE1     13		; 戦闘画面のメインBGM（通常攻撃戦）
+	#const MUSIC_BATTLE2     14		; 戦闘画面のメインBGM（通常防衛戦）
+	#const MUSIC_BATTLE3     15		; 戦闘画面のメインBGM（ボス攻撃戦）
+	#const MUSIC_BATTLE4     16		; 戦闘画面のメインBGM（ボス防衛戦）
+	#const MUSIC_PREBATTLE1  17		; 戦闘準備画面のBGM（通常攻撃戦）
+	#const MUSIC_PREBATTLE2  18		; 戦闘準備画面のBGM（通常防衛戦）
+	#const MUSIC_PREBATTLE3  19		; 戦闘準備画面のBGM（ボス攻撃戦）
+	#const MUSIC_PREBATTLE4  20		; 戦闘準備画面のBGM（ボス防衛戦）
+	#const MUSIC_THEME1      21		; チーム1のテーマBGM
+	#const MUSIC_THEME2      22		; チーム2のテーマBGM
+	#const MUSIC_THEME3      23		; チーム3のテーマBGM
+	#const MUSIC_THEME4      24		; チーム4のテーマBGM
+	#const MUSIC_THEME5      25		; チーム5のテーマBGM
+	#const MUSIC_WIN         26		; 勝利BGM
+	#const MUSIC_LOSE        27		; 敗北BGM
+	#const MUSIC_GAMECLEAR   28		; ゲームクリアBGM
+	#const MUSIC_GAMEOVER    29		; ゲームオーバーBGM
+	#const MUSIC_EVENT1      30		; イベント（平和）
+	#const MUSIC_EVENT2      31		; イベント（ギャグ）
+	#const MUSIC_EVENT3      32		; イベント（シリアス）
+	#const MUSIC_EPILOGUE    33		; エピローグ
+	
+; ######################################
+; # 効果音定義
+; ######################################
+	sdim sound_path,64,SOUND_MAX
+
+; ######################################
+; # チーム定義
+; ######################################
+	#const TEAM_SINFO_NAME 0	; 名前
+	#const TEAM_SINFO_MAX 1
+	sdim team_sinfo,64,TEAM_MAX,TEAM_SINFO_MAX
+
+	#const TEAM_INFO_LEADER         0	; リーダーのキャラクタID
+	#const TEAM_INFO_BASEAREA       1	; 本拠地
+	#const TEAM_INFO_AREA_CNT       2	; 支配エリア数
+	#const TEAM_INFO_TOTAL_MEMBER   3	; メンバーの人数（リーダー含む）
+	#const TEAM_INFO_TOTAL_POWER    4	; 総合的な強さ(総戦力)
+	#const TEAM_INFO_TOTAL_MANA     5	; 総マナ量
+	#const TEAM_INFO_ACTIONP        6	; 残り行動回数
+	#const TEAM_INFO_ACTIONP_MAX    7	; 最大行動回数
+	#const TEAM_INFO_RANDOM_CHAR    8	; ランダムキャラを雇用した回数
+	#const TEAM_INFO_ACTIVE_MEMBER  9	; 行動可能（非疲労状態）な人数
+	
+	#const TEAM_INFO_MAX 10
+	dim team_info,TEAM_MAX,TEAM_INFO_MAX
+
+	; 所属チームメンバー（リーダーを含むこと）
+	#const TEAM_MEMBER_MAX 64
+	dim team_member,TEAM_MAX,TEAM_MEMBER_MAX
+
+	; 攻撃可能なエリア
+	dim team_attackable_area,TEAM_MAX,AREA_MAX
+	; 攻撃可能なエリア数
+	dim team_attackable_area_num,TEAM_MAX
+
+; ######################################
+; # エリア定義
+; ######################################
+	#const AREA_SINFO_NAME 0	; 名前
+	#const AREA_SINFO_DESC 1	; 説明
+	#const AREA_SINFO_MAX 2
+	sdim area_sinfo,64,AREA_MAX,AREA_SINFO_MAX
+
+	#const AREA_INFO_ICONT  0	; アイコン(種類)
+	#const AREA_INFO_ICONP  1	; アイコン(パターン)
+	#const AREA_INFO_MAPX   2	; マップのX座標
+	#const AREA_INFO_MAPY   3	; マップのY座標
+	#const AREA_INFO_TEAM   4	; エリアを占領しているチーム
+	#const AREA_INFO_MANAG  5	; マナ生成量
+	#const AREA_INFO_BLOCKS 6	; ブロック数
+	#const AREA_INFO_DEFP   7	; 防衛用加算
+
+	#const AREA_INFO_MAX 8
+	dim area_info,AREA_MAX,AREA_INFO_MAX
+
+	#const AREA_NEIGHBER_MAX 4	; 隣接しているエリアの上限
+	dim area_neighber,AREA_MAX,AREA_NEIGHBER_MAX
+
+	#const AREA_BLOCK_MAX 8	; 1エリアの最大ブロック数
+	
+	#const AREA_BLOCK_INFO_DEFP 0	; 各ブロックの地形効果（防衛側の有利度）
+	#const AREA_BLOCK_INFO_TEAM 1	; 各ブロックを占領しているチーム
+	#const AREA_BLOCK_INFO_MAX 2
+	dim area_block_info,AREA_MAX,AREA_BLOCK_INFO_MAX,AREA_BLOCK_MAX
+
+	#const AREA_LIST_DISPLAY_MAX 16	; 同時に表示されるエリア数の上限
+	
+	dim area_focus								; フォーカスしているエリアID（マップ表示の中心）
+	dim area_select								; 選択しているエリアID（詳細の表示、イベント等の選択）
+	dim area_list_display,AREA_LIST_DISPLAY_MAX	; 表示されるエリアのリスト
+
+; ######################################
+; # クラス定義
+; ######################################
+	#const CLASS_SINFO_NAME 0	; 名前
+	#const CLASS_SINFO_DESC 1	; 説明
+	#const CLASS_SINFO_MAX 2
+	sdim class_sinfo,64,CLASS_MAX,CLASS_SINFO_MAX
+	
+	#const CLASS_INFO_SKILL_MAX 4	; クラスで付与されるスキルの上限
+	
+	#const CLASS_INFO_RATE_HP   0	; HPの変動率(標準100)
+	#const CLASS_INFO_RATE_AP   1	; APの変動率(標準100)
+	#const CLASS_INFO_RATE_ATC  2	; 物理攻撃力の変動率(標準100)
+	#const CLASS_INFO_RATE_DEF  3	; 物理防御力の変動率(標準100)
+	#const CLASS_INFO_RATE_MAT  4	; 魔法攻撃力の変動率(標準100)
+	#const CLASS_INFO_RATE_MDF  5	; 魔法防御力の変動率(標準100)
+	#const CLASS_INFO_RATE_SPD  6	; 速度の変動率(標準100)
+	#const CLASS_INFO_RATE_SRC  7	; 探索の変動率(標準100)
+	#const CLASS_INFO_RATE_PRD  8	; 生成の変動率(標準100)
+	#const CLASS_INFO_RATE_COM  9	; 話術の変動率(標準100)
+	#const CLASS_INFO_SKILL  10		; クラスで付与されるスキル(0:なし)
+	
+	#const CLASS_INFO_MAX 11+CLASS_INFO_SKILL_MAX
+	dim class_info,CLASS_MAX,CLASS_INFO_MAX
+	
+; ######################################
+; # スキル定義
+; ######################################
+	#const SKILL_SINFO_NAME 0	; 名前
+	#const SKILL_SINFO_DESC 1	; 説明
+	#const SKILL_SINFO_MAX 2
+	sdim skill_sinfo,64,SKILL_MAX,SKILL_SINFO_MAX
+
+	#const SKILL_INFO_COND_MAX 4	; スキルの発動条件に使えるパラメータ数
+	
+	#const SKILL_INFO_TRIGGER 0			; スキルの発動条件タイプ
+		#const SKILL_INFO_SKILLTYPE_ACTIVE  1	; アクティブ（バトルで選択可能）
+		#const SKILL_INFO_SKILLTYPE_PASSIVE 2	; パッシブ（条件を満たすと自動発動）
+	#const SKILL_INFO_TYPE 1			; スキルタイプ（アクティブ/パッシブ共通）
+		#const SKILL_INFO_TYPE_ACT_ATTACKP 1	; 攻撃(物攻を参照)
+		#const SKILL_INFO_TYPE_ACT_ATTACKM 2	; 攻撃(魔攻を参照)
+		#const SKILL_INFO_TYPE_ACT_HEAL    3	; 回復
+		#const SKILL_INFO_TYPE_ACT_SUPPORT 4	; 補助(攻撃や回復がなく追加効果メイン)
+
+		#const SKILL_INFO_TYPE_PASS_PARAM  11	; パラメータ変化（割合）
+		#const SKILL_INFO_TYPE_PASS_BUFF   12	; バフ付与
+	#const SKILL_INFO_CONDITIONS 2		; スキルの発動条件（パッシブのみ）
+		#const SKILL_INFO_COND_ALWAYS	        1	; 常時
+		#const SKILL_INFO_COND_HP_HALF          2	; HPが50%以下
+		#const SKILL_INFO_COND_RETURN_FROM_STAN 3	; スタンから復帰した時
+		#const SKILL_INFO_COND_BATTLE_START     4	; バトル開幕時
+		
+	#const SKILL_INFO_RANGE 3+SKILL_INFO_COND_MAX			; スキルの範囲
+		; 現在、パッシブxパラメータ変化（割合）はMEのみ実装
+		#const SKILL_INFO_RANGE_ME       1		; 自分自身
+		#const SKILL_INFO_RANGE_ENEMY    2		; 敵単体
+		#const SKILL_INFO_RANGE_ENEMYALL 3		; 敵全体
+		#const SKILL_INFO_RANGE_ENEMYRND 4		; 敵ランダム
+		#const SKILL_INFO_RANGE_ALLY     5		; 味方単体
+		#const SKILL_INFO_RANGE_ALLYALL  6		; 味方全体
+		#const SKILL_INFO_RANGE_ALLYRND  7		; 味方ランダム
+		
+	#const SKILL_INFO_ANIMEID   4+SKILL_INFO_COND_MAX		; スキルのアニメーションID
+	#const SKILL_INFO_COUNT     5+SKILL_INFO_COND_MAX		; スキルの連続発動回数
+	#const SKILL_INFO_POWER     6+SKILL_INFO_COND_MAX		; スキルの威力（攻撃、回復→基礎威力）
+	#const SKILL_INFO_STAN_RATE 7+SKILL_INFO_COND_MAX		; スキルのスタン蓄積率
+	#const SKILL_INFO_ELEMENT   8+SKILL_INFO_COND_MAX		; スキルの属性
+	#const SKILL_INFO_USEAP     9+SKILL_INFO_COND_MAX		; スキルの消費AP
+	#const SKILL_INFO_PREPARE  10+SKILL_INFO_COND_MAX		; 発動までの待ち時間(100:標準)	
+	#const SKILL_INFO_DELAY    11+SKILL_INFO_COND_MAX		; 次のターンの待ち時間(100:標準)
+
+	#const SKILL_INFO_ADD1_RATE    12+SKILL_INFO_COND_MAX	; 追加効果1: 確率
+	#const SKILL_INFO_ADD1_RANGE   13+SKILL_INFO_COND_MAX	; 追加効果1: 範囲
+	#const SKILL_INFO_ADD1_POWER   14+SKILL_INFO_COND_MAX	; 追加効果1: 継続ターン
+	#const SKILL_INFO_ADD1_BUFFID  15+SKILL_INFO_COND_MAX	; 追加効果1: バフID
+	#const SKILL_INFO_ADD1_VALUE1  16+SKILL_INFO_COND_MAX	; 追加効果1: パラメータ1
+	#const SKILL_INFO_ADD1_VALUE2  17+SKILL_INFO_COND_MAX	; 追加効果1: パラメータ2
+	#const SKILL_INFO_FLAG         19+SKILL_INFO_COND_MAX	; （ランダム付与用）スキルの特徴
+		#const SKILL_INFO_FLAG_NORMAL  1		; ノーマルスキル（レア、ユニークでない、自動付与）
+		#const SKILL_INFO_FLAG_UNIQUE  2		; ユニークスキル（ランダムキャラでは習得不可）
+		#const SKILL_INFO_FLAG_RARE    4		; レアスキル
+		#const SKILL_INFO_FLAG_COVER   8		; 味方ガード
+	#const SKILL_INFO_RANK         20+SKILL_INFO_COND_MAX	; （ランダム付与用）スキルランク(基本的には消費APで決定)
+	#const SKILL_INFO_DISABLE      21+SKILL_INFO_COND_MAX	; （管理用）1にしたら使用不可
+
+	#const SKILL_INFO_MAX 19+SKILL_INFO_COND_MAX
+	dim skill_info,SKILL_MAX,SKILL_INFO_MAX
+
+	; スキルのランク
+	;	消費AP	ランク
+	;	0		1
+	;	～10	2
+	;	～20	3
+	;	～30	4
+	;	～40	5
+	;	41～	6
+	;	100～	7
+
+	
+; ######################################
+; # キャラクタ定義
+; ######################################
+	#const CHARDEF_SINFO_NAME 0		; 名前
+	#const CHARDEF_SINFO_PROFILE 1	; プロフィール
+	
+	#const CHARDEF_SINFO_MAX 2
+	sdim chardef_sinfo,64,CHARDEF_MAX,CHARDEF_SINFO_MAX
+
+	#const CHARDEF_INFO_SKILL_MAX 10		; 1人に設定できるスキルの上限
+
+	#const CHARDEF_INFO_FACEIMGID    0		; 顔画像定義番号
+	#const CHARDEF_INFO_FACEDEFINDEX 1		; 通常の顔画像位置（左上が0、右方向に+1、4ごとに下の段）
+	#const CHARDEF_INFO_CHARIMGID    2		; キャラ画像定義番号
+	#const CHARDEF_INFO_WALKIMGID    3		; キャラ画像定義番号
+	#const CHARDEF_INFO_CLASS  4			; クラス
+	#const CHARDEF_INFO_RANDOM 5			; ランダム生成対象（1:弱点、能力値は全て-1とみなす）
+	#const CHARDEF_INFO_WEAK   6			; 弱点(1物/2火/4氷/8風/16雷/32光/64闇,-1で乱数で生成)
+	#const CHARDEF_INFO_HP     7			; HP(標準30,-1で乱数で生成) 
+	#const CHARDEF_INFO_AP     8			; AP(標準30,-1で乱数で生成)
+	#const CHARDEF_INFO_ATC    9			; 物理攻撃力(標準5,-1で乱数で生成)
+	#const CHARDEF_INFO_DEF   10			; 物理防御力(標準5,-1で乱数で生成)
+	#const CHARDEF_INFO_MAT   11			; 魔法攻撃力(標準5,-1で乱数で生成)
+	#const CHARDEF_INFO_MDF   12			; 魔法防御力(標準5,-1で乱数で生成)
+	#const CHARDEF_INFO_SPD   13			; 速度(標準5,-1で乱数で生成)
+	#const CHARDEF_INFO_SRC   14			; 探索(標準5,-1で乱数で生成)
+	#const CHARDEF_INFO_PRD   15			; 生成(標準5,-1で乱数で生成)
+	#const CHARDEF_INFO_COM   16			; 話術(標準5,-1で乱数で生成)
+	#const CHARDEF_INFO_STAN  17			; スタン許容量　※現在未使用
+	#const CHARDEF_INFO_SKILL 18			; 習得スキル(0:なし)
+	
+	#const CHARDEF_INFO_MAX 19+CHARDEF_INFO_SKILL_MAX
+	dim chardef_info,CHARDEF_MAX,CHARDEF_INFO_MAX
+
+	dim chardef_info_param_mapping,PARAM_MAX	; 能力とそのインデックスのマッピング
+	chardef_info_param_mapping(PARAM_HP) = CHARDEF_INFO_HP
+	chardef_info_param_mapping(PARAM_AP) = CHARDEF_INFO_AP
+	chardef_info_param_mapping(PARAM_ATC)= CHARDEF_INFO_ATC
+	chardef_info_param_mapping(PARAM_DEF)= CHARDEF_INFO_DEF
+	chardef_info_param_mapping(PARAM_MAT)= CHARDEF_INFO_MAT
+	chardef_info_param_mapping(PARAM_MDF)= CHARDEF_INFO_MDF
+	chardef_info_param_mapping(PARAM_SPD)= CHARDEF_INFO_SPD
+	chardef_info_param_mapping(PARAM_SRC)= CHARDEF_INFO_SRC
+	chardef_info_param_mapping(PARAM_PRD)= CHARDEF_INFO_PRD
+	chardef_info_param_mapping(PARAM_COM)= CHARDEF_INFO_COM
+	chardef_info_param_mapping(PARAM_STAN)= CHARDEF_INFO_COM
+	
+; ######################################
+; # キャラクタ
+; ######################################
+	#const CHAR_SINFO_NAME 0		; 名前
+	#const CHAR_SINFO_PROFILE 1		; プロフィール
+	
+	#const CHAR_SINFO_MAX 2
+	sdim char_sinfo,64,CHAR_MAX,CHAR_SINFO_MAX
+
+	#const CHAR_INFO_SKILL_MAX CHARDEF_INFO_SKILL_MAX+CLASS_INFO_SKILL_MAX		; 1人に設定できるスキルの上限（キャラ定義+クラス固有）
+	#const CHAR_INFO_LV_MAX_DEFAULT 30	; キャラの最大レベル（デフォルト）
+	#const CHAR_INFO_FLAG_MAX 10		; 管理するキャラフラグの最大数
+
+	; レベル X が X+1 に上がるために必要な経験値は INIT ＋ PERLV × X
+	#const CHAR_INFO_NEED_EX_INIT    90	; レベルアップに必要な経験値（初期値）
+	#const CHAR_INFO_NEED_EX_PERLV   10 ; レベルアップに必要な経験値（増分）
+	
+	#const CHAR_INFO_FACEIMGID    0		; 顔画像定義番号
+	#const CHAR_INFO_FACEDEFINDEX 1		; 通常の顔画像位置（左上が0、右方向に+1、4ごとに下の段）
+	#const CHAR_INFO_CHARIMGID    2		; キャラ画像定義番号
+	#const CHAR_INFO_WALKIMGID    3		; キャラ歩行画像定義番号
+	#const CHAR_INFO_BASE_CHARDEF 4		; ベースとなるキャラクタ定義ID
+	#const CHAR_INFO_TEAM         5		; 所属チーム(1以上:所あり)
+	#const CHAR_INFO_CLASS        6		; クラス
+	#const CHAR_INFO_POWER        7		; 総合的な強さ(総戦力)(HP/10+AP*2+その他)
+	#const CHAR_INFO_WEAK         8		; 弱点(1物/2火/4氷/8風/16雷/32光/64闇)
+	#const CHAR_INFO_LV_MAX       9		; 最大レベル
+	#const CHAR_INFO_LV          10		; レベル
+	#const CHAR_INFO_EX          11		; 経験値
+	#const CHAR_INFO_ACTION_CNT  12		; 1ターン中の行動回数
+	#const CHAR_INFO_HP_BASE     13		; 基本HP
+	#const CHAR_INFO_HP_RATE     14		; HP変動割合(標準100)
+	#const CHAR_INFO_HP_MAX      15		; 最大HP
+	#const CHAR_INFO_HP_REV      16		; 変更予定HP
+	#const CHAR_INFO_HP          17		; 現在HP
+	#const CHAR_INFO_HP_MILI     18		; 現在HP
+	#const CHAR_INFO_AP_BASE     19		; 基本AP
+	#const CHAR_INFO_AP_RATE     20		; AP変動割合(標準100)
+	#const CHAR_INFO_AP_MAX      21		; 最大AP
+	#const CHAR_INFO_AP_REV      22		; 変更予定AP
+	#const CHAR_INFO_AP          23		; 現在AP
+	#const CHAR_INFO_AP_MILI     24		; AP自動回復の蓄積
+	#const CHAR_INFO_ATC_BASE    25		; 基本物理攻撃力
+	#const CHAR_INFO_ATC_RATE    26		; 物理攻撃力変動割合(標準100)
+	#const CHAR_INFO_ATC         27		; 現在物理攻撃力
+	#const CHAR_INFO_DEF_BASE    28		; 基本物理防御力
+	#const CHAR_INFO_DEF_RATE    29		; 物理防御力変動割合(標準100)
+	#const CHAR_INFO_DEF         30		; 物理防御力
+	#const CHAR_INFO_MAT_BASE    31		; 基本魔法攻撃力
+	#const CHAR_INFO_MAT_RATE    32		; 魔法攻撃力変動割合(標準100)
+	#const CHAR_INFO_MAT         33		; 魔法攻撃力
+	#const CHAR_INFO_MDF_BASE    34		; 基本魔法防御力
+	#const CHAR_INFO_MDF_RATE    35		; 魔法防御力変動割合(標準100)
+	#const CHAR_INFO_MDF         36		; 魔法防御力
+	#const CHAR_INFO_SPD_BASE    37		; 基本速度
+	#const CHAR_INFO_SPD_RATE    38		; 速度変動割合(標準100)
+	#const CHAR_INFO_SPD         39		; 速度
+	#const CHAR_INFO_SRC_BASE    40		; 基本探索
+	#const CHAR_INFO_SRC_RATE    41		; 探索変動割合(標準100)
+	#const CHAR_INFO_SRC         42		; 探索
+	#const CHAR_INFO_PRD_BASE    43		; 基本生成
+	#const CHAR_INFO_PRD_RATE    44		; 生成変動割合(標準100)
+	#const CHAR_INFO_PRD         45		; 生成
+	#const CHAR_INFO_COM_BASE    46		; 基本物話術
+	#const CHAR_INFO_COM_RATE    47		; 話術変動割合(標準100)
+	#const CHAR_INFO_COM         48		; 話術
+	#const CHAR_INFO_STAN_BASE   49		; 基本スタン許容量
+	#const CHAR_INFO_STAN_RATE   50		; スタン許容量変動割合(標準100)
+	#const CHAR_INFO_STAN_MAX    51		; 最大スタン許容量
+	#const CHAR_INFO_STAN        52		; 現在スタン値
+	#const CHAR_INFO_STAN_STATE  53		; スタン状態(1:スタン状態)
+	#const CHAR_INFO_STAN_COUNT  54		; スタン復帰回数(回数が増えるのは復帰時)
+	#const CHAR_INFO_ARRTIBUTE   55		; キャラの特性
+		#const CHAR_INFO_ARRTIBUTE_COVER  1	; 味方ガード持ち
+		#const CHAR_INFO_ARRTIBUTE_HEAL   2	; 回復スキル持ち
+		#const CHAR_INFO_ARRTIBUTE_ATTACK 4	; 高火力スキル持ち
+	#const CHAR_INFO_DOWN        56		; 1:戦闘不能
+	#const CHAR_INFO_COVER_STATE 57		; かばうの状態(1x: Bキャラxをかばっている、-1: かばわれている)
+		#const CHAR_INFO_STAN_DEFAULT 500
+	#const CHAR_INFO_ELEM_ATC_RATE     58					; 属性別与ダメ変動割合(標準100,大きいと与えるダメージ増)
+	#const CHAR_INFO_ELEM_DEF_RATE     59+ELEMENT_LMAX		; 属性別被ダメ変動割合(標準100,大きいと受けるダメージ増)
+	#const CHAR_INFO_RECOIL            60+(ELEMENT_LMAX*2)	; 次に行動可能になるまでの残り（リコイル）
+		#const CHAR_INFO_RECOIL_DEFAULT	20000
+	#const CHAR_INFO_GETTURN           61+(ELEMENT_LMAX*2)	; 行動できるかどうか（1:できる）
+	#const CHAR_INFO_RESERVE_MODE      62+(ELEMENT_LMAX*2)	; 要準備のスキルの準備中か（1:準備中）
+	#const CHAR_INFO_AUTO_DECIDE_SKILL 63+(ELEMENT_LMAX*2)	; 次のターンがきたら自動的にこのスキルに決める
+	#const CHAR_INFO_AUTO_EXEC_SKILL   64+(ELEMENT_LMAX*2)	; 次のターンがきたら自動的にこのスキルに決める
+	#const CHAR_INFO_BUFF_VALUE        65+(ELEMENT_LMAX*2)			; 付与されているバフ・デバフの持続量
+	#const CHAR_INFO_SKILL             66+(ELEMENT_LMAX*2)+BUFF_MAX	; 習得スキル(0:なし)
+	#const CHAR_INFO_FLAG              67+(ELEMENT_LMAX*2)+BUFF_MAX+CHAR_INFO_SKILL_MAX	; キャラフラグ
+		#const CHAR_INFO_FLAG_COVER       67+(ELEMENT_LMAX*2)+BUFF_MAX+CHAR_INFO_SKILL_MAX		; 現在有効なかばう持ち(値はvalue)
+		#const CHAR_INFO_FLAG_NOMOVE      67+(ELEMENT_LMAX*2)+BUFF_MAX+CHAR_INFO_SKILL_MAX+1	; 行動不能
+		#const CHAR_INFO_FLAG_APREDUCE    67+(ELEMENT_LMAX*2)+BUFF_MAX+CHAR_INFO_SKILL_MAX+2	; AP消費削減(値は削減率)
+		#const CHAR_INFO_FLAG_INVALID_ATC 67+(ELEMENT_LMAX*2)+BUFF_MAX+CHAR_INFO_SKILL_MAX+3	; 攻撃の無効化(値は属性のor)
+	#const CHAR_INFO_PSKILLFLAG        68+(ELEMENT_LMAX*2)+BUFF_MAX+CHAR_INFO_SKILL_MAX+CHAR_INFO_FLAG_MAX	; パッシブスキル用の発動フラグ
+		#const CHAR_INFO_PSKILLFLAG_HP_HALF      1	; HPが50%以下
+		#const CHAR_INFO_PSKILLFLAG_BATTLE_START 2	; バトル開幕時
+	#const CHAR_INFO_MAX               69+(ELEMENT_LMAX*2)+BUFF_MAX+CHAR_INFO_SKILL_MAX+CHAR_INFO_FLAG_MAX
+	dim char_info,CHAR_MAX,CHAR_INFO_MAX
+
+	#const CHAR_INFO_RATE_MIN  30		; _RATEの最低値
+
+	dim char_info_auto_decide_targets,CHAR_MAX,BATTLE_CHAR_MAX*2	; 次のターンがきたら自動的にこの対象にスキルを決定する
+	dim char_info_auto_exec_targets,CHAR_MAX,BATTLE_CHAR_MAX*2	; 次のターンがきたら自動的にこの対象にスキルを発動する
+
+	; 要準備用のパラメータ
+	#const CHAR_INFO_SKILL_NOTICE_ANIMEID 28		; 要準備の時のアニメID
+
+
+	dim char_info_param_mapping,PARAM_MAX	; 能力とそのインデックスのマッピング
+	char_info_param_mapping(PARAM_HP)  = CHAR_INFO_HP
+	char_info_param_mapping(PARAM_AP)  = CHAR_INFO_AP
+	char_info_param_mapping(PARAM_ATC) = CHAR_INFO_ATC
+	char_info_param_mapping(PARAM_DEF) = CHAR_INFO_DEF
+	char_info_param_mapping(PARAM_MAT) = CHAR_INFO_MAT
+	char_info_param_mapping(PARAM_MDF) = CHAR_INFO_MDF
+	char_info_param_mapping(PARAM_SPD) = CHAR_INFO_SPD
+	char_info_param_mapping(PARAM_SRC) = CHAR_INFO_SRC
+	char_info_param_mapping(PARAM_PRD) = CHAR_INFO_PRD
+	char_info_param_mapping(PARAM_COM) = CHAR_INFO_COM
+	char_info_param_mapping(PARAM_STAN)= CHAR_INFO_STAN
+
+	dim char_info_param_rate_mapping,PARAM_MAX		; 能力変動割合とそのインデックスのマッピング
+	char_info_param_rate_mapping(PARAM_HP)  = CHAR_INFO_HP_RATE
+	char_info_param_rate_mapping(PARAM_AP)  = CHAR_INFO_AP_RATE
+	char_info_param_rate_mapping(PARAM_ATC) = CHAR_INFO_ATC_RATE
+	char_info_param_rate_mapping(PARAM_DEF) = CHAR_INFO_DEF_RATE
+	char_info_param_rate_mapping(PARAM_MAT) = CHAR_INFO_MAT_RATE
+	char_info_param_rate_mapping(PARAM_MDF) = CHAR_INFO_MDF_RATE
+	char_info_param_rate_mapping(PARAM_SPD) = CHAR_INFO_SPD_RATE
+	char_info_param_rate_mapping(PARAM_SRC) = CHAR_INFO_SRC_RATE
+	char_info_param_rate_mapping(PARAM_PRD) = CHAR_INFO_PRD_RATE
+	char_info_param_rate_mapping(PARAM_COM) = CHAR_INFO_COM_RATE
+	char_info_param_rate_mapping(PARAM_STAN)= CHAR_INFO_STAN_RATE
+
+; ######################################
+; # バフ定義
+; ######################################
+	#const BUFF_SINFO_NAME 0	; 名前
+	#const BUFF_SINFO_DESC 1	; 説明
+	#const BUFF_SINFO_MAX 2
+	sdim buff_sinfo,64,BUFF_MAX,BUFF_SINFO_MAX
+
+	#const BUFF_INFO_VALUE_MAX 10	; バフのパラメータ4個
+
+	#const BUFF_INFO_DEBUFF          0	; 1:デバフ(悪い効果),0:バフ(良い効果)
+	#const BUFF_INFO_ICONT           1	; 対応するアイコンの番号(種類)
+	#const BUFF_INFO_ICONP           2	; 対応するアイコンの番号(パターン)
+	#const BUFF_INFO_TYPE            3	; バフタイプ
+		#const BUFF_INFO_TYPE_PARAM       1	; パラメータ変化（割合）
+		#const BUFF_INFO_TYPE_COVER       2	; 味方への単体攻撃をかばう
+		#const BUFF_INFO_TYPE_ATC_ELEM    3	; 属性別与ダメ変動（割合）
+		#const BUFF_INFO_TYPE_DEF_ELEM    4	; 属性別被ダメ変動（割合）
+		#const BUFF_INFO_TYPE_AP_REDUCE   5	; AP消費量削減（割合）
+		#const BUFF_INFO_TYPE_INVALID_ATC 6	; 攻撃の無効化（VALUE1の属性フラグと一致したら）
+	#const BUFF_INFO_EFFECTIVE       4	; 持続可能タイプ
+		#const BUFF_INFO_EFFECTIVE_TURN      1	; ターン経過で消滅（重ね掛けでターン延長）
+		#const BUFF_INFO_EFFECTIVE_COUNT     2	; 効果を発揮した回数で消滅（重ね掛けで回数追加）
+		#const BUFF_INFO_EFFECTIVE_DAMAGE    3	; ダメージで消滅（重ね掛けで許容ダメージ追加）
+		#const BUFF_INFO_EFFECTIVE_PERMANENT 4	; 永続（重ね掛けで効果重複）
+	#const BUFF_INFO_STACK           6	; 重ね掛け可能か(1:可能)
+	#const BUFF_INFO_NO_MOVE         7	; 行動不能かどうか(1:行動不能)
+	#const BUFF_INFO_AUTO_HEAL       8	; 自動でHPが回復する割合(マイナスだとダメージ)　※タイミングは行動終了直後
+	#const BUFF_INFO_DEL_STAN        9	; スタン時に消去されるか(1:される)
+	#const BUFF_INFO_DEL_NOMOVE     10	; 行動不能時に消去されるか(1:される)
+	#const BUFF_INFO_VALUE          11	; バフのパラメータ(10個)
+		#const BUFF_INFO_VALUE1  11	; バフのパラメータ1
+		#const BUFF_INFO_VALUE2  12	; バフのパラメータ2
+		#const BUFF_INFO_VALUE3  13	; バフのパラメータ3
+		#const BUFF_INFO_VALUE4  14	; バフのパラメータ4
+		#const BUFF_INFO_VALUE5  15	; バフのパラメータ1
+		#const BUFF_INFO_VALUE6  16	; バフのパラメータ2
+		#const BUFF_INFO_VALUE7  17	; バフのパラメータ3
+		#const BUFF_INFO_VALUE8  18	; バフのパラメータ4
+		#const BUFF_INFO_VALUE9  19	; バフのパラメータ3
+		#const BUFF_INFO_VALUE10 20	; バフのパラメータ4
+	
+	#const BUFF_INFO_MAX 12+BUFF_INFO_VALUE_MAX
+	dim buff_info,BUFF_MAX,BUFF_INFO_MAX
+
+	; スタン用のパラメータ
+	#const BUFF_STAN_BUFFID           1		; スタンのバフID
+	#const BUFF_STAN_ANIMEID          2		; スタンのアニメID
+	#const BUFF_STAN_SLOW_FRAME      16		; スタン際のスローモーションにするフレーム数
+	#const BUFF_STAN_SLOW_RATE        8		; スローモーション時は再生速度を何分の1にするか
+	#const BUFF_STAN_ANIMEID_RECOVER 29		; 復帰時のアニメID
+	#const BUFF_STAN_BUFFID_RECOVER   2		; 復帰時に付与するバフID
+	#const BUFF_STAN_SOUNDID         28		; スタンした時の効果音ID
+	#const BUFF_STAN_SOUNDID_RECOVER 29		; 復帰した時の効果音ID
+
+; ######################################
+; # グローバルデータ系
+; ######################################
+
+	#const GLOBAL_SINFO_MESSAGE_BOTTOM  0	; 常時表示するメッセージ（操作のナビゲーションなど）
+	#const GLOBAL_SINFO_MESSAGE_CENTOR  1	; 中央に決まった時間のみ表示するメッセージ（お知らせなど）
+	#const GLOBAL_SINFO_MAX 2
+	sdim global_sinfo,64,GLOBAL_SINFO_MAX
+
+	#const GLOBAL_INFO_SELECT_TEAM                             0	; プレイヤーが操作するチームID
+	#const GLOBAL_INFO_SELECT_CHAR                             1	; プレイヤーが操作するキャラ（今はチームのリーダー）
+	#const GLOBAL_INFO_TURN                                    2	; ターン数
+	#const GLOBAL_INFO_TURN_INDEX                              3	; 現在の行動チームインデックス
+	#const GLOBAL_INFO_TURN_TEAM                               4	; 現在の行動チーム
+	#const GLOBAL_INFO_OPERATION_MAP                           5	; マップシーンでの操作状態
+		#const GLOBAL_INFO_OPERATION_MAP_NONE                     0	; なし
+		#const GLOBAL_INFO_OPERATION_MAP_MENU_EVENT               1	; イベント選択肢メニューを選ぶ状態
+		#const GLOBAL_INFO_OPERATION_MAP_SELECTOR_MAP             2	; エリアを選ぶ状態
+		#const GLOBAL_INFO_OPERATION_MAP_CENTOR_MESSAGE           3	; 中央にメッセージが表示され待機している状態
+		#const GLOBAL_INFO_OPERATION_MAP_SELECT_ATTACK_AREA       4 ; 攻撃エリアを選択
+		#const GLOBAL_INFO_OPERATION_MAP_SELECT_ATTACK_CHAR       5 ; 攻撃メンバーを選択
+		#const GLOBAL_INFO_OPERATION_MAP_TURN_END                 6	; ターン終了
+		#const GLOBAL_INFO_OPERATION_MAP_NEXT_TURN                7	; 次ターンに移行（開始時）
+		#const GLOBAL_INFO_OPERATION_MAP_NEXT_TURN_AGAIN          8	; 次ターンに移行（開始時）　※イベントがあり再び指定する場合
+		#const GLOBAL_INFO_OPERATION_MAP_SHOW_CHAR_LIST           9	; キャラリストの表示
+		#const GLOBAL_INFO_OPERATION_MAP_TRAINING                10 ; 訓練のキャラ選択
+		#const GLOBAL_INFO_OPERATION_MAP_DEVELOP                 11 ; マナ生産量の向上
+		#const GLOBAL_INFO_OPERATION_MAP_SEARCH_DEFP             12 ; 自国の地形探索（地形効果Up）
+		#const GLOBAL_INFO_OPERATION_MAP_RANDOM_CHAR             13 ; ランダムキャラの雇用
+		#const GLOBAL_INFO_OPERATION_MAP_EVENT_CONTROL           14 ; イベントコントロール
+		#const GLOBAL_INFO_OPERATION_MAP_EVENT_PLAY              15 ; イベントの再生中
+		#const GLOBAL_INFO_OPERATION_MAP_AUTO_DECIDE             16 ; コンピューターが自動で行動を決める
+		#const GLOBAL_INFO_OPERATION_MAP_DECIDE_ATTACK           17 ; 攻撃エリア確定時の演出
+		#const GLOBAL_INFO_OPERATION_MAP_DECIDE_ATTACK2          18 ; 攻撃エリア確定時の演出	※プレイヤーが攻められた場合のメニュー生成
+		#const GLOBAL_INFO_OPERATION_MAP_SELECT_DEF_MEMBER       19 ; 防衛チームを編成する
+		#const GLOBAL_INFO_OPERATION_MAP_PRE_ATTACK              20 ; バトルシーンに移行する
+		#const GLOBAL_INFO_OPERATION_MAP_GAME_FINISH             21 ; ゲームクリアかゲームオーバーに移行する
+	#const GLOBAL_INFO_OPERATION_MAP_CONTINUE_FRAME            6	; マップシーンで今の状態を維持する残りフレーム数
+	#const GLOBAL_INFO_OPERATION_MAP_NEXT                      7	; マップシーンで次の上記維持が終わったら遷移する操作状態
+	#const GLOBAL_INFO_OPERATION_MAP_MESSAGE_CENTOR_CHAR       8	; 中央に決まった時間のみ表示するメッセージのキャラ表示
+	#const GLOBAL_INFO_OPERATION_MAP_MESSAGE_CENTOR_CHAR_FACE  9	; 中央に決まった時間のみ表示するメッセージのキャラ表示のfaceindex
+	#const GLOBAL_INFO_BATTLE_READY_AREA                      10	; 攻撃予定のエリア
+	#const GLOBAL_INFO_BATTLE_READY_BLOCK                     11	; 攻撃予定のブロック
+	#const GLOBAL_INFO_BATTLE_READY_DEF_TEAM                  12	; 攻撃予定の防衛チーム
+	#const GLOBAL_INFO_EVENT_TRIGGER_ID                       13	; 発動中のイベントトリガーID
+	#const GLOBAL_INFO_WAIT_EVENT_ID                          14	; イベントメニューで実行待ちのイベントトリガーID
+	#const GLOBAL_INFO_LOAD_STATUS                            15    ; セーブデータの読み込みに成功したかどうか(1:成功)
+	#const GLOBAL_INFO_PRELOAD_STATUS                         16    ; セーブデータの読み込めそうか(1:読み込めそう)
+	#const GLOBAL_INFO_GAME_CLEAR                             17    ; ゲームクリアしたか(1:した)
+	#const GLOBAL_INFO_GAME_OVER                              18    ; ゲームオーバーしたか(1:した)
+	#const GLOBAL_INFO_MAX           20
+
+	#const GLOBAL_INFO_OPERATION_MAP_TRAINING_EXP  80 ; 訓練で得られる経験値
+	
+	dim global_info,GLOBAL_INFO_MAX
+
+	; 今のターンの行動できるチームの順番
+	dim global_turn_teams,TEAM_MAX
+
+; ######################################
+; # バトルデータ系
+; ######################################
+
+	#const BATTLE_SINFO_MESSAGE_BOTTOM  0	; 常時表示するメッセージ（操作のナビゲーションなど）　★仮
+	#const BATTLE_SINFO_MESSAGE_CENTOR  1	; 中央に決まった時間のみ表示するメッセージ（お知らせなど）　★仮
+	#const BATTLE_SINFO_MAX 2
+	sdim battle_sinfo,64,BATTLE_SINFO_MAX
+
+	#const BATTLE_INFO_AREA             0	; 戦うエリア
+	#const BATTLE_INFO_BLOCK            1	; 戦うブロック
+	#const BATTLE_INFO_TEAM_ATC         2	; 攻撃側のチーム
+	#const BATTLE_INFO_TEAM_DEF         3	; 防衛側のチーム
+	#const BATTLE_INFO_TIC              4	; ゲーム内タイマー（主にアニメーション表示用、操作不可時も進む）
+	#const BATTLE_INFO_TURN             5	; ゲーム内タイマー（主に操作用、操作不可時は進まない）
+	#const BATTLE_INFO_TURN_LIMIT       6	; バトルの強制終了時間
+		#const BATTLE_INFO_TURN_LIMIT_DEFAULT 1200
+	#const BATTLE_INFO_DEFP             7	; 防衛側の地形効果
+	#const BATTLE_INFO_CONQUERE         8	; 戦果（攻撃側の征服度）
+		#const BATTLE_INFO_CONQUERE_MIN             0	; 最低値（防衛側圧勝）
+		#const BATTLE_INFO_CONQUERE_MID        100000	; 中央値（防衛側ぎりぎり勝利）　※開戦時の初期値
+		#const BATTLE_INFO_CONQUERE_MAX        200000	; 最高値（攻撃側圧勝）
+		#const BATTLE_INFO_CONQUERE_DEF_BUFF1  -40000	; 地形効果0%より大きく10%以下の時の初期戦果
+		#const BATTLE_INFO_CONQUERE_DEF_BUFF2  -80000	; 地形効果10%より大きい時の初期戦果
+		#const BATTLE_INFO_CONQUERE_BEAT        50000	; 1体倒した時の変動戦果
+	#const BATTLE_INFO_CONQUERE_ATC_RATE  9	; 戦果変動量（攻撃側1被ダメージあたり）
+	#const BATTLE_INFO_CONQUERE_DEF_RATE 10	; 戦果変動量（防衛側1被ダメージあたり）
+	#const BATTLE_INFO_EXECMODE          11	; 戦闘シーンの動作モード
+		#const BATTLE_INFO_EXECMODE_PRESTART   1	; 開始前
+		#const BATTLE_INFO_EXECMODE_TURNGO     2	; 時間経過中（tic, turn共に進む）
+		#const BATTLE_INFO_EXECMODE_TICGO      3	; 時間経過中（ticのみ進む）
+		#const BATTLE_INFO_EXECMODE_OPERATION  4	; プレイヤー操作待ち（スキル選択）
+		#const BATTLE_INFO_EXECMODE_OPERATION2 5	; プレイヤー操作待ち（対象キャラ選択）
+		#const BATTLE_INFO_EXECMODE_RESULT     6	; 結果発表
+		#const BATTLE_INFO_EXECMODE_POSTBATTLE 7	; 終了後
+	#const BATTLE_INFO_SLOW_FRAME      12	; スロー再生する残りフレーム数
+	#const BATTLE_INFO_BCHAR_NEXTTURN  13	; 次の行動を処理するキャラ(bchar)
+	#const BATTLE_INFO_CHAR_NEXTTURN   14	; 次の行動を処理するキャラ(charID)
+	#const BATTLE_INFO_SKILL_NEXTTURN  15	; 次の行動で使うスキル
+	#const BATTLE_INFO_DIFF_HPREV      16	; HPとHP_REVの差の合計
+	#const BATTLE_INFO_DIFF_HP_VALUE   17	; 直前の攻撃や回復のダメージ量
+	#const BATTLE_INFO_WINNER          18	; 勝利チーム
+	#const BATTLE_INFO_LOSER           19	; 敗北チーム
+	#const BATTLE_INFO_FINISH_TIC      20	; バトルが終了したtic
+	#const BATTLE_INFO_VIEW_SKIP       21	; 表示をスキップするか(1:スキップする)
+	#const BATTLE_INFO_MAX     22
+	dim battle_info,BATTLE_INFO_MAX
+
+	#const BATTLE_INFO_WIN_SOUNDID         30	; 勝利した時の効果音ID
+	#const BATTLE_INFO_LOSE_SOUNDID        31	; 敗北した時の効果音ID
+	#const BATTLE_INFO_AREA_CHANGE_SOUNDID 32	; エリアを変えるときの効果音ID
+
+	#const BATTLE_INFO_TIRED_BUFFID    38		; 行動済みキャラが出撃した時に付与するデバフ
+
+	; 出撃チームメンバー（前半半分が攻撃軍、後半半分が防衛軍）
+	dim battle_char,BATTLE_CHAR_MAX*2
+	dim battle_char_atc,BATTLE_CHAR_MAX	; battle_init前に書き込む用
+	dim battle_char_def,BATTLE_CHAR_MAX	; battle_init前に書き込む用
+
+	#const BATTLE_CHAR_INFO_TURNSTATE 0	; 行動可能かどうか 1:行動可能(recoil=0)
+	#const BATTLE_CHAR_INFO_MAX 1
+	dim battle_char_info,BATTLE_CHAR_MAX*2,BATTLE_CHAR_INFO_MAX
+
+	; バトルシーンでキャラクタを描画する座標
+	dim battle_char_show_pos,BATTLE_CHAR_MAX*2,2
+	dim battle_char_show_offset,BATTLE_CHAR_MAX*2,2
+
+	battle_char_show_pos(0,POS_X) = 140              : battle_char_show_pos(0,POS_Y) = 130
+	battle_char_show_pos(1,POS_X) = 140              : battle_char_show_pos(1,POS_Y) = 210
+	battle_char_show_pos(2,POS_X) = 140              : battle_char_show_pos(2,POS_Y) = 290
+	battle_char_show_pos(3,POS_X) = WINDOW_SIZEX-190 : battle_char_show_pos(3,POS_Y) = 130
+	battle_char_show_pos(4,POS_X) = WINDOW_SIZEX-190 : battle_char_show_pos(4,POS_Y) = 210
+	battle_char_show_pos(5,POS_X) = WINDOW_SIZEX-190 : battle_char_show_pos(5,POS_Y) = 290
+
+; ######################################
+; # ランダム
+; ######################################
+
+	; ランダムキャラクター
+	#const RANDOM_TABLE_CHAR_INFO_ID    0	; キャラID
+	#const RANDOM_TABLE_CHAR_INFO_USE   1	; 既に使ったかどうか(1:済)
+	#const RANDOM_TABLE_CHAR_INFO_MAX	2
+	dim random_table_char_info,RANDOM_TABLE_CHAR_MAX,RANDOM_TABLE_CHAR_INFO_MAX
+
+	dim random_table_char_info_num		; ランダムキャラの人数
+	dim random_table_char_info_pickup	; 抽選で選ばれたキャラ
+
+	
+	; ランダム用スキル
+	#const RANDOM_TABLE_SKILL_INFO_ID           1	; スキルID
+	#const RANDOM_TABLE_SKILL_INFO_TRIGGER		2	; スキルの発動条件タイプ
+	#const RANDOM_TABLE_SKILL_INFO_TYPE         3	; スキルタイプ
+	#const RANDOM_TABLE_SKILL_INFO_RANK         4	; ランク
+	#const RANDOM_TABLE_SKILL_INFO_FLAG         5	; フラグ
+	#const RANDOM_TABLE_SKILL_INFO_MAX	6
+	
+	dim random_table_skill_info,RANDOM_TABLE_SKILL_MAX,RANDOM_TABLE_SKILL_INFO_MAX
+
+	dim random_table_skill_info_num		; ランダムスキルの数
+	dim random_table_skill_info_pickup	; 抽選で選ばれたスキル
+	
+; ######################################
+; # キュー（アニメーション）
+; ######################################
+
+	#const QUEUE_ANIME_INFO_TYPE  1	; データタイプ
+		#const QUEUE_ANIME_INFO_TYPE_ANIME       1 	; アニメーションの再生
+		#const QUEUE_ANIME_INFO_TYPE_NUMBER      2 	; ダメージ、回復の数字アニメーション
+		#const QUEUE_ANIME_INFO_TYPE_BUFF        3	; バフ付与アニメーション
+		#const QUEUE_ANIME_INFO_TYPE_MESSAGE     4	; 中央上部にメッセージ
+		#const QUEUE_ANIME_INFO_TYPE_CHAR_COVER  5	; かばう状態を変更する
+		#const QUEUE_ANIME_INFO_TYPE_CHAR_BLINK  6	; キャラクターの点滅（未実装）
+		#const QUEUE_ANIME_INFO_TYPE_CHAR_BLINK2 7	; キャラクターをゆっくり点滅（未実装）
+		#const QUEUE_ANIME_INFO_TYPE_CHAR_DOWN   8	; キャラクターの消滅
+											;									ANIME	NUMBER	BUFF	MESSAGE		CHAR_COVER	CHAR_BLINK	CHAR_BLINK2	CHAR_DOWN
+	#const QUEUE_ANIME_INFO_ID           2	; アニメーションID					o		-		-		-			-			-			-			-
+	#const QUEUE_ANIME_INFO_START        3 	; そのアニメーションの開始フレーム	o		o		o		o			o			o			o			o
+	#const QUEUE_ANIME_INFO_FINISH       4 	; そのアニメーションの終了フレーム	o		o		o		o			o			o			o			o
+	#const QUEUE_ANIME_INFO_BCHAR        5	; 対象となるBキャラ					o		o		o		-			o			o			o			o
+	#const QUEUE_ANIME_INFO_SKILL        6	; スキルID							o		-		-		-			-			-			-			-
+	#const QUEUE_ANIME_INFO_SKILL_BCHAR  7	; スキルを使ったBキャラ				o		-		-		-			-			-			-			-
+	#const QUEUE_ANIME_INFO_VALUE        8	; 数字/バフID/他					-		o		o		-			o			?			?			-			
+	#const QUEUE_ANIME_INFO_MAX 9
+	dim queue_anime_info,QUEUE_ANIME_MAX,QUEUE_ANIME_INFO_MAX
+
+	#const QUEUE_ANIME_SINFO_TOPMESSAGE 0	; 中央上部のメッセージ用
+	#const QUEUE_ANIME_SINFO_MAX 1
+	sdim queue_anime_sinfo,64,QUEUE_ANIME_MAX,QUEUE_ANIME_SINFO_MAX
+
+	dim queue_anime_current_frame		; 現在再生しているフレーム
+	dim queue_anime_enroll_anime_num	; 登録されているアニメの数
+	dim queue_anime_finished_anime_num	; 再生が完了しているアニメの数
+
+	; 数字アニメーション用の変数 負の数字・ダメージ用（速度、加速度は実際には1/2される）
+	#const QUEUE_ANIME_NUMBER_VELX_INIT 2	; X座標方向の初速
+	#const QUEUE_ANIME_NUMBER_ACCX 0		; X座標方向の加速度
+	#const QUEUE_ANIME_NUMBER_VELY_INIT -10	; Y座標方向の初速
+	#const QUEUE_ANIME_NUMBER_ACCY 1		; Y座標方向の加速度
+	#const QUEUE_ANIME_NUMBER_RANGE_MOVE 40	; 移動するフレーム数
+	#const QUEUE_ANIME_NUMBER_RANGE_SHOW 80	; 表示するフレーム数
+
+	; 数字アニメーション用の変数 正の数字・回復用（速度、加速度は実際には1/2される）
+	#const QUEUE_ANIME_NUMBER2_VELX_INIT 0		; X座標方向の初速
+	#const QUEUE_ANIME_NUMBER2_ACCX 0			; X座標方向の加速度
+	#const QUEUE_ANIME_NUMBER2_VELY_INIT -2		; Y座標方向の初速
+	#const QUEUE_ANIME_NUMBER2_ACCY 0			; Y座標方向の加速度
+	#const QUEUE_ANIME_NUMBER2_RANGE_MOVE 40	; 移動するフレーム数
+	#const QUEUE_ANIME_NUMBER2_RANGE_SHOW 80	; 表示するフレーム数
+
+	; バフ付与アニメーション用の変数（速度、加速度は実際には1/2される）
+	#const QUEUE_ANIME_BUFF_VELX_INIT 0		; X座標方向の初速
+	#const QUEUE_ANIME_BUFF_ACCX 0			; X座標方向の加速度
+	#const QUEUE_ANIME_BUFF_VELY_INIT -2	; Y座標方向の初速
+	#const QUEUE_ANIME_BUFF_ACCY 0			; Y座標方向の加速度
+	#const QUEUE_ANIME_BUFF_RANGE_MOVE 16	; 移動するフレーム数
+	#const QUEUE_ANIME_BUFF_RANGE_SHOW 80	; 表示するフレーム数
+	
+
+; ######################################
+; # 入力処理系
+; ######################################
+
+	#const INPUT_KEY_COOLDOWN_DEFAULT 10		; 連投防止の検知クールダウン時間
+
+	; キーボードが押されているかの状態
+	dim input_key,KEY_MAX
+	dim input_key_keycode,KEY_MAX		; 検知するキーのキーコード
+	dim input_key_cooldown,KEY_MAX		; 連投防止の検知クールダウン時間
+
+; ######################################
+; # マップ処理系
+; ######################################
+
+	; マップ選択(選べるのは1つ)
+	#const SELECTOR_MAP_MAX 9				; リストの上限
+	
+	dim selector_map,SELECTOR_MAP_MAX		; 選択肢(show_mapで表示されている範囲)
+	dim selector_map_focus					; 選ばれているエリアID
+	dim selector_map_active					; 選択肢を使用中かどうか(1:使用中,0:未使用)
+	dim selector_map_returncode				; 終了時のリターンコード(0:選択中、1:決定、-1:キャンセル)
+	dim selector_map_num					; 有効な選択肢の数
+	dim selector_map_vote,SELECTOR_MAP_MAX		; 自動選択用の投票
+	dim selector_map_vote_num						; 総投票数
+	#const SELECTOR_MAP_VOTE_RANDOM    1	; 投票モード（ランダム）			※全てに1票追加
+	#const SELECTOR_MAP_VOTE_NEAR_ZERO 2	; 投票モード（ブロック0に近い）		※(8 - 攻める対象ブロック)票追加
+	#const SELECTOR_MAP_VOTE_PLAYER    3	; 投票モード（プレイヤー優先）		※プレイヤーの領土に5票追加
+	#const SELECTOR_MAP_DECIDE_ELECTION  1	; 決定モード（投票したものから抽選）
+	#const SELECTOR_MAP_DECIDE_MAX       2	; 決定モード（最も投票したものに決定）
+	
+; ######################################
+; # メニュー処理系
+; ######################################
+
+	; メニュー（リスト、キャラ）
+	#const MENU_LIST_CHAR_MAX CHAR_MAX	; リストの上限
+	#const MENU_LIST_CHAR_SHOW_MAX 8	; リスト表示の上限（10より大きくできない、今は8前提のレイアウト）
+	#const MENU_LIST_CHAR_SELECT_MAX 3	; 選択確定にできるシステム上限
+	
+	dim menu_list_char,MENU_LIST_CHAR_MAX				; 表示するキャラクタIDリスト
+	dim menu_list_char_selects,MENU_LIST_CHAR_MAX		; 2:選択確定、1:選択されていれば、0:選択されてない
+	dim menu_list_char_disable,MENU_LIST_CHAR_MAX		; 選択不可能フラグ(1:表示するが選択できない)
+	dim menu_list_char_show_start						; 表示開始の番号
+	dim menu_list_char_focus							; 選ばれている番号
+	dim menu_list_char_pickup_num						; 選択確定できる人数
+	dim menu_list_char_pickup_param						; 強調するパラメータ
+	dim menu_list_char_pickup_sumparam					; 選択確定したキャラのパラメータの合計値
+	dim menu_list_char_pickup,MENU_LIST_CHAR_SELECT_MAX	; 選択確定したキャラクタIDリスト
+	dim menu_list_char_active							; メニューを使用中かどうか(1:使用中,0:未使用)
+	dim menu_list_char_returncode						; 終了時のリターンコード(0:選択中、1:決定、-1:キャンセル)
+	dim menu_list_char_vote,MENU_LIST_CHAR_MAX			; 自動選択用の投票
+	dim menu_list_char_vote_num							; 総投票数
+
+	#const MENU_LIST_CHAR_VOTE_CLEAR       1			; 投票箱を初期化する
+	#const MENU_LIST_CHAR_VOTE_RANDOM      2			; 投票モード（ランダム）		※全てに1票追加
+	#const MENU_LIST_CHAR_VOTE_COVER       3			; 投票モード（味方ガード持ち）	※味方ガード持ちに5票追加
+	#const MENU_LIST_CHAR_VOTE_HEAL        4			; 投票モード（回復持ち）		※回復スキル持ちに5票追加
+	#const MENU_LIST_CHAR_VOTE_ATTACK      5			; 投票モード（火力持ち）		※高火力スキル持ちに5票追加
+	#const MENU_LIST_CHAR_VOTE_NOTIRED     6			; 投票モード（非疲労持ち）		※未行動のキャラに100票追加（未行動キャラが3人以上いる場合は行動キャラの票を0に、それ以外に1票追加）
+	#const MENU_LIST_CHAR_VOTE_LEADER      7			; 投票モード（リーダー）		※リーダーに250票追加
+	#const MENU_LIST_CHAR_VOTE_NOT_LEADER  8			; 投票モード（リーダー以外）	※リーダー以外に10票追加
+	#const MENU_LIST_CHAR_VOTE_PARAM_NONE  9			; ダミー
+	#const MENU_LIST_CHAR_VOTE_PARAM_HP   10			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_VOTE_PARAM_AP   11			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_VOTE_PARAM_ATC  12			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_VOTE_PARAM_DEF  13			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_VOTE_PARAM_MAT  14			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_VOTE_PARAM_MDF  15			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_VOTE_PARAM_SPD  16			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_VOTE_PARAM_SRC  17			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_VOTE_PARAM_PRD  18			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_VOTE_PARAM_COM  19			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_VOTE_PARAM_STAN 20			; 投票モード（パラメータ）		※パラメータの数値分投票
+	#const MENU_LIST_CHAR_DECIDE_ELECTION  1	; 決定モード（投票したものから抽選）
+	#const MENU_LIST_CHAR_DECIDE_MAX       2	; 決定モード（最も投票したものに決定）	
+	
+	; メニュー（リスト、イベント）
+	#const MENU_LIST_EVENT_MAX 9		; イベントリストの上限
+	#const MENU_LIST_EVENT_SHOW_MAX 9	; イベントリスト表示の上限（今はページめくりできない仕様）
+	
+	sdim menu_list_event,64,MENU_LIST_EVENT_MAX	; 選択肢
+	dim menu_list_event_code,MENU_LIST_EVENT_MAX	; 対応するイベントコード
+	dim menu_list_event_areaid						; 対応するエリア
+	dim menu_list_event_teamid						; 対応するチーム
+	dim menu_list_event_focus							; 選ばれている番号
+	dim menu_list_event_active						; 選択肢を使用中かどうか(1:使用中,0:未使用)
+	dim menu_list_event_returncode					; 終了時のリターンコード(0:未準備、1:決定、-1:キャンセル)
+	dim menu_list_event_num							; 有効な選択肢の数
+
+	; イベントコード
+	; 1～99 ハードコードイベント
+	#const EVENT_CODE_ATTACK_AREA    1	;	1: 隣接エリアを攻撃
+	#const EVENT_CODE_TRAINING       2	;	2: 訓練（一部ユニットの経験値Up）
+	#const EVENT_CODE_MANAG_UP       3	;	3: 自国のマナ生産量向上　※現在の 生産量×10 の生成が必要
+	#const EVENT_CODE_DEFP_UP        4	;	4: 自国の地形探索（地形効果Up）　※現在の エリアDEFP×10+100 の探索が必要
+	#const EVENT_CODE_CHAR_SEARCH    5	;   5: 人材発掘
+	#const EVENT_CODE_CHAR_LIST     97	;  97: 自チームのユニット一覧確認と回復 ※ここで回復する機能は未実装
+	#const EVENT_CODE_SELECT_AREA   98	;  98: 他エリアの選択
+	#const EVENT_CODE_TURN_END      99	;  99: ターン終了
+	#const EVENT_CODE_SCRIPT_BEGIN 100	; 100～ イベントスクリプト定義イベント（スクリプトで定義し、発生条件を満たしたものが呼び出せる）
+	dim event_code_lock,100		; イベントを実行できないようにする(1:ロック)
+	
+	; メニュー（リスト、バトル）
+	#const MENU_LIST_BATTLE_MAX 8		; スキルリストの上限
+	#const MENU_LIST_BATTLE_SHOW_MAX 8	; スキルリスト表示の上限（今はページめくりできない仕様）
+	
+	sdim menu_list_battle,64,MENU_LIST_BATTLE_MAX		; 選択肢
+	sdim menu_list_battle_desc,64,MENU_LIST_BATTLE_MAX	; 選択肢（補足）
+	dim menu_list_battle_skill,MENU_LIST_BATTLE_MAX		; 対応するスキルID
+	dim menu_list_battle_disable,MENU_LIST_BATTLE_MAX	; 選択不可能フラグ(1:表示するが選択できない)
+	dim menu_list_battle_charid							; 対応するキャラID
+	dim menu_list_battle_focus							; 選ばれている番号
+	dim menu_list_battle_select							; 選ばれている番号（選択確定）
+	dim menu_list_battle_active							; 選択肢を使用中かどうか(1:使用中,0:未使用,2:非アクティブ)
+	dim menu_list_battle_returncode						; 終了時のリターンコード(0:未準備、1:決定、-1:キャンセル)
+	dim menu_list_battle_num							; 有効な選択肢の数	
+	dim menu_list_battle_vote,MENU_LIST_BATTLE_MAX		; 自動選択用の投票
+	dim menu_list_battle_vote_num						; 総投票数
+	#const MENU_LIST_BATTLE_VOTE_RANDOM  1		; 投票モード（ランダム）		※全てに1票追加
+	#const MENU_LIST_BATTLE_VOTE_USEAP   2		; 投票モード（消費APに比例）	※AP10につき1票追加
+	#const MENU_LIST_BATTLE_VOTE_COVER   3		; 投票モード（味方ガード重視）	※味方ガードに5票追加
+	#const MENU_LIST_BATTLE_VOTE_HEAL    4		; 投票モード（回復重視）		※回復に5票追加
+	#const MENU_LIST_BATTLE_VOTE_ATTACK  5		; 投票モード（攻撃重視）		※攻撃に威力40につき1票追加
+	#const MENU_LIST_BATTLE_VOTE_WEAK    6		; 投票モード（弱点重視）		※弱点を突けるものに5票追加
+	#const MENU_LIST_BATTLE_DECIDE_ELECTION  1	; 決定モード（投票したものから抽選）
+	#const MENU_LIST_BATTLE_DECIDE_MAX       2	; 決定モード（最も投票したものに決定）
+	
+	; メニュー（Bキャラ）
+	#const MENU_LIST_BCHAR_MAX BATTLE_CHAR_MAX*2		; Bキャラリストの上限
+	
+	dim menu_list_bchar,64,MENU_LIST_BCHAR_MAX				; 選択肢
+	dim menu_list_bchar_charid,MENU_LIST_BCHAR_MAX			; 対応するキャラID
+	dim menu_list_bchar_focus								; 選ばれている番号
+	dim menu_list_bchar_select								; 選ばれている番号（選択確定）
+	dim menu_list_bchar_select_bchar,MENU_LIST_BCHAR_MAX	; 結果的に選ばれたBキャラのリスト（選択の結果、対象となるBキャラの一覧）
+	dim menu_list_bchar_select_bchar_num					; 結果的に選ばれたBキャラの数
+	dim menu_list_bchar_active								; 選択肢を使用中かどうか(1:使用中,0:未使用,2:非アクティブ)
+	dim menu_list_bchar_returncode							; 終了時のリターンコード(0:未準備、1:決定、-1:キャンセル)
+	dim menu_list_bchar_num									; 有効な選択肢の数	
+	dim menu_list_bchar_vote,MENU_LIST_BATTLE_MAX		; 自動選択用の投票
+	dim menu_list_bchar_vote_num						; 総投票数
+	#const MENU_LIST_BCHAR_VOTE_RANDOM  1		; 投票モード（ランダム）		※全てに1票追加
+	#const MENU_LIST_BCHAR_VOTE_LOWHP   2		; 投票モード（低いHP優先）　	※HPを20%失っている毎に1票
+	#const MENU_LIST_BCHAR_VOTE_COVER   3		; 投票モード（弱点重視）		※弱点を突ける相手に5票追加
+	#const MENU_LIST_BCHAR_VOTE_HEAL    4		; 投票モード（強キャラ重視）	※一番総戦力が高い相手に5票追加
+	#const MENU_LIST_BCHAR_DECIDE_ELECTION  1	; 決定モード（投票したものから抽選）
+	#const MENU_LIST_BCHAR_DECIDE_MAX       2	; 決定モード（最も投票したものに決定）
+	
+; ######################################
+; # 汎用選択肢処理系
+; ######################################
+
+	; 汎用選択肢(選べるのは1つ)
+	#const SELECTOR_LIST_MAX 9			; リストの上限
+	
+	sdim selector_list,64,SELECTOR_LIST_MAX			; 選択肢
+	dim selector_list_disable,SELECTOR_LIST_MAX		; 択不可能フラグ(1:表示するが選択できない)
+	dim selector_list_focus							; 選ばれている番号
+	dim selector_list_active						; 選択肢を使用中かどうか(1:使用中,0:未使用)
+	dim selector_list_returncode					; 終了時のリターンコード(0:未準備、1:決定、-1:キャンセル)
+	dim selector_list_num							; 有効な選択肢の数
+	dim selector_list_max_length					; 最も長い選択肢の文字列
+	
+; ######################################
+; # イベント系
+; ######################################
+
+	#const EVENT_TRIGGER_SINFO_NAME 0	; 名前
+	#const EVENT_TRIGGER_SINFO_DESC 1	; 説明
+	#const EVENT_TRIGGER_SINFO_MAX 2
+	sdim event_trigger_sinfo,64,EVENT_TRIGGER_MAX,EVENT_TRIGGER_SINFO_MAX
+	
+	#const EVENT_TRIGGER_INFO_FLAG						1	; 発動したかどうか(1:発動済み)　※今は全てのイベントトリガーは1回限り
+	#const EVENT_TRIGGER_INFO_TIMING					2	; イベントが発動するタイミング
+		#const EVENT_TRIGGER_INFO_TIMING_TURN_START				1	; ターン開始時（全チームの行動前）
+		#const EVENT_TRIGGER_INFO_TIMING_EVENT_MENU				2	; イベントメニューで指定
+		#const EVENT_TRIGGER_INFO_TIMING_TURN_END				3	; ターン終了時（全チームの行動後）
+	#const EVENT_TRIGGER_INFO_EVENTDATA					3	; 実行するイベントデータID
+	#const EVENT_TRIGGER_INFO_COND_TEAM					4	; 発動条件：チーム
+	#const EVENT_TRIGGER_INFO_COND_TEAM_AREA_MIN		5	; 発動条件：チームの支配エリア数（最小）
+	#const EVENT_TRIGGER_INFO_COND_TEAM_AREA_MAX		6	; 発動条件：チームの支配エリア数（最大）
+	#const EVENT_TRIGGER_INFO_COND_TEAM_SPEC_AREA		7	; 発動条件：チームが特定のエリアを支配
+	#const EVENT_TRIGGER_INFO_COND_TEAM_SPEC_BLOCK		8	; 発動条件：チームが特定のエリア・ブロックを支配（1つ上との同時指定必須）
+	#const EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_AREA	9	; 発動条件：チームが特定のエリア・ブロックを支配してない
+	#const EVENT_TRIGGER_INFO_COND_TEAM_ANTI_SPEC_BLOCK	10	; 発動条件：チームが特定のエリア・ブロックを支配してない（1つ上との同時指定必須）
+	#const EVENT_TRIGGER_INFO_COND_TEAM_JOIN_CHAR		11	; 発動条件：チームに特定キャラがいる
+	#const EVENT_TRIGGER_INFO_COND_TEAM_ANTI_JOIN_CHAR	12	; 発動条件：チームに特定キャラがいない
+	#const EVENT_TRIGGER_INFO_COND_TURN_EARLY			13	; 発動条件：ターン（最速）
+	#const EVENT_TRIGGER_INFO_COND_TURN_LATE			14	; 発動条件：ターン（最遅）
+	#const EVENT_TRIGGER_INFO_COND_DONE_EVENT			15	; 発動条件：特定のイベントが発動したかどうか
+	#const EVENT_TRIGGER_INFO_COND_DONE_ANTI_EVENT		16	; 発動条件：特定のイベントが発動していないかどうか
+	
+	#const EVENT_TRIGGER_INFO_MAX						16
+	dim event_trigger_info,EVENT_TRIGGER_MAX,EVENT_TRIGGER_INFO_MAX
+
+	; 今回はイベントデータはハードコート
+	#const EVENT_DATA_INFO_PROGRESS			0	; 現在の再生進捗
+	#const EVENT_DATA_INFO_PROGRESS_END		1	; 進捗の終了地点（この数字未満までしかデータがない）
+	#const EVENT_DATA_INFO_MAX				3
+	dim event_data_info,EVENT_DATA_MAX,EVENT_DATA_INFO_MAX	; イベントデータの進捗
+
+; ######################################
+; # デフォルトが0ではダメな変数の初期化
+; ######################################
+
+	; 検知するキーコードを設定
+	input_key_keycode(KEY_LEFT) =37 ; カーソルキー[←]
+	input_key_keycode(KEY_UP)   =38 ; カーソルキー[↑]
+	input_key_keycode(KEY_RIGHT)=39 ; カーソルキー[→]
+	input_key_keycode(KEY_DOWN) =40 ; カーソルキー[↓]
+	input_key_keycode(KEY_Z)    =90 ; zキー
+	input_key_keycode(KEY_X)    =88 ; xキー
+	input_key_keycode(KEY_C)    =67 ; cキー
+	input_key_keycode(KEY_0)    =48 ; [0]～[9]（メインキーボード）
+	input_key_keycode(KEY_1)    =49
+	input_key_keycode(KEY_2)    =50
+	input_key_keycode(KEY_3)    =51
+	input_key_keycode(KEY_4)    =52
+	input_key_keycode(KEY_5)    =53
+	input_key_keycode(KEY_6)    =54
+	input_key_keycode(KEY_7)    =55
+	input_key_keycode(KEY_8)    =56
+	input_key_keycode(KEY_9)    =57
+	input_key_keycode(KEY_W)    =87 ; wキー
+	input_key_keycode(KEY_A)    =65 ; aキー
+	input_key_keycode(KEY_S)    =83 ; sキー
+	input_key_keycode(KEY_D)    =68 ; dキー
+
+	; アイコンIDは-1で初期化（ロードすればbuffer idが入る）
+	for i,0,IMGDEF_ICON_TYPE_MAX
+		for j,0,IMGDEF_ICON_PATTERN_MAX
+			imgdef_icon_id(i,j) = -1
+		next
+	next
+
+	; イベント発動条件はモノによっては0が入るので-1で初期化
+	for i,0,EVENT_TRIGGER_MAX
+		for j,0,EVENT_TRIGGER_MAX,EVENT_TRIGGER_INFO_MAX
+			event_trigger_info(i,j) = -1
+		next
+	next
+

@@ -1,0 +1,256 @@
+; ##################################################################################################
+; # 
+; # 定数定義
+; # 
+; ##################################################################################################
+
+	#const DEBUG_MODE 0		; 1:ログレベルをデバッグにする
+
+	#const DEBUG_LEVEL 0 	; 以下の合計で表示するログを決める
+	#const LOG_DEBUG   1	; デバッグ　内部変数の記録など
+	#const LOG_INFO    2	; 情報　　　関数コールなど
+	#const LOG_WARNING 4	; 警告　　　想定外の挙動、一応処理は続行できるはず
+	#const LOG_ERROR   8	; エラー　　続行不可の異常、以降の動作は不定
+
+; 共通定数
+	#const FRAME_RATE 60		; フレームレートfps
+	#const WINDOW_SIZEX 640		; ウィンドウのxサイズ
+	#const WINDOW_SIZEY 960		; ウィンドウのyサイズ
+
+	#const ELEMENT_LNONE	 0	; なし
+	#const ELEMENT_LPHYSICAL 1	; 物理属性
+	#const ELEMENT_LFIRE	 2	; 火属性
+	#const ELEMENT_LICE	     3	; 氷属性
+	#const ELEMENT_LWIND	 4	; 風属性
+	#const ELEMENT_LTHUNDER	 5	; 雷属性
+	#const ELEMENT_LLIGHT	 6	; 光属性
+	#const ELEMENT_LDARK	 7	; 闇属性
+	#const ELEMENT_LMAX	 8
+
+	dim ELEMENT_LALLS,ELEMENT_LMAX
+	ELEMENT_LALLS(0) = ELEMENT_LNONE
+	ELEMENT_LALLS(1) = ELEMENT_LPHYSICAL
+	ELEMENT_LALLS(2) = ELEMENT_LFIRE
+	ELEMENT_LALLS(3) = ELEMENT_LICE
+	ELEMENT_LALLS(4) = ELEMENT_LWIND
+	ELEMENT_LALLS(5) = ELEMENT_LTHUNDER
+	ELEMENT_LALLS(6) = ELEMENT_LLIGHT
+	ELEMENT_LALLS(7) = ELEMENT_LDARK
+
+	#const ELEMENT_NONE	     0	; なし
+	#const ELEMENT_PHYSICAL	 1	; 物理属性
+	#const ELEMENT_FIRE	     2	; 火属性
+	#const ELEMENT_ICE	     4	; 氷属性
+	#const ELEMENT_WIND	     8	; 風属性
+	#const ELEMENT_THUNDER	16	; 雷属性
+	#const ELEMENT_LIGHT	32	; 光属性
+	#const ELEMENT_DARK	    64	; 闇属性
+
+	dim ELEMENT_ALLS,ELEMENT_LMAX
+	ELEMENT_ALLS(0) = ELEMENT_NONE
+	ELEMENT_ALLS(1) = ELEMENT_PHYSICAL
+	ELEMENT_ALLS(2) = ELEMENT_FIRE
+	ELEMENT_ALLS(3) = ELEMENT_ICE
+	ELEMENT_ALLS(4) = ELEMENT_WIND
+	ELEMENT_ALLS(5) = ELEMENT_THUNDER
+	ELEMENT_ALLS(6) = ELEMENT_LIGHT
+	ELEMENT_ALLS(7) = ELEMENT_DARK
+
+	; ELEMENTからLELEMENTへの変換
+	dim ELEMENT_LTON,65
+	ELEMENT_LTON(ELEMENT_NONE)     = ELEMENT_LNONE
+	ELEMENT_LTON(ELEMENT_PHYSICAL) = ELEMENT_LPHYSICAL
+	ELEMENT_LTON(ELEMENT_FIRE)     = ELEMENT_LFIRE
+	ELEMENT_LTON(ELEMENT_ICE)      = ELEMENT_LICE
+	ELEMENT_LTON(ELEMENT_WIND)     = ELEMENT_LWIND
+	ELEMENT_LTON(ELEMENT_THUNDER)  = ELEMENT_LTHUNDER
+	ELEMENT_LTON(ELEMENT_LIGHT)    = ELEMENT_LLIGHT
+	ELEMENT_LTON(ELEMENT_DARK)     = ELEMENT_LDARK
+
+	sdim ELEMENT_LABEL,4,ELEMENT_LMAX
+	ELEMENT_LABEL(0) = "無"
+	ELEMENT_LABEL(1) = "物"
+	ELEMENT_LABEL(2) = "火"
+	ELEMENT_LABEL(3) = "氷"
+	ELEMENT_LABEL(4) = "風"
+	ELEMENT_LABEL(5) = "雷"
+	ELEMENT_LABEL(6) = "光"
+	ELEMENT_LABEL(7) = "闇"
+	
+	#const KEY_LEFT  0
+	#const KEY_UP    1
+	#const KEY_RIGHT 2
+	#const KEY_DOWN  3
+	#const KEY_Z     4
+	#const KEY_X     5
+	#const KEY_C     6
+	#const KEY_0     7
+	#const KEY_1     8
+	#const KEY_2     9
+	#const KEY_3     10
+	#const KEY_4     11
+	#const KEY_5     12
+	#const KEY_6     13
+	#const KEY_7     14
+	#const KEY_8     15
+	#const KEY_9     16
+	#const KEY_W     17
+	#const KEY_A     18
+	#const KEY_S     19
+	#const KEY_D     20
+	#const KEY_MAX   21
+	
+	#const PARAM_NONE  0
+	#const PARAM_HP    1
+	#const PARAM_AP    2
+	#const PARAM_ATC   3
+	#const PARAM_DEF   4
+	#const PARAM_MAT   5
+	#const PARAM_MDF   6
+	#const PARAM_SPD   7
+	#const PARAM_SRC   8
+	#const PARAM_PRD   9
+	#const PARAM_COM  10
+	#const PARAM_STAN 11
+	#const PARAM_MAX  12
+
+	sdim PARAM_LABEL,16,PARAM_MAX
+	PARAM_LABEL(PARAM_HP)   = "HP"
+	PARAM_LABEL(PARAM_AP)   = "HP"
+	PARAM_LABEL(PARAM_ATC)  = "物攻"
+	PARAM_LABEL(PARAM_DEF)  = "物防"
+	PARAM_LABEL(PARAM_MAT)  = "魔攻"
+	PARAM_LABEL(PARAM_MDF)  = "魔防"
+	PARAM_LABEL(PARAM_SPD)  = "速度"
+	PARAM_LABEL(PARAM_SRC)  = "探索"
+	PARAM_LABEL(PARAM_PRD)  = "生成"
+	PARAM_LABEL(PARAM_COM)  = "話術"
+	PARAM_LABEL(PARAM_STAN) = "スタン"
+	
+	#const DIREC_DOWN  0	; 下
+	#const DIREC_LEFT  1	; 左
+	#const DIREC_RIGHT 2	; 右
+	#const DIREC_UP	   3	; 上
+
+	#const POS_X  0	; X座標
+	#const POS_Y  1	; Y座標
+
+;buffer
+;
+; 顔画像定義：				IMGDEF_FACE_BUFFER_OFFSET(10)　から　IMGDEF_FACE_MAX(256)　個
+; キャラ画像定義：			顔画像定義の次　から　IMGDEF_CHAR_MAX(256)　個
+; キャラ歩行画像定義：		キャラ画像定義の次　から　IMGDEF_WALK_MAX(256)　個
+; アイコン画像定義：		キャラ歩行画像定義の次　から　IMGDEF_ICON_MAX(595)　個
+; マップチップ画像定義：	アイコン歩行画像定義の次　から　IMGDEF_MAPCHIP_MAX(312)　個
+; 背景画像定義：			マップチップ画像定義の次　から　IMGDEF_BACK_MAX　個
+; アニメーション画像定義：	背景画像定義の次　から　IMGDEF_ANIME_MAX　個
+;
+
+; 顔画像定義
+	sdim IMGDEF_FACE_BASEPATH,64
+	IMGDEF_FACE_BASEPATH= "image/face/"	; 顔画像が格納されているフォルダ
+	#const IMGDEF_FACE_BUFFER_OFFSET 10			; buffer offset
+	#const IMGDEF_FACE_MAX 256	; 最大数
+	#const IMGDEF_FACE_SIZEX 144	; 1つの顔画像のサイズX軸
+	#const IMGDEF_FACE_SIZEY 144	; 1つの顔画像のサイズY軸
+	#const IMGDEF_FACE_MAXX 4		; X軸に何個並んでいるか
+	#const IMGDEF_FACE_MAXY 2		; Y軸に何個並んでいるか
+
+; キャラ画像定義
+	sdim IMGDEF_CHAR_BASEPATH,64
+	IMGDEF_CHAR_BASEPATH= "image/char/"	; キャラ画像が格納されているフォルダ
+	#const IMGDEF_CHAR_BUFFER_OFFSET IMGDEF_FACE_BUFFER_OFFSET+IMGDEF_FACE_MAX	; buffer offset
+	#const IMGDEF_CHAR_MAX 256		; 最大数
+	#const IMGDEF_CHAR_SIZEX 350	; 画像サイズX軸
+	#const IMGDEF_CHAR_SIZEY 350	; 画像サイズY軸
+	
+; キャラ歩行画像定義
+	sdim IMGDEF_WALK_BASEPATH,64
+	IMGDEF_WALK_BASEPATH= "image/walk/"	; キャラ歩行画像が格納されているフォルダ
+	#const IMGDEF_WALK_BUFFER_OFFSET IMGDEF_CHAR_BUFFER_OFFSET+IMGDEF_CHAR_MAX			; buffer offset
+	#const IMGDEF_WALK_MAX 256	; 最大数
+	#const IMGDEF_WALK_SIZEX 45	; 1つのキャラ歩行画像のサイズX軸
+	#const IMGDEF_WALK_SIZEY 45	; 1つのキャラ歩行画像のサイズY軸
+	#const IMGDEF_WALK_MAXX 3		; X軸に何個並んでいるか（アニメパターン1→2→3→2→1→...）
+	#const IMGDEF_WALK_MAXY 4		; Y軸に何個並んでいるか（下左右上の順）
+
+; アイコン画像定義
+	sdim IMGDEF_ICON_BASEPATH,64
+	IMGDEF_ICON_BASEPATH= "image/icon/"	; アイコン画像が格納されているフォルダ
+	#const IMGDEF_ICON_BUFFER_OFFSET IMGDEF_WALK_BUFFER_OFFSET+IMGDEF_WALK_MAX			; buffer offset
+	#const IMGDEF_ICON_MAX 595	; 最大数
+	#const IMGDEF_ICON_SIZEX 32	; アイコン1つのサイズX軸
+	#const IMGDEF_ICON_SIZEY 32	; アイコン1つのサイズY軸
+	#const IMGDEF_ICON_PATTERN_MAX 11	; アイコンの色違いの最大個数
+	#const IMGDEF_ICON_TYPE_MAX 106	; アイコンの最大種類
+	
+; マップチップ画像定義
+	sdim IMGDEF_MAPCHIP_BASEPATH,64
+	IMGDEF_MAPCHIP_BASEPATH= "image/mapchip/"	; マップチップ画像が格納されているフォルダ
+	#const IMGDEF_MAPCHIP_BUFFER_OFFSET IMGDEF_ICON_BUFFER_OFFSET+IMGDEF_ICON_MAX			; buffer offset
+	#const IMGDEF_MAPCHIP_MAX 312	; 最大数
+	#const IMGDEF_MAPCHIP_SIZEX 48	; アイコン1つのサイズX軸
+	#const IMGDEF_MAPCHIP_SIZEY 48	; アイコン1つのサイズY軸
+	#const IMGDEF_MAPCHIP_PATTERN_MAX 11	; アイコンの色違いの最大個数
+	#const IMGDEF_MAPCHIP_TYPE_MAX 59	; アイコンの最大種類
+	
+; 背景画像定義
+	sdim IMGDEF_BACK_BASEPATH,64
+	IMGDEF_BACK_BASEPATH= "image/back/"	; 背景画像が格納されているフォルダ
+	#const IMGDEF_BACK_BUFFER_OFFSET IMGDEF_MAPCHIP_BUFFER_OFFSET+IMGDEF_MAPCHIP_MAX			; buffer offset
+	#const IMGDEF_BACK_MAX 100	; 最大数
+
+; アニメーション画像定義
+	sdim IMGDEF_ANIME_BASEPATH,64
+	IMGDEF_ANIME_BASEPATH= "image/anime/"	; アニメーション画像が格納されているフォルダ
+	#const IMGDEF_ANIME_BUFFER_OFFSET IMGDEF_BACK_BUFFER_OFFSET+IMGDEF_BACK_MAX			; buffer offset
+	#const IMGDEF_ANIME_MAX 100	; 最大数
+
+; アニメーション定義
+	#const ANIME_MAX 100	; 最大数
+
+; キュー（アニメーション）定義
+	#const QUEUE_ANIME_MAX 1000	; 最大数
+	#const QUEUE_ANIME_CONTINUOUS_DELAY 30	; 連続攻撃の遅延フレーム
+
+; 音楽定義
+	#const MUSIC_MAX 64	; 最大数
+	MUSIC_BASEPATH= "music/"	; 音楽ファイルが格納されているフォルダ
+	#const MUSIC_BUFFER_OFFSET 1			; buffer offset
+
+; 効果音定義
+	#const SOUND_MAX 64	; 最大数
+	SOUND_BASEPATH= "sound/"	; 効果音ファイルが格納されているフォルダ
+	#const SOUND_BUFFER_OFFSET MUSIC_BUFFER_OFFSET+MUSIC_MAX			; buffer offset
+
+; チーム定義
+	#const TEAM_MAX 8	; 最大数
+
+; エリア定義
+	#const AREA_MAX 64	; 最大数
+
+; クラス定義
+	#const CLASS_MAX 128	; 最大数
+
+; スキル定義
+	#const SKILL_MAX 1024	; 最大数
+
+; キャラクタ定義
+	#const CHARDEF_MAX 256	; 最大数
+
+; キャラクタ
+	#const CHAR_MAX 512	; 最大数
+
+; バフ
+	#const BUFF_MAX 128	; 最大数
+
+; バトルデータ系
+	#const BATTLE_CHAR_MAX 3	; 1チームの最大メンバー
+
+; ランダム
+	#const RANDOM_TABLE_CHAR_MAX  256	; 最大数
+	#const RANDOM_TABLE_SKILL_MAX 512	; 最大数
+	
+; イベント
+	#const EVENT_TRIGGER_MAX  1024	; 今は101以降しか使えない
+	#const EVENT_DATA_MAX 1024		; 今は101以降しか使えない

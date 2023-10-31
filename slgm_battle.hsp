@@ -1,0 +1,161 @@
+; ##################################################################################################
+; # 
+; # バトルシーン部分
+; # 
+; ##################################################################################################
+
+	#include "slgm_battle_sub.hsp"
+
+	goto *battle_end
+
+*battle_preloop_first
+
+	tic = 0
+	battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TURNGO
+	
+*battle_preloop
+
+	
+
+*battle_loop
+
+	; 表示
+	redraw 0
+	
+	color 0,0,0
+	boxf
+
+	if battle_info(BATTLE_INFO_VIEW_SKIP) == 0 {
+		; キャラクター情報を全員分表示する
+		sub_battle_show_charinfo_all
+	
+		; 戦果を表示するを表示する
+		sub_battle_show_conquere
+		
+		; その他情報を表示する
+		sub_battle_show_other_info
+		
+		; スキル選択メニューを指定した座標に表示する（主にバトル表示向け）
+		sub_show_menu_battle (WINDOW_SIZEX-480)/2, 700
+	
+		; Bキャラ選択メニューを表示する（主にバトル表示向け）
+		sub_show_menu_bchar
+	} else {
+		; メッセージを指定した座標に表示する
+		sub_show_message_char "戦闘中。。。", -1, -1, -1, -1
+	}
+	
+	; キューに登録された情報に沿って表示・処理をする
+	sub_battle_exec_queue_anime
+	
+	; 勝敗を表示する
+	sub_battle_show_result
+	
+	redraw 1
+	; 表示ここまで
+
+	; 待機時間
+	if ( battle_info(BATTLE_INFO_VIEW_SKIP) == 0 ) or ( battle_info(BATTLE_INFO_EXECMODE) == BATTLE_INFO_EXECMODE_RESULT ) {
+		if battle_info(BATTLE_INFO_SLOW_FRAME) > 0 {
+			await 1000/FRAME_RATE*BUFF_STAN_SLOW_RATE
+			battle_info(BATTLE_INFO_SLOW_FRAME) -= 1
+		} else {
+			await 1000/FRAME_RATE
+		}
+	}
+
+	; 入力待ち
+	sub_check_keyinput
+
+	; 勝負がついていれば結果発表に移行する
+	sub_battle_check_winner
+	
+	; 処理
+	switch battle_info(BATTLE_INFO_EXECMODE)
+	case BATTLE_INFO_EXECMODE_PRESTART		; 開始前
+		swbreak
+	case BATTLE_INFO_EXECMODE_TURNGO		; 時間経過中（tic, turn共に進む）
+		; turnとticを進める
+		sub_battle_proceed_turn
+		; リコイル減少
+		sub_battle_reduce_recoil_all
+		; 行動可能なBキャラがいるか判定し、プレイヤーなら選択肢生成、コンピュータなら自動で行動を選択する
+		sub_battle_exec_bchar_action
+		; 徐々にHPが変化するバフを処理する
+		sub_battle_exec_hp_change
+		; ターン経過型のバフの有効時間を1減らす
+		sub_battle_reduce_buff_effective_turn
+		
+		swbreak
+	case BATTLE_INFO_EXECMODE_TICGO	 		; 時間経過中（ticのみ進む）
+		; ticを進める
+		sub_battle_proceed_tic
+		; アニメーションが終わってたら
+		if queue_anime_enroll_anime_num == queue_anime_finished_anime_num {
+			; BATTLE_INFO_DIFF_HPREVを計算する
+			sub_battle_calcu_diff_hprev
+			if battle_info(BATTLE_INFO_DIFF_HPREV) > 0 {
+				; HPとHP_REVに差分があればその差を減らす
+				sub_battle_reduce_diff_hprev
+			} else {
+				; HPとHP_REVに差分がなければ次の行動可能キャラをチェック
+				sub_battle_queue_anime_init	
+				; 行動可能なBキャラがいるか判定し、プレイヤーなら選択肢生成、コンピュータなら自動で行動を選択する
+				sub_battle_exec_bchar_action
+			}
+		}
+		
+		swbreak
+	case BATTLE_INFO_EXECMODE_OPERATION		; プレイヤー操作待ち（スキル選択）
+		; ticを進める
+		sub_battle_proceed_tic
+		; スキル選択メニュー：キー入力を判定する
+		sub_check_menu_battle
+		if (menu_list_battle_returncode == 1) and (menu_list_battle_active == 2){
+			battle_info(BATTLE_INFO_SKILL_NEXTTURN) = menu_list_battle_skill(menu_list_battle_select)
+			; Bキャラ選択メニューを生成する
+			sub_create_menu_bchar battle_info(BATTLE_INFO_BCHAR_NEXTTURN), battle_info(BATTLE_INFO_SKILL_NEXTTURN)
+			battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_OPERATION2
+		}		
+		swbreak
+	case BATTLE_INFO_EXECMODE_OPERATION2		; プレイヤー操作待ち（対象キャラ選択）
+		; ticを進める
+		sub_battle_proceed_tic
+		; Bキャラ選択メニュー：キー入力を判定する
+		sub_check_menu_bchar
+		if (menu_list_bchar_returncode == 1) and (menu_list_bchar_active == 2){
+			; メニューを閉じる
+			menu_list_battle_active = 0
+			menu_list_bchar_active = 0
+			; 指定したBキャラが指定したスキルを決定する
+			sub_battle_decide_skill battle_info(BATTLE_INFO_BCHAR_NEXTTURN),battle_info(BATTLE_INFO_SKILL_NEXTTURN),menu_list_bchar_select_bchar
+			battle_info(BATTLE_INFO_EXECMODE) = BATTLE_INFO_EXECMODE_TICGO
+		}
+		swbreak
+	case BATTLE_INFO_EXECMODE_RESULT		; 結果発表
+		; ticを進める
+		sub_battle_proceed_tic
+
+		if battle_info(BATTLE_INFO_TIC) - battle_info(BATTLE_INFO_FINISH_TIC) == 100 {
+			; 攻撃側が勝った場合はブロックを塗り替える
+			if battle_info(BATTLE_INFO_WINNER) == battle_info(BATTLE_INFO_TEAM_ATC){
+				sub_change_block battle_info(BATTLE_INFO_AREA), battle_info(BATTLE_INFO_BLOCK), battle_info(BATTLE_INFO_WINNER), 1
+			}
+		}
+		if battle_info(BATTLE_INFO_TIC) - battle_info(BATTLE_INFO_FINISH_TIC) == 400 {
+			; バトルシーンの終了処理をする
+			sub_battle_finish
+		}
+		
+		swbreak
+	case BATTLE_INFO_EXECMODE_POSTBATTLE	; 終了後
+		goto *map_preloop
+		swbreak
+	swend
+	
+	; ループの終わり
+	sub_reduce_input_cooldown ; 入力のクールダウン時間経過
+	goto *battle_loop
+
+*battle_end
+

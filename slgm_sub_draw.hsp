@@ -1,0 +1,2233 @@
+	goto *end_of_slgm_sub_draw
+; ##################################################################################################
+; # 
+; # サブルーチン　表示系
+; # 
+; ##################################################################################################
+
+; キャラクター定義情報を指定した座標に表示する
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(chardefid): 表示するキャラクタ定義ID 
+;   arg4(faceindex): 表示する顔画像の位置（-1:デフォルト位置）
+#deffunc sub_show_chardef int arg_posx, int arg_posy, int arg_chardefid, int arg_faceindex
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_chardef. args=%d,%d,%d,%d",arg_posx,arg_posy,arg_chardefid,arg_faceindex)
+
+	; ウィンドウの大きさ
+	sub_show_chardef_windowx = 480
+	sub_show_chardef_windowy = 320
+
+	; faceindexが-1ならCHARDEF_INFO_FACEDEFINDEXに置き換える
+	sub_faceindex = arg_faceindex
+	if sub_faceindex == -1 {
+		sub_faceindex = chardef_info(sub_chardefid,CHARDEF_INFO_FACEDEFINDEX)
+	}
+
+	; エラーチェック
+	if ( sub_faceindex >= IMGDEF_FACE_MAXX * IMGDEF_FACE_MAXY ) or ( sub_faceindex < 0 ){
+		logmes strf("E CHARDEF_INFO_FACEDEFINDEX is invalid in sub_show_chardef. chardef_id=%d",arg_chardefid)
+		return
+	}
+
+	; 取得する顔画像の座標を計算
+	sub_indexx = sub_faceindex \ IMGDEF_FACE_MAXX
+	sub_indexy = sub_faceindex / IMGDEF_FACE_MAXX
+	sub_tposx = IMGDEF_FACE_SIZEX * sub_indexx
+	sub_tposy = IMGDEF_FACE_SIZEY * sub_indexy
+
+	; 背景の描画
+	color 32,32,32
+	boxf arg_posx, arg_posy, arg_posx+sub_show_chardef_windowx, arg_posy+sub_show_chardef_windowy
+
+	color 255,139,139
+	pos arg_posx+1, arg_posy+1
+	line arg_posx+1,                          arg_posy+sub_show_chardef_windowy-1
+	line arg_posx+sub_show_chardef_windowx-1, arg_posy+sub_show_chardef_windowy-1
+	line arg_posx+sub_show_chardef_windowx-1, arg_posy+1
+	line arg_posx+1,                          arg_posy+1
+
+	; 顔画像の描画
+	gmode 2
+	pos arg_posx+5,arg_posy+5
+	gzoom 100, 100, IMGDEF_FACE_BUFFER_OFFSET+chardef_info(arg_chardefid,CHARDEF_INFO_FACEIMGID), sub_tposx, sub_tposy, IMGDEF_FACE_SIZEX, IMGDEF_FACE_SIZEY
+
+	; 名前の描画
+	color 255,255,255: font "",18
+	pos arg_posx+120,arg_posy+10:  mes chardef_sinfo(arg_chardefid,CHARDEF_SINFO_NAME)
+	color 255,255,255: font "",12
+	pos arg_posx+120+strlen(chardef_sinfo(arg_chardefid,CHARDEF_SINFO_NAME))*9,arg_posy+10+6:  mes strf("(%s)",class_sinfo(chardef_info(arg_chardefid,CHARDEF_INFO_CLASS),CLASS_SINFO_NAME))
+	
+	; プロフィールの描画
+	color 255,255,255: font "",12
+	pos arg_posx+140,arg_posy+30: mes strmid(chardef_sinfo(arg_chardefid,CHARDEF_SINFO_PROFILE),0,50)
+	pos arg_posx+140,arg_posy+42: mes strmid(chardef_sinfo(arg_chardefid,CHARDEF_SINFO_PROFILE),50,50)
+	pos arg_posx+140,arg_posy+54: mes strmid(chardef_sinfo(arg_chardefid,CHARDEF_SINFO_PROFILE),100,50)
+	pos arg_posx+140,arg_posy+68: mes strmid(chardef_sinfo(arg_chardefid,CHARDEF_SINFO_PROFILE),150,50)
+	pos arg_posx+140,arg_posy+80: mes strmid(chardef_sinfo(arg_chardefid,CHARDEF_SINFO_PROFILE),200,50)
+	pos arg_posx+140,arg_posy+92: mes strmid(chardef_sinfo(arg_chardefid,CHARDEF_SINFO_PROFILE),250,50)
+
+	; 基本パラメータ
+	color 255,255,255: font "",12
+	pos arg_posx+40, arg_posy+120: mes "基本パラメータ"
+	
+	color 255,255,255: font "",12
+	pos arg_posx+60, arg_posy+140: mes "HP"
+	pos arg_posx+100,arg_posy+140: mes "AP"
+	pos arg_posx+140,arg_posy+140: mes "物攻"
+	pos arg_posx+180,arg_posy+140: mes "物防"
+	pos arg_posx+220,arg_posy+140: mes "魔攻"
+	pos arg_posx+260,arg_posy+140: mes "魔防"
+	pos arg_posx+300,arg_posy+140: mes "速度"
+	pos arg_posx+340,arg_posy+140: mes "探索"
+	pos arg_posx+380,arg_posy+140: mes "生成"
+	pos arg_posx+420,arg_posy+140: mes "話術"
+
+	color 255,255,255: font "",24
+	pos arg_posx+60, arg_posy+160: mes strf("%2d",chardef_info(arg_chardefid,CHARDEF_INFO_HP))
+	pos arg_posx+100,arg_posy+160: mes strf("%2d",chardef_info(arg_chardefid,CHARDEF_INFO_AP))
+	pos arg_posx+140,arg_posy+160: mes strf("%2d",chardef_info(arg_chardefid,CHARDEF_INFO_ATC))
+	pos arg_posx+180,arg_posy+160: mes strf("%2d",chardef_info(arg_chardefid,CHARDEF_INFO_DEF))
+	pos arg_posx+220,arg_posy+160: mes strf("%2d",chardef_info(arg_chardefid,CHARDEF_INFO_MAT))
+	pos arg_posx+260,arg_posy+160: mes strf("%2d",chardef_info(arg_chardefid,CHARDEF_INFO_MDF))
+	pos arg_posx+300,arg_posy+160: mes strf("%2d",chardef_info(arg_chardefid,CHARDEF_INFO_SPD))
+	pos arg_posx+340,arg_posy+160: mes strf("%2d",chardef_info(arg_chardefid,CHARDEF_INFO_SRC))
+	pos arg_posx+380,arg_posy+160: mes strf("%2d",chardef_info(arg_chardefid,CHARDEF_INFO_PRD))
+	pos arg_posx+420,arg_posy+160: mes strf("%2d",chardef_info(arg_chardefid,CHARDEF_INFO_COM))
+
+	; 習得スキル
+	color 255,255,255: font "",12
+	pos arg_posx+40, arg_posy+195: mes "習得スキル"
+
+	color 255,255,255: font "",12
+
+	for sub_i,0,CHARDEF_INFO_SKILL_MAX
+		if chardef_info(arg_chardefid,CHARDEF_INFO_SKILL+sub_i)>0 {
+			pos arg_posx+60+sub_i\2*180, arg_posy+215+sub_i/2*20
+			mes skill_sinfo(chardef_info(arg_chardefid,CHARDEF_INFO_SKILL+sub_i),SKILL_SINFO_NAME)
+		}
+	next
+
+    return
+
+; キャラクター情報を指定した座標に表示する
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(charid): 表示するキャラクタID 
+;   arg4(faceindex): 表示する顔画像の位置（-1:デフォルト位置）
+#deffunc sub_show_char int arg_posx, int arg_posy, int arg_charid, int arg_faceindex
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_char. args=%d,%d,%d,%d",arg_posx,arg_posy,arg_charid,arg_faceindex)
+
+	; ウィンドウの大きさ
+	sub_show_char_windowx = 480
+	sub_show_char_windowy = 370
+
+	; faceindexが-1ならCHARDEF_INFO_FACEDEFINDEXに置き換える
+	sub_faceindex = arg_faceindex
+	if sub_faceindex == -1 {
+		sub_faceindex = char_info(arg_charid,CHAR_INFO_FACEDEFINDEX)
+	}
+
+	; エラーチェック
+	if ( sub_faceindex >= IMGDEF_FACE_MAXX * IMGDEF_FACE_MAXY ) or ( sub_faceindex < 0 ){
+		logmes strf("E CHAR_INFO_FACEDEFINDEX is invalid in sub_show_char. chardef_id=%d",arg_charid)
+		return
+	}
+
+	; 背景の描画
+	color 32,32,32
+	boxf arg_posx, arg_posy, arg_posx+sub_show_char_windowx, arg_posy+sub_show_char_windowy
+
+	color 255,139,139
+	pos arg_posx+1, arg_posy+1
+	line arg_posx+1,                       arg_posy+sub_show_char_windowy-1
+	line arg_posx+sub_show_char_windowx-1, arg_posy+sub_show_char_windowy-1
+	line arg_posx+sub_show_char_windowx-1, arg_posy+1
+	line arg_posx+1,                       arg_posy+1
+
+	; 顔画像の描画
+	; キャラクタの顔画像を指定した座標に表示する(gmode 2で描画するので注意)
+	sub_show_char_face arg_posx+5, arg_posy+5, 100, arg_charid, sub_faceindex
+
+
+	; 名前の描画
+	color 255,255,255: font "",18
+	pos arg_posx+120,arg_posy+10:  mes char_sinfo(arg_charid,CHAR_SINFO_NAME)
+	color 255,255,255: font "",12
+	pos arg_posx+120+strlen(char_sinfo(arg_charid,CHAR_SINFO_NAME))*9,arg_posy+10+6:  mes strf("(%s)",class_sinfo(char_info(arg_charid,CHAR_INFO_CLASS),CLASS_SINFO_NAME))
+	
+	; 所属の描画
+	if char_info(arg_charid,CHAR_INFO_TEAM) > 0{
+		color 255,255,255: font "",12
+		pos arg_posx+320, arg_posy+10+6: mes "所属"
+		color 255,255,255: font "",12
+		pos arg_posx+345, arg_posy+10+6: mes team_sinfo(char_info(arg_charid,CHAR_INFO_TEAM),TEAM_SINFO_NAME)
+	}
+	
+	; プロフィールの描画
+	color 255,255,255: font "",12
+	pos arg_posx+140,arg_posy+30: mes strmid(char_sinfo(arg_charid,CHAR_SINFO_PROFILE),0,50)
+	pos arg_posx+140,arg_posy+42: mes strmid(char_sinfo(arg_charid,CHAR_SINFO_PROFILE),50,50)
+	pos arg_posx+140,arg_posy+54: mes strmid(char_sinfo(arg_charid,CHAR_SINFO_PROFILE),100,50)
+	pos arg_posx+140,arg_posy+68: mes strmid(char_sinfo(arg_charid,CHAR_SINFO_PROFILE),150,50)
+	pos arg_posx+140,arg_posy+80: mes strmid(char_sinfo(arg_charid,CHAR_SINFO_PROFILE),200,50)
+	pos arg_posx+140,arg_posy+92: mes strmid(char_sinfo(arg_charid,CHAR_SINFO_PROFILE),250,50)
+
+	; 基本パラメータ
+	color 255,255,255: font "",12
+	pos arg_posx+40, arg_posy+120: mes "パラメータ"
+	
+	color 255,255,255: font "",12
+	pos arg_posx+60, arg_posy+140: mes "LV"
+	pos arg_posx+120,arg_posy+140: mes "EX"
+	pos arg_posx+220,arg_posy+140: mes "HP"
+	pos arg_posx+320,arg_posy+140: mes "AP"
+	pos arg_posx+400,arg_posy+140: mes "スタン許容量"
+	pos arg_posx+60, arg_posy+190: mes "物攻"
+	pos arg_posx+100,arg_posy+190: mes "物防"
+	pos arg_posx+140,arg_posy+190: mes "魔攻"
+	pos arg_posx+180,arg_posy+190: mes "魔防"
+	pos arg_posx+220,arg_posy+190: mes "速度"
+	pos arg_posx+260,arg_posy+190: mes "探索"
+	pos arg_posx+300,arg_posy+190: mes "生成"
+	pos arg_posx+340,arg_posy+190: mes "話術"
+
+	if DEBUG_LEVEL & LOG_DEBUG {
+		color 255,255,255: font "",12
+		pos arg_posx+130, arg_posy+120-6: mes strf("pw%4d",char_info(arg_charid,CHAR_INFO_POWER))
+		pos arg_posx+180, arg_posy+120-6: mes strf("attr%2d",char_info(arg_charid,CHAR_INFO_ARRTIBUTE))
+	}
+	
+	color 255,255,255: font "",18
+	pos arg_posx+60, arg_posy+160: mes strf("%2d/%2d",char_info(arg_charid,CHAR_INFO_LV),char_info(arg_charid,CHAR_INFO_LV_MAX))
+	pos arg_posx+120,arg_posy+160: mes strf("%4d/%4d",char_info(arg_charid,CHAR_INFO_EX),CHAR_INFO_NEED_EX_INIT+CHAR_INFO_NEED_EX_PERLV*char_info(arg_charid,CHAR_INFO_LV))
+	pos arg_posx+220,arg_posy+160: mes strf("%4d/%4d",char_info(arg_charid,CHAR_INFO_HP),char_info(arg_charid,CHAR_INFO_HP_MAX))
+	pos arg_posx+320,arg_posy+160: mes strf("%3d/%3d",char_info(arg_charid,CHAR_INFO_AP),char_info(arg_charid,CHAR_INFO_AP_MAX))
+	pos arg_posx+400,arg_posy+160: mes strf("%4d",char_info(arg_charid,CHAR_INFO_STAN_MAX))
+	pos arg_posx+60, arg_posy+210: mes strf("%3d",char_info(arg_charid,CHAR_INFO_ATC))
+	pos arg_posx+100,arg_posy+210: mes strf("%3d",char_info(arg_charid,CHAR_INFO_DEF))
+	pos arg_posx+140,arg_posy+210: mes strf("%3d",char_info(arg_charid,CHAR_INFO_MAT))
+	pos arg_posx+180,arg_posy+210: mes strf("%3d",char_info(arg_charid,CHAR_INFO_MDF))
+	pos arg_posx+220,arg_posy+210: mes strf("%3d",char_info(arg_charid,CHAR_INFO_SPD))
+	pos arg_posx+260,arg_posy+210: mes strf("%3d",char_info(arg_charid,CHAR_INFO_SRC))
+	pos arg_posx+300,arg_posy+210: mes strf("%3d",char_info(arg_charid,CHAR_INFO_PRD))
+	pos arg_posx+340,arg_posy+210: mes strf("%3d",char_info(arg_charid,CHAR_INFO_COM))
+	
+	; 弱点
+	color 255,255,255: font "",12
+	pos arg_posx+285, arg_posy+115: mes "弱点"
+	
+	color 255,255,255: font "",18
+	for sub_i,1,ELEMENT_LMAX	; 無属性は表示しない
+		pos arg_posx+285+10+sub_i*18, arg_posy+115-6
+		if ( char_info(arg_charid,CHAR_INFO_WEAK) && ELEMENT_ALLS(sub_i) ) > 0 {
+			mes ELEMENT_LABEL(sub_i)
+		} else {
+			mes "‐"
+		}
+	next
+
+	; 習得スキル
+	color 255,255,255: font "",12
+	pos arg_posx+40, arg_posy+245: mes "習得スキル"
+
+	color 255,255,255: font "",12
+
+	for sub_i,0,CHAR_INFO_SKILL_MAX
+		if char_info(arg_charid,CHAR_INFO_SKILL+sub_i)>0 {
+			pos arg_posx+60+sub_i\2*180, arg_posy+265+sub_i/2*20
+			if skill_info(char_info(arg_charid,CHAR_INFO_SKILL+sub_i),SKILL_INFO_USEAP) > char_info(arg_charid,CHAR_INFO_AP) {
+				; 最大APを上回るスキルは灰色表示
+				color 128,128,128
+			} else {
+				color 255,255,255
+			}
+			if skill_info(char_info(arg_charid,CHAR_INFO_SKILL+sub_i),SKILL_INFO_TRIGGER) == SKILL_INFO_SKILLTYPE_ACTIVE {
+				mes strf("%s",skill_sinfo(char_info(arg_charid,CHAR_INFO_SKILL+sub_i),SKILL_SINFO_NAME))
+			}
+			if skill_info(char_info(arg_charid,CHAR_INFO_SKILL+sub_i),SKILL_INFO_TRIGGER) == SKILL_INFO_SKILLTYPE_PASSIVE {
+				mes strf("%s(パッシブ)",skill_sinfo(char_info(arg_charid,CHAR_INFO_SKILL+sub_i),SKILL_SINFO_NAME))
+			}
+		}
+	next
+
+    return
+
+; キャラクターのリストをチームメンバーから生成する
+;   arg1(teamid): チームID
+;   arg2(max_select): 最大で選択できる数
+;   arg3(param): 集計するパラメータ(-1:なし)
+;   arg4(option): 1:行動済は選べない
+#deffunc sub_create_list_char_from_team int arg_teamid, int arg_max_select, int arg_param, int arg_option
+
+	if DEBUG_MODE == 1 {
+		logmes strf("I call sub_create_list_char. args=%d,%d,%d,%d",arg_teamid,arg_max_select,arg_param,arg_option)
+	}
+	
+	dim sub_member_list,TEAM_MEMBER_MAX
+	for sub_i,0,TEAM_MEMBER_MAX
+		sub_member_list(sub_i) = team_member(arg_teamid,sub_i)
+	next
+	
+	sub_create_list_char sub_member_list, arg_max_select, arg_param, arg_option
+
+	return
+
+; キャラクターのリストを生成する
+;   arg1(list): 表示するキャラクタIDのリスト
+;   arg2(max_select): 最大で選択できる数
+;   arg3(param): 集計するパラメータ(-1:なし)
+;   arg4(option): 1:行動済は選べない
+#deffunc sub_create_list_char array arg_list, int arg_max_select, int arg_param, int arg_option
+
+	if DEBUG_MODE == 1 {
+		logmes strf("I call sub_create_list_char. args=list,%d,%d",arg_max_select,arg_param,arg_option)
+		for sub_i,0,9
+			if( length(arg_list) > sub_i ): logmes strf("    list(%d)=%d",sub_i,arg_list(sub_i))
+		next
+		if( length(arg_list) >= 9 ): logmes strf("    ...and more")
+	}
+
+	; リストの設定
+	dim menu_list_char,MENU_LIST_CHAR_MAX
+	dim menu_list_char_disable,MENU_LIST_CHAR_MAX		; 選択不可能フラグ(1:表示するが選択できない)
+	sub_index = 0
+	for sub_i,0,MENU_LIST_CHAR_MAX
+		if sub_i >= length(arg_list) : _break
+		if arg_list(sub_i) <= 0 : _continue
+		menu_list_char(sub_index) = arg_list(sub_i)
+		; 行動済みなら選択不可に
+		if arg_option & 1 {
+			if char_info(arg_list(sub_i), CHAR_INFO_ACTION_CNT) > 0 : menu_list_char_disable(sub_index) = 1
+		}
+		sub_index += 1
+	next
+	
+	; 選択用の変数を初期化
+	menu_list_char_pickup_num = arg_max_select
+	if menu_list_char_pickup_num > MENU_LIST_CHAR_SELECT_MAX : menu_list_char_pickup_num = MENU_LIST_CHAR_SELECT_MAX
+	if menu_list_char_pickup_num < 0 : menu_list_char_pickup_num = 0
+	dim menu_list_char_selects,MENU_LIST_CHAR_MAX
+	menu_list_char_show_start = 0
+	menu_list_char_focus = -1
+	menu_list_char_pickup_param = arg_param
+	menu_list_char_pickup_sumparam = 0
+	menu_list_char_pickup(0) = -1
+	menu_list_char_pickup(1) = -1
+	menu_list_char_pickup(2) = -1
+	menu_list_char_active = 1
+	menu_list_char_returncode = 0
+	dim menu_list_char_vote,MENU_LIST_CHAR_MAX	; 自動選択用の投票
+	menu_list_char_vote_num = 0						; 総投票数
+	
+	return
+
+; キャラクター情報を指定した座標にリスト表示する
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   menu_list_char: 表示するキャラクタIDのリスト 
+#deffunc sub_show_list_char int arg_posx, int arg_posy
+
+	; menu_list_char_activeが1,2の場合のみ使用中
+	if menu_list_char_active <= 0 : return
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_list_char. args=%d,%d",arg_posx,arg_posy)
+
+	; ウィンドウの大きさ
+	sub_show_list_char_windowx = 560
+	sub_show_list_char_windowy = 100 + MENU_LIST_CHAR_SHOW_MAX*44
+	
+	; 背景の描画
+	color 32,32,32
+	boxf arg_posx, arg_posy, arg_posx+sub_show_list_char_windowx, arg_posy+sub_show_list_char_windowy
+
+	color 255,139,139
+	pos arg_posx+1, arg_posy+1
+	line arg_posx+1,                            arg_posy+sub_show_list_char_windowy-1
+	line arg_posx+sub_show_list_char_windowx-1, arg_posy+sub_show_list_char_windowy-1
+	line arg_posx+sub_show_list_char_windowx-1, arg_posy+1
+	line arg_posx+1,                            arg_posy+1
+
+	gmode 2
+
+	; 選択確定のキャラを表示
+	if menu_list_char_pickup_num > 0{
+		color 255,255,255: font "",12
+		pos arg_posx+20, arg_posy+5 : mes "選択済み"
+		if menu_list_char_pickup_param > 0{
+			pos arg_posx+30, arg_posy+17 : mes PARAM_LABEL(menu_list_char_pickup_param)
+			pos arg_posx+30, arg_posy+29 : mes strf("%4d",menu_list_char_pickup_sumparam)
+		}
+	}
+	
+	for sub_i,0,menu_list_char_pickup_num
+		if menu_list_char_pickup(sub_i) >=0 {
+			; 顔画像
+			; キャラクタの顔画像を指定した座標に表示する(gmode 2で描画するので注意)
+			sub_show_char_face arg_posx+80+sub_i*160, arg_posy+5, 40, menu_list_char_pickup(sub_i), -1
+
+			; 名前、他パラメータ
+			color 255,255,255: font "",12
+			pos arg_posx+80+sub_i*160+44, arg_posy+5+6
+			mes char_sinfo(menu_list_char_pickup(sub_i),CHAR_SINFO_NAME)
+			if menu_list_char_pickup_param > 0{
+				pos arg_posx+80+sub_i*160+44, arg_posy+5+6+12 : mes strf("%4d",char_info(menu_list_char_pickup(sub_i),char_info_param_mapping(menu_list_char_pickup_param)))
+			}
+		}
+	next
+	
+	; 一覧のタイトルラベル
+	color 255,255,255: font "",12
+	;pos arg_posx+20, arg_posy+60 : mes "選択"
+	pos arg_posx+100, arg_posy+60 : mes "キャラ名"
+	pos arg_posx+210, arg_posy+60 : mes "Lv"
+	pos arg_posx+230, arg_posy+60 : mes "HP"
+	pos arg_posx+300, arg_posy+60 : mes "物攻"
+	pos arg_posx+330, arg_posy+60 : mes "物防"
+	pos arg_posx+360, arg_posy+60 : mes "魔攻"
+	pos arg_posx+390, arg_posy+60 : mes "魔防"
+	pos arg_posx+420, arg_posy+60 : mes "速度"
+	pos arg_posx+450, arg_posy+60 : mes "探索"
+	pos arg_posx+480, arg_posy+60 : mes "生成"
+	pos arg_posx+510, arg_posy+60 : mes "話術"
+
+	for sub_i,0,MENU_LIST_CHAR_SHOW_MAX
+		if menu_list_char(menu_list_char_show_start+sub_i) == 0 : _break
+
+		; 選択状態に応じて色を変える
+		if menu_list_char_disable(menu_list_char_show_start+sub_i) == 1 {
+			color 64,64,64
+		} else {
+			if menu_list_char_selects(menu_list_char_show_start+sub_i) == 0 : color 255,255,255
+			if menu_list_char_selects(menu_list_char_show_start+sub_i) == 1 : color   8,247,254
+			if menu_list_char_selects(menu_list_char_show_start+sub_i) == 2 : color 254, 83,187
+		}
+
+		; 選択番号
+		font "",12
+		pos arg_posx+20, arg_posy+80+sub_i*44+16
+		if menu_list_char_disable(menu_list_char_show_start+sub_i) == 0 {
+			mes strf("[%d]",sub_i+1)
+		}
+
+		; 顔画像
+		; キャラクタの顔画像を指定した座標に表示する(gmode 2で描画するので注意)
+		sub_show_char_face arg_posx+50, arg_posy+80+sub_i*44, 40, menu_list_char(menu_list_char_show_start+sub_i), -1
+
+
+		; 名前、他パラメータ
+		font "",12
+		pos arg_posx+100, arg_posy+80+sub_i*44+16
+		mes char_sinfo(menu_list_char(menu_list_char_show_start+sub_i),CHAR_SINFO_NAME)
+		
+		pos arg_posx+210, arg_posy+80+sub_i*44+16 : mes strf("%2d",char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_LV))
+		pos arg_posx+230, arg_posy+80+sub_i*44+16 : mes strf("%4d/%4d",char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_HP),char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_HP_MAX))
+		pos arg_posx+300, arg_posy+80+sub_i*44+16 : mes strf("%4d",char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_ATC))
+		pos arg_posx+330, arg_posy+80+sub_i*44+16 : mes strf("%4d",char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_DEF))
+		pos arg_posx+360, arg_posy+80+sub_i*44+16 : mes strf("%4d",char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_MAT))
+		pos arg_posx+390, arg_posy+80+sub_i*44+16 : mes strf("%4d",char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_MDF))
+		pos arg_posx+420, arg_posy+80+sub_i*44+16 : mes strf("%4d",char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_SPD))
+		pos arg_posx+450, arg_posy+80+sub_i*44+16 : mes strf("%4d",char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_SRC))
+		pos arg_posx+480, arg_posy+80+sub_i*44+16 : mes strf("%4d",char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_PRD))
+		pos arg_posx+510, arg_posy+80+sub_i*44+16 : mes strf("%4d",char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_COM))
+
+		; 行動済みの場合		
+		if char_info(menu_list_char(menu_list_char_show_start+sub_i),CHAR_INFO_ACTION_CNT) > 0 {
+			color 192,64,64
+			pos arg_posx+100, arg_posy+80+sub_i*44+16-12:  mes "行動済"
+		}
+	next
+
+	; リストの続きがある場合
+	color 255,255,255: font "",12
+	if menu_list_char_show_start+MENU_LIST_CHAR_SHOW_MAX < MENU_LIST_CHAR_MAX {
+		if menu_list_char(menu_list_char_show_start+MENU_LIST_CHAR_SHOW_MAX) != 0{
+			pos arg_posx+470, arg_posy+sub_show_list_char_windowy-20 : mes "[D] 次ページ"
+		}	
+	}
+	if menu_list_char_show_start-MENU_LIST_CHAR_SHOW_MAX >= 0 {
+		if menu_list_char(menu_list_char_show_start-MENU_LIST_CHAR_SHOW_MAX) != 0{
+			pos arg_posx+30, arg_posy+sub_show_list_char_windowy-20 : mes "[A] 前ページ"
+		}	
+	}
+
+	; 確定/キャンセル
+	sub_num = 0
+	for sub_i,0,menu_list_char_pickup_num
+		if menu_list_char_pickup(sub_i) >=0 {
+			sub_num += 1
+		}
+	next
+	if sub_num > 0{
+		color 255,255,255: font "",12
+	} else {
+		color 123,124,125: font "",12
+	}
+	pos arg_posx+160, arg_posy+sub_show_list_char_windowy-20 : mes "[Z] 選択確定"
+	color 255,255,255: font "",12
+	pos arg_posx+300, arg_posy+sub_show_list_char_windowy-20 : mes "[C] 選択キャンセル"
+
+	return
+
+; キャラクターのリスト選択メニューで選択肢に重みをつける
+;   arg1(mode): 投票モード
+;		MENU_LIST_CHAR_VOTE_CLEAR		; 投票箱を初期化する
+;		MENU_LIST_CHAR_VOTE_RANDOM		; 投票モード（ランダム）		※全てに1票追加
+;		MENU_LIST_CHAR_VOTE_COVER		; 投票モード（味方ガード持ち）	※味方ガード持ちに5票追加
+;		MENU_LIST_CHAR_VOTE_HEAL		; 投票モード（回復持ち）		※回復スキル持ちに5票追加
+;		MENU_LIST_CHAR_VOTE_ATTACK		; 投票モード（火力持ち）		※高火力スキル持ちに5票追加
+;		MENU_LIST_CHAR_VOTE_NOTIRED		; 投票モード（非疲労持ち）		※未行動のキャラに100票追加（未行動キャラが3人以上いる場合は行動キャラの票を0に、それ以外に1票追加）
+;		MENU_LIST_CHAR_VOTE_LEADER		; 投票モード（リーダー）		※リーダーに250票追加
+;		MENU_LIST_CHAR_VOTE_NOT_LEADER	; 投票モード（リーダー以外）	※リーダーに50票追加
+;		MENU_LIST_CHAR_VOTE_PARAM_NONE	; ダミー
+;		MENU_LIST_CHAR_VOTE_PARAM_HP	; 投票モード（パラメータ）		※パラメータの数値分投票
+;		MENU_LIST_CHAR_VOTE_PARAM_AP	; 投票モード（パラメータ）		※パラメータの数値分投票
+;		MENU_LIST_CHAR_VOTE_PARAM_ATC	; 投票モード（パラメータ）		※パラメータの数値分投票
+;		MENU_LIST_CHAR_VOTE_PARAM_DEF	; 投票モード（パラメータ）		※パラメータの数値分投票
+;		MENU_LIST_CHAR_VOTE_PARAM_MAT	; 投票モード（パラメータ）		※パラメータの数値分投票
+;		MENU_LIST_CHAR_VOTE_PARAM_MDF	; 投票モード（パラメータ）		※パラメータの数値分投票
+;		MENU_LIST_CHAR_VOTE_PARAM_SPD	; 投票モード（パラメータ）		※パラメータの数値分投票
+;		MENU_LIST_CHAR_VOTE_PARAM_SRC	; 投票モード（パラメータ）		※パラメータの数値分投票
+;		MENU_LIST_CHAR_VOTE_PARAM_PRD	; 投票モード（パラメータ）		※パラメータの数値分投票
+;		MENU_LIST_CHAR_VOTE_PARAM_COM	; 投票モード（パラメータ）		※パラメータの数値分投票
+;		MENU_LIST_CHAR_VOTE_PARAM_STAN	; 投票モード（パラメータ）		※パラメータの数値分投票
+;   arg2(weight): 投票の倍率(上記モードの票数にこの数字をかけて投票する)
+#deffunc sub_vote_list_char int arg_mode, int arg_weight
+	
+	if DEBUG_LEVEL & LOG_INFO:logmes strf("I call sub_vote_list_char args=%d,%d", arg_mode, arg_weight)
+
+	; 有効でなければ機能しない
+	if menu_list_char_active <= 0 : return
+	
+	; 行動可能な人数を集計する
+	sub_calcu_team_active_member global_info(GLOBAL_INFO_TURN_TEAM)
+	
+	for sub_i,0,MENU_LIST_CHAR_MAX
+		if menu_list_char(sub_i) <= 0 : _continue
+		
+		switch arg_mode
+		case MENU_LIST_CHAR_VOTE_CLEAR	; 投票箱を初期化する
+			menu_list_char_vote(sub_i) = 0
+			menu_list_char_vote_num=0
+			swbreak
+		case MENU_LIST_CHAR_VOTE_RANDOM	; 投票モード（ランダム）		※全てに1票追加
+			menu_list_char_vote(sub_i) += arg_weight
+			menu_list_char_vote_num += arg_weight
+			swbreak
+		case MENU_LIST_CHAR_VOTE_COVER	; 投票モード（味方ガード持ち）	※味方ガード持ちに5票追加
+			if ( char_info(menu_list_char(sub_i),CHAR_INFO_ARRTIBUTE) & CHAR_INFO_ARRTIBUTE_COVER ) > 0 {
+				menu_list_char_vote(sub_i) += 5 * arg_weight
+				menu_list_char_vote_num += 5 * arg_weight
+			}
+			swbreak
+		case MENU_LIST_CHAR_VOTE_HEAL	; 投票モード（回復持ち）		※回復スキル持ちに5票追加
+			if ( char_info(menu_list_char(sub_i),CHAR_INFO_ARRTIBUTE) & CHAR_INFO_ARRTIBUTE_HEAL ) > 0 {
+				menu_list_char_vote(sub_i) += 5 * arg_weight
+				menu_list_char_vote_num += 5 * arg_weight
+			}
+			swbreak
+		case MENU_LIST_CHAR_VOTE_ATTACK	; 投票モード（火力持ち）		※高火力スキル持ちに5票追加
+			if ( char_info(menu_list_char(sub_i),CHAR_INFO_ARRTIBUTE) & CHAR_INFO_ARRTIBUTE_ATTACK ) > 0 {
+				menu_list_char_vote(sub_i) += 5 * arg_weight
+				menu_list_char_vote_num += 5 * arg_weight
+			}
+			swbreak
+		case MENU_LIST_CHAR_VOTE_NOTIRED	; 投票モード（非疲労持ち）		※未行動のキャラに100票追加（未行動キャラが3人以上いる場合は行動キャラの票を0に、それ以外に1票追加）
+			if team_info(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_INFO_ACTIVE_MEMBER) >=3 {
+				if char_info(menu_list_char(sub_i),CHAR_INFO_ACTION_CNT) > 0 {
+					menu_list_char_vote_num -= menu_list_char_vote(sub_i)
+					menu_list_char_vote(sub_i) = 0
+					if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D %d is 0 in sub_vote_list_char",menu_list_char(sub_i))
+				} else {
+					menu_list_char_vote(sub_i) += arg_weight
+					menu_list_char_vote_num += arg_weight
+				}
+			} else {
+				if char_info(menu_list_char(sub_i),CHAR_INFO_ACTION_CNT) == 0 {
+					menu_list_char_vote(sub_i) += 100 * arg_weight
+					menu_list_char_vote_num += 100 * arg_weight
+				}
+			}
+			swbreak
+		case MENU_LIST_CHAR_VOTE_LEADER	; 投票モード（リーダー）		※リーダーに250票追加
+			for sub_j,0,TEAM_MAX
+				if team_info(sub_j,TEAM_INFO_LEADER) > 0 : _continue
+				if team_info(sub_j,TEAM_INFO_LEADER) == menu_list_char(sub_i) {
+					menu_list_char_vote(sub_i) += 250 * arg_weight
+					menu_list_char_vote_num += 250 * arg_weight
+				}
+			next
+			swbreak
+		case MENU_LIST_CHAR_VOTE_NOT_LEADER	; 投票モード（リーダー以外）	※リーダー以外に10票追加
+			for sub_j,0,TEAM_MAX
+				if team_info(sub_j,TEAM_INFO_LEADER) > 0 : _continue
+				if team_info(sub_j,TEAM_INFO_LEADER) != menu_list_char(sub_i) {
+					menu_list_char_vote(sub_i) += 10 * arg_weight
+					menu_list_char_vote_num += 10 * arg_weight
+				}
+			next
+			swbreak
+		case MENU_LIST_CHAR_VOTE_PARAM_HP	; 投票モード（パラメータ）		※パラメータの数値分投票
+		case MENU_LIST_CHAR_VOTE_PARAM_AP	; 投票モード（パラメータ）		※パラメータの数値分投票
+		case MENU_LIST_CHAR_VOTE_PARAM_ATC	; 投票モード（パラメータ）		※パラメータの数値分投票
+		case MENU_LIST_CHAR_VOTE_PARAM_DEF	; 投票モード（パラメータ）		※パラメータの数値分投票
+		case MENU_LIST_CHAR_VOTE_PARAM_MAT	; 投票モード（パラメータ）		※パラメータの数値分投票
+		case MENU_LIST_CHAR_VOTE_PARAM_MDF	; 投票モード（パラメータ）		※パラメータの数値分投票
+		case MENU_LIST_CHAR_VOTE_PARAM_SPD	; 投票モード（パラメータ）		※パラメータの数値分投票
+		case MENU_LIST_CHAR_VOTE_PARAM_SRC	; 投票モード（パラメータ）		※パラメータの数値分投票
+		case MENU_LIST_CHAR_VOTE_PARAM_PRD	; 投票モード（パラメータ）		※パラメータの数値分投票
+		case MENU_LIST_CHAR_VOTE_PARAM_COM	; 投票モード（パラメータ）		※パラメータの数値分投票
+		case MENU_LIST_CHAR_VOTE_PARAM_STAN	; 投票モード（パラメータ）		※パラメータの数値分投票
+			sub_param = arg_mode - MENU_LIST_CHAR_VOTE_PARAM_NONE
+			menu_list_char_vote(sub_i) += char_info(menu_list_char(sub_i), char_info_param_mapping(sub_param)) * arg_weight
+			menu_list_char_vote_num += char_info(menu_list_char(sub_i), char_info_param_mapping(sub_param)) * arg_weight
+			if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D vote %d for char %d in sub_vote_list_char",char_info(menu_list_char(sub_i), char_info_param_mapping(sub_param)) * arg_weight,menu_list_char(sub_i))
+		swend
+	next
+
+	return
+
+; キャラクターのリスト選択メニューで1人自動で決定する
+;   arg1(mode): 決定モード
+;		MENU_LIST_CHAR_DECIDE_ELECTION	; 決定モード（投票したものから抽選）
+;		MENU_LIST_CHAR_DECIDE_MAX			; 決定モード（最も投票したものに決定）
+#deffunc sub_decide_list_char int arg_mode
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_decide_list_char args=%d", arg_mode)
+
+	; 有効でなければ機能しない
+	if menu_list_char_active <= 0 : return
+
+	; 票を投票せずに呼び出したら強制的に1票ずつ入れる
+	if menu_list_char_vote_num <= 0 {
+		if DEBUG_LEVEL & LOG_WARNING :logmes strf("W menu_list_char_vote_num is zero")
+		; キャラクターのリスト選択メニューで選択肢に重みをつける
+		sub_vote_list_char MENU_LIST_CHAR_VOTE_RANDOM, 1
+	}
+
+
+	; 既に選択確定しているキャラは0票にする
+	for sub_i,0,MENU_LIST_CHAR_MAX
+		if menu_list_char_selects(sub_i) == 2{
+			menu_list_char_vote_num -= menu_list_char_vote(sub_i)
+			menu_list_char_vote(sub_i) = 0
+		}
+	next
+
+	; 途中で候補がいなくなったら最大人数選択せずに終了
+	if menu_list_char_vote_num <= 0 {
+		for sub_i,0,MENU_LIST_CHAR_SELECT_MAX
+			menu_list_char_pickup(sub_i) = -1
+		next
+		sub_pickup_num = 0
+		for sub_i,0,MENU_LIST_CHAR_MAX
+			if menu_list_char_selects(sub_i) == 2 {
+				menu_list_char_pickup(sub_pickup_num) = menu_list_char(sub_i)
+				sub_pickup_num += 1
+			}
+		next
+		menu_list_char_active = 0
+		menu_list_char_returncode = 1
+		return
+	}
+	
+	sub_election = 0
+	sub_election_num = 0
+	switch arg_mode
+	case MENU_LIST_CHAR_DECIDE_ELECTION	; 決定モード（投票したものから抽選）
+		sub_election = rnd(menu_list_char_vote_num)
+		for sub_i,0,MENU_LIST_CHAR_MAX
+			if sub_election < menu_list_char_vote(sub_i) {	; これに決定
+				menu_list_char_selects(sub_i) = 2
+				_break
+			}
+			sub_election -= menu_list_char_vote(sub_i)
+		next
+		swbreak
+	case MENU_LIST_CHAR_DECIDE_MAX		; 決定モード（最も投票したものに決定）
+		for sub_i,0,MENU_LIST_CHAR_MAX
+			if sub_election_num < menu_list_char_vote(sub_i){
+				sub_election_num = menu_list_char_vote(sub_i)
+				sub_election = sub_i
+			}
+		next
+		menu_list_char_selects(sub_election) = 2	; これに決定
+		swbreak
+	swend
+
+	; 強調するパラメータの集計
+	menu_list_char_pickup_sumparam = 0
+	if menu_list_char_pickup_param > 0{
+		for sub_i,0,MENU_LIST_CHAR_MAX
+			if menu_list_char_selects(sub_i) == 2{
+				menu_list_char_pickup_sumparam += char_info(menu_list_char(sub_i),char_info_param_mapping(menu_list_char_pickup_param))
+			}
+		next
+	}
+	
+	; 全員選んでいればメニュー終了
+	for sub_i,0,MENU_LIST_CHAR_SELECT_MAX
+		menu_list_char_pickup(sub_i) = -1
+	next
+	sub_pickup_num = 0
+	for sub_i,0,MENU_LIST_CHAR_MAX
+		if menu_list_char_selects(sub_i) == 2 {
+			menu_list_char_pickup(sub_pickup_num) = menu_list_char(sub_i)
+			sub_pickup_num += 1
+		}
+	next
+	if sub_pickup_num >= menu_list_char_pickup_num {
+		; 全員選んだのでメニュー終了
+		menu_list_char_active = 0
+		menu_list_char_returncode = 1
+	}
+	
+	return
+	
+; アイコンを指定した座標に表示する
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(type): アイコンの種類 
+;   arg4(pattern): アイコンの色
+;   arg5(size): 描画サイズ、x座標基準(-1:デフォルトサイズそのまま)
+#deffunc sub_show_icondef int arg_posx, int arg_posy, int arg_type, int arg_pattern, int arg_size
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_chardef. args=%d,%d,%d,%d,%d",arg_posx,arg_posy,arg_type,arg_pattern,arg_size)
+
+	sub_sizex = IMGDEF_ICON_SIZEX
+	sub_sizey = IMGDEF_ICON_SIZEY
+	if arg_size != -1 {	
+		sub_sizex = arg_size
+		sub_sizey = IMGDEF_ICON_SIZEY * arg_size / IMGDEF_ICON_SIZEX
+	}
+
+	; icon画像をロードしてなければエラー
+	if imgdef_icon_id(arg_type,arg_pattern) == -1{
+		logmes strf("E invalied icon id. type=%d, pattern=%d",arg_type,arg_pattern)
+		return
+	}
+
+	pos arg_posx, arg_posy
+	gmode 0
+	gzoom sub_sizex,sub_sizey,imgdef_icon_id(arg_type,arg_pattern),0,0,IMGDEF_ICON_SIZEX,IMGDEF_ICON_SIZEY
+	
+	return
+
+; マップチップを指定した座標に表示する
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(type): アイコンの種類 
+;   arg4(pattern): アイコンの色
+;   arg5(size): 描画サイズ、x座標基準(-1:デフォルトサイズそのまま)
+#deffunc sub_show_mapchipdef int arg_posx, int arg_posy, int arg_type, int arg_pattern, int arg_size
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_mapchipdef. args=%d,%d,%d,%d,%d",arg_posx,arg_posy,arg_type,arg_pattern,arg_size)
+
+	sub_sizex = IMGDEF_MAPCHIP_SIZEX
+	sub_sizey = IMGDEF_MAPCHIP_SIZEY
+	if arg_size != -1 {	
+		sub_sizex = arg_size
+		sub_sizey = IMGDEF_MAPCHIP_SIZEY * arg_size / IMGDEF_MAPCHIP_SIZEX
+	}
+
+	; icon画像をロードしてなければエラー
+	if imgdef_mapchip_id(arg_type,arg_pattern) == -1{
+		logmes strf("E invalied icon id. type=%d, pattern=%d",arg_type,arg_pattern)
+		return
+	}
+
+	pos arg_posx, arg_posy
+	gmode 2
+	gzoom sub_sizex,sub_sizey,imgdef_mapchip_id(arg_type,arg_pattern),0,0,IMGDEF_MAPCHIP_SIZEX,IMGDEF_MAPCHIP_SIZEY
+	
+	return
+
+; 汎用選択肢を生成する
+;   arg1(list): 表示する文字列のリスト
+#deffunc sub_create_selector array arg_list
+	
+	if DEBUG_MODE == 1 {
+		logmes strf("I call sub_create_selector. args=list")
+		for sub_i,0,9
+			if( length(arg_list) > sub_i ): logmes strf("    list(%d)=%d",sub_i,arg_list(sub_i))
+		next
+		if( length(arg_list) >= 9 ): logmes strf("    ...and more")
+	}
+
+	; リストの設定
+	sdim selector_list,64,SELECTOR_LIST_MAX
+	sub_index = 0
+	for sub_i,0,SELECTOR_LIST_MAX
+		if sub_i >= length(arg_list) : _break
+		if strlen(arg_list(sub_i)) <= 0 : _continue
+		selector_list(sub_index) = arg_list(sub_i)
+		sub_index += 1
+	next
+	
+	; 選択用の変数を初期化	
+	dim selector_list_disable,SELECTOR_LIST_MAX		; 選択不可能フラグ(1:表示するが選択できない)
+	selector_list_focus = -1
+	selector_list_active = 1
+	selector_list_returncode = 0
+	selector_list_num = 0			; 有効な選択肢の数
+	selector_list_max_length = 0	; 最も長い選択肢の文字列
+	for sub_i,0,length(selector_list)
+		if strlen(selector_list(sub_i)) == 0 : _break
+		selector_list_num += 1
+		if strlen(selector_list(sub_i)) > selector_list_max_length : selector_list_max_length = strlen(selector_list(sub_i))
+	next
+
+	return
+
+
+; 汎用選択肢を指定した座標に表示する
+;   arg1(posx): X座標（左上）
+;   arg2(posy): Y座標（左上）
+#deffunc sub_show_selector int arg_posx, int arg_posy
+
+	; selector_list_activeが1の場合のみ使用中
+	if selector_list_active != 1 : return
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_selector. args=%d,%d",arg_posx,arg_posy)
+
+	; ウィンドウの大きさ
+	sub_show_selector_windowx = (4 + selector_list_max_length) * 6 + 10
+	sub_show_selector_windowy = selector_list_num * 15 + 6
+	
+	; 背景の描画
+	color 32,32,32
+	boxf arg_posx, arg_posy, arg_posx+sub_show_selector_windowx, arg_posy+sub_show_selector_windowy
+
+	color 255,139,139
+	pos arg_posx+1, arg_posy+1
+	line arg_posx+1,                           arg_posy+sub_show_selector_windowy-1
+	line arg_posx+sub_show_selector_windowx-1, arg_posy+sub_show_selector_windowy-1
+	line arg_posx+sub_show_selector_windowx-1, arg_posy+1
+	line arg_posx+1,                           arg_posy+1
+
+	color 255,255,255 : font "",12
+
+	sub_dispnum = 1
+	for sub_i,0,length(selector_list)
+		if strlen(selector_list(sub_i)) <= 0 : _continue
+		if selector_list_disable(sub_i) == 0 {
+			if selector_list_focus == sub_i {
+				color   8,247,254
+			} else {
+				color 255,255,255
+			}
+		} else {
+			color 64,64,64
+		}
+		pos arg_posx+5, arg_posy+5+(sub_dispnum-1)*15 : mes strf("[%d] %s",sub_dispnum,selector_list(sub_i))
+		sub_dispnum += 1
+	next
+	
+	return
+
+
+; マップを指定した座標に表示する
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(area): 中心に表示するエリアID (-1:今のarea_focusを引き継ぐ)　※現在は4で固定
+#deffunc sub_show_map int arg_posx, int arg_posy, int arg_area
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_map. args=%d,%d,%d",arg_posx,arg_posy,arg_area)
+
+	; 現在は中心はエリアID 4で固定
+	area_focus = 4
+
+	; マップ描画時に表示されるエリアをarea_list_displayに格納する
+	sub_calcu_map_disp_area
+	
+	; ウィンドウの大きさ
+	sub_show_map_windowx = 500
+	sub_show_map_windowy = 500
+
+	; 補助線
+	if DEBUG_MODE {
+		; 背景の描画
+		color 32,32,32
+		boxf arg_posx, arg_posy, arg_posx+sub_show_map_windowx, arg_posy+sub_show_map_windowy
+		; 枠線の描画
+		color 128,128,128
+		pos arg_posx+1, arg_posy+1
+		line arg_posx+1,                      arg_posy+sub_show_map_windowy-1
+		line arg_posx+sub_show_map_windowx-1, arg_posy+sub_show_map_windowy-1
+		line arg_posx+sub_show_map_windowx-1, arg_posy+1
+		line arg_posx+1,                      arg_posy+1
+	}
+
+	; エリア間の接続線の描画
+	for sub_i,0,AREA_MAX
+		for sub_j,0,AREA_NEIGHBER_MAX
+			if area_neighber(sub_i,sub_j) > 0 {
+				sub_fromx = arg_posx+area_info(sub_i,AREA_INFO_MAPX)+(IMGDEF_MAPCHIP_SIZEX/2)
+				sub_fromy = arg_posy+area_info(sub_i,AREA_INFO_MAPY)+(IMGDEF_MAPCHIP_SIZEY/2)
+				sub_tox =   arg_posx+area_info(area_neighber(sub_i,sub_j),AREA_INFO_MAPX)+(IMGDEF_MAPCHIP_SIZEX/2)
+				sub_toy =   arg_posy+area_info(area_neighber(sub_i,sub_j),AREA_INFO_MAPY)+(IMGDEF_MAPCHIP_SIZEY/2)
+				
+				color 255,255,255
+				line sub_fromx,sub_fromy,sub_tox,sub_toy
+			}
+		next
+	next
+	
+	; エリアをアイコンと名称で表示
+	for sub_i,0,AREA_MAX
+		if strlen(area_sinfo(sub_i,AREA_SINFO_NAME)) > 0 {
+			; エリア間の接続線はエリアアイコン周辺は描画しない
+			color 0,0,0
+			circle arg_posx+area_info(sub_i,AREA_INFO_MAPX)-10, arg_posy+area_info(sub_i,AREA_INFO_MAPY)-10, arg_posx+area_info(sub_i,AREA_INFO_MAPX)+IMGDEF_MAPCHIP_SIZEX+10, arg_posy+area_info(sub_i,AREA_INFO_MAPY)+IMGDEF_MAPCHIP_SIZEY+10, 1
+			; アイコンの描画
+			sub_show_mapchipdef arg_posx+area_info(sub_i,AREA_INFO_MAPX), arg_posy+area_info(sub_i,AREA_INFO_MAPY), area_info(sub_i,AREA_INFO_ICONT), area_info(sub_i,AREA_INFO_ICONP), -1
+			; エリア名の描画
+			sub_offsetx = strlen(area_sinfo(sub_i,AREA_SINFO_NAME)) * 6 / 2
+			color 0,0,0 ; エリア名を描画する場所も接続線は表示しない			
+			boxf arg_posx+area_info(sub_i,AREA_INFO_MAPX)+(IMGDEF_MAPCHIP_SIZEX/2)-sub_offsetx-1, arg_posy+area_info(sub_i,AREA_INFO_MAPY)+IMGDEF_MAPCHIP_SIZEY+5-1,arg_posx+area_info(sub_i,AREA_INFO_MAPX)+(IMGDEF_MAPCHIP_SIZEX/2)+sub_offsetx, arg_posy+area_info(sub_i,AREA_INFO_MAPY)+IMGDEF_MAPCHIP_SIZEY+5+24
+			pos arg_posx+area_info(sub_i,AREA_INFO_MAPX)+(IMGDEF_MAPCHIP_SIZEX/2)-sub_offsetx, arg_posy+area_info(sub_i,AREA_INFO_MAPY)+IMGDEF_MAPCHIP_SIZEY+5
+			if selector_map_active == 1 {	; selector_map使用中は選択状態で色を付ける
+				if sub_i == selector_map_focus { color   8,247,254 } else { color 255,255,255 }
+			} else {	; そうでなければ選択しているエリアで色を付ける
+				if sub_i == area_select { color   8,247,254 } else { color 255,255,255 }
+			}
+			font "",12
+			mes area_sinfo(sub_i,AREA_SINFO_NAME)
+			; selector_map使用中は選択肢も表示
+			if selector_map_active == 1 {
+				for sub_j,0,SELECTOR_MAP_MAX
+					if selector_map(sub_j) == sub_i{
+						pos arg_posx+area_info(sub_i,AREA_INFO_MAPX)+(IMGDEF_MAPCHIP_SIZEX/2)-9, arg_posy+area_info(sub_i,AREA_INFO_MAPY)+IMGDEF_MAPCHIP_SIZEY+5+12
+						if sub_i == selector_map_focus { color   8,247,254 } else { color 255,255,255 }
+						font "",12
+						mes strf("[%d]",sub_j+1)
+						_break
+					}
+				next
+			}
+			; 支配チームを表示
+			sub_show_team_icon arg_posx+area_info(sub_i,AREA_INFO_MAPX)+15, arg_posy+area_info(sub_i,AREA_INFO_MAPY)-15, area_info(sub_i,AREA_INFO_TEAM), 40
+		}
+	next
+	
+	return
+
+; マップ選択肢を攻撃可能エリアリストから生成する
+;   arg1(teamid): チームID
+#deffunc sub_create_selector_map_from_team_attackable_area int arg_teamid
+	
+	if DEBUG_MODE == 1 : logmes strf("I call sub_create_selector_map_from_team_attackable_area. args=%d",arg_teamid)
+
+	dim tmp_list,team_attackable_area_num(arg_teamid)
+	for sub_i,0,team_attackable_area_num(arg_teamid)
+		tmp_list(sub_i) = team_attackable_area(arg_teamid, sub_i)
+		if DEBUG_MODE == 1 : logmes strf("D add areaID %d",tmp_list(sub_i))
+	next
+
+	; リストからマップ選択肢を生成する
+	sub_create_selector_map_from_list tmp_list
+
+	return
+
+; マップ選択肢を生成する（選択肢は　マップ描画時に表示されるエリア全部　）
+#deffunc sub_create_selector_map
+	
+	if DEBUG_MODE == 1 : logmes strf("I call sub_create_selector_map.")
+
+	; マップ描画時に表示されるエリアをarea_list_displayに格納する
+	sub_calcu_map_disp_area
+
+	if ( SELECTOR_MAP_MAX != AREA_LIST_DISPLAY_MAX ) {
+		logmes strf("W SELECTOR_MAP_MAX is not equal AREA_LIST_DISPLAY_MAX. SELECTOR_MAP_MAX=%d, AREA_LIST_DISPLAY_MAX=%d", SELECTOR_MAP_MAX, AREA_LIST_DISPLAY_MAX)
+	}
+
+	; リストからマップ選択肢を生成する
+	sub_create_selector_map_from_list area_list_display
+
+	return
+	
+; リストからマップ選択肢を生成する
+; arg1(list): 選択肢のエリアID
+#deffunc sub_create_selector_map_from_list array arg_list
+	
+	if DEBUG_MODE == 1 {
+		logmes strf("I call sub_create_selector_map_from_list. args=list")
+		for sub_i,0,9
+			if( length(arg_list) > sub_i ): logmes strf("    list(%d)=%d",sub_i,arg_list(sub_i))
+		next
+		if( length(arg_list) >= 9 ): logmes strf("    ...and more")
+	}
+
+	; リストの設定
+	dim selector_map,SELECTOR_MAP_MAX
+
+	selector_map_num = 0
+	for sub_i,0,length(arg_list)
+		if strlen(area_sinfo(arg_list(sub_i),AREA_SINFO_NAME)) == 0 : _continue
+		selector_map(sub_i) = arg_list(sub_i)
+		selector_map_num += 1
+	next
+	
+	; 選択用の変数を初期化	
+	selector_map_focus = -1				; 選ばれているエリアID
+	selector_map_active = 1				; 選択肢を使用中かどうか(1:使用中,0:未使用)
+	selector_map_returncode = 0			; 終了時のリターンコード(0:選択中、1:決定、-1:キャンセル)
+	dim selector_map_vote,SELECTOR_MAP_MAX	; 自動選択用の投票
+	selector_map_vote_num = 0				; 総投票数
+
+	return
+
+; スキル選択メニューで選択肢に重みをつける
+;   arg1(mode): 投票モード
+;		SELECTOR_MAP_VOTE_RANDOM	; 投票モード（ランダム）			※全てに1票追加
+;		SELECTOR_MAP_VOTE_NEAR_ZERO	; 投票モード（ブロック0に近い）		※(8 - 攻める対象ブロック)票追加
+;		SELECTOR_MAP_VOTE_PLAYER	; 投票モード（プレイヤー優先）		※プレイヤーの領土に5票追加
+;   arg2(weight): 投票の倍率(上記モードの票数にこの数字をかけて投票する)
+#deffunc sub_vote_selector_map int arg_mode, int arg_weight
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_vote_selector_map args=%d,%d", arg_mode, arg_weight)
+
+	; 有効でなければ機能しない
+	if selector_map_active <= 0 : return
+
+	for sub_i,0,selector_map_num
+
+		switch arg_mode
+		case SELECTOR_MAP_VOTE_RANDOM	; 投票モード（ランダム）			※全てに1票追加
+			selector_map_vote(sub_i) += arg_weight
+			selector_map_vote_num += arg_weight
+			swbreak
+		case SELECTOR_MAP_VOTE_NEAR_ZERO	; 投票モード（ブロック0に近い）	※(8 - 攻める対象ブロック)票追加
+
+			; 該当エリア	selector_map(sub_i)
+			; 攻撃チーム	global_info(GLOBAL_INFO_TURN_TEAM)
+			
+			for sub_j,0,AREA_BLOCK_MAX
+				if global_info(GLOBAL_INFO_TURN_TEAM) != area_info(selector_map(sub_i), AREA_INFO_TEAM) {
+					; 自分のエリアではないとき
+					sub_block = area_info(selector_map(sub_i),AREA_INFO_BLOCKS) - sub_j -1
+					if sub_block < 0 {
+						sub_abort strf("E Unexpected error in sub_vote_selector_map sub_block=%d",sub_block)
+					}
+					if area_block_info(selector_map(sub_i),AREA_BLOCK_INFO_TEAM,sub_block) == area_info(selector_map(sub_i), AREA_INFO_TEAM) {
+						selector_map_vote(sub_i) += ( 8 - sub_block ) * arg_weight						; 戦うブロック
+						selector_map_vote_num += ( 8 - sub_block ) * arg_weight
+						_break
+					}
+				} else {
+					; 自分のエリアのとき
+					sub_block = sub_j
+					if area_block_info(selector_map(sub_i),AREA_BLOCK_INFO_TEAM,sub_block) != global_info(GLOBAL_INFO_TURN_TEAM) {
+						selector_map_vote(sub_i) += ( 8 - sub_block ) * arg_weight						; 戦うブロック
+						selector_map_vote_num += ( 8 - sub_block ) * arg_weight	
+						_break
+					}
+				}
+			next
+			swbreak
+		case SELECTOR_MAP_VOTE_PLAYER	; 投票モード（プレイヤー優先）		※プレイヤーの領土に5票追加
+			if area_info(selector_map(sub_i),AREA_INFO_TEAM) == global_info(GLOBAL_INFO_SELECT_TEAM) {
+				selector_map_vote(sub_i) += 5 * arg_weight
+				selector_map_vote_num += 5 * arg_weight
+			}
+			swbreak
+		swend
+	next
+
+	return
+
+; スキル選択メニューを自動で決定する
+;   arg1(mode): 決定モード
+;		SELECTOR_MAP_DECIDE_ELECTION	; 決定モード（投票したものから抽選）
+;		SELECTOR_MAP_DECIDE_MAX			; 決定モード（最も投票したものに決定）
+#deffunc sub_decide_selector_map int arg_mode
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_decide_selector_map args=%d", arg_mode)
+
+	; 有効でなければ機能しない
+	if selector_map_active <= 0 : return
+
+	sub_election = 0
+	sub_election_num = 0
+	switch arg_mode
+	case SELECTOR_MAP_DECIDE_ELECTION	; 決定モード（投票したものから抽選）
+		sub_election = rnd(selector_map_vote_num)
+		for sub_i,0,selector_map_num
+			if sub_election < selector_map_vote(sub_i) {	; これに決定
+				selector_map_active = 0
+				selector_map_returncode = 1
+				selector_map_focus = selector_map(sub_i)
+				_break
+			}
+			sub_election -= selector_map_vote(sub_i)
+		next
+		swbreak
+	case SELECTOR_MAP_DECIDE_MAX			; 決定モード（最も投票したものに決定）
+		for sub_i,0,selector_map_num
+			if sub_election_num < selector_map_vote(sub_i){
+				sub_election_num = selector_map_vote(sub_i)
+				sub_election = sub_i
+			}
+		next
+		selector_map_active = 0
+		selector_map_returncode = 1
+		selector_map_focus = selector_map(sub_election)
+		swbreak
+	swend
+	
+	return
+	
+; マップ描画時に表示されるエリアをarea_list_displayに格納する
+#deffunc sub_calcu_map_disp_area
+	
+	if DEBUG_MODE == 1 : logmes strf("I call sub_calcu_map_disp_area.")
+	
+	dim area_list_display,AREA_LIST_DISPLAY_MAX	; 表示されるエリアのリスト
+
+	; 現バージョンでは全てのエリアを描画する前提
+	sub_num = 0
+	for sub_i,0,AREA_MAX
+		if strlen(area_sinfo(sub_i,AREA_SINFO_NAME)) == 0 : _continue
+		if sub_num >= AREA_LIST_DISPLAY_MAX {
+			logmes strf("E AREA_LIST_DISPLAY_MAX is to low in sub_calcu_map_disp_area. cur=%d, max=%d",sub_num,AREA_LIST_DISPLAY_MAX)
+			_break
+		}
+		area_list_display(sub_num) = sub_i
+		sub_num += 1
+	next
+
+	return
+
+; エリア情報を指定した座標に表示する
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(area): 表示するエリアID (-1:今のarea_selectを引き継ぐ)
+#deffunc sub_show_area int arg_posx, int arg_posy, int arg_area
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_area. args=%d,%d,%d",arg_posx,arg_posy,arg_area)
+
+	sub_disp_area = area_select
+	if arg_area != -1 {
+		sub_disp_area = arg_area
+	}
+	
+	sub_posx = arg_posx
+	sub_posy = arg_posy
+	
+	; ウィンドウの大きさ
+	sub_show_area_windowx = 420
+	sub_show_area_windowy = 140
+
+	if sub_posx == -1 {
+		sub_posx = ( WINDOW_SIZEX - sub_show_area_windowx ) /2
+	}
+	if sub_posy == -1 {
+		sub_posy = ( WINDOW_SIZEY - sub_show_area_windowy ) /2
+	}
+	
+	; 背景の描画
+	color 32,32,32
+	boxf sub_posx, sub_posy, sub_posx+sub_show_area_windowx, sub_posy+sub_show_area_windowy
+	; 枠線の描画
+	color 128,128,128
+	pos sub_posx+1, sub_posy+1
+	line sub_posx+1,                       sub_posy+sub_show_area_windowy-1
+	line sub_posx+sub_show_area_windowx-1, sub_posy+sub_show_area_windowy-1
+	line sub_posx+sub_show_area_windowx-1, sub_posy+1
+	line sub_posx+1,                       sub_posy+1
+
+	; エリア名とマナ生成量と地形効果加算率
+	color 255,255,255: font "",18
+	pos sub_posx+10, sub_posy+10
+	mes area_sinfo(sub_disp_area,AREA_SINFO_NAME)
+	color 255,255,255: font "",12
+	pos sub_posx+180, sub_posy+10+6
+	mes "マナ生成量"
+	color 255,255,255: font "",18
+	pos sub_posx+250, sub_posy+10
+	mes area_info(sub_disp_area,AREA_INFO_MANAG)
+	color 255,255,255: font "",12
+	pos sub_posx+280, sub_posy+10+6
+	mes "地形効果加算率"
+	color 255,255,255: font "",18
+	pos sub_posx+370, sub_posy+10
+	mes strf("+%d%%",area_info(sub_disp_area,AREA_INFO_DEFP))
+
+	; 各ブロックの情報
+	for sub_i,0,AREA_BLOCK_MAX
+		if sub_i >= area_info(sub_disp_area,AREA_INFO_BLOCKS) : _break
+		; 地形効果に応じたアイコン表示
+		if area_block_info(sub_disp_area, AREA_BLOCK_INFO_DEFP, sub_i ) >= 20 {
+			sub_show_mapchipdef sub_posx+10+sub_i*50, sub_posy+40, 25, 3, 40
+		} else {
+			if area_block_info(sub_disp_area, AREA_BLOCK_INFO_DEFP, sub_i ) >= 10 {
+				sub_show_mapchipdef sub_posx+10+sub_i*50, sub_posy+40, 30, 2, 40
+			} else {
+				sub_show_mapchipdef sub_posx+10+sub_i*50, sub_posy+40, 34, 2, 40
+			}
+		}
+
+		; ブロックごとの支配チーム
+		sub_show_team_icon sub_posx+10+sub_i*50, sub_posy+90, area_block_info(sub_disp_area, AREA_BLOCK_INFO_TEAM, sub_i ), 40
+	next
+
+	return
+
+; キャラクタの顔画像を指定した座標に表示する(gmode 2で描画するので注意)
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(size): サイズ(x座標基準)
+;   arg4(charid): キャラクタID
+;   arg5(faceindex): 顔画像のfaceindex(-1:デフォルト)
+#deffunc sub_show_char_face int arg_posx, int arg_posy, int arg_size, int arg_charid, int arg_faceindex
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_char_face. args=%d,%d,%d,%d,%d",arg_posx, arg_posy, arg_size, arg_charid, arg_faceindex)
+
+	sub_sizex = IMGDEF_FACE_SIZEX
+	sub_sizey = IMGDEF_FACE_SIZEY
+	if arg_size != -1 {	
+		sub_sizex = arg_size
+		sub_sizey = IMGDEF_FACE_SIZEY * arg_size / IMGDEF_FACE_SIZEX
+	}
+	
+	pos arg_posx, arg_posy
+	if arg_faceindex == -1 {
+		sub_faceindex = char_info(arg_charid,CHAR_INFO_FACEDEFINDEX)
+	} else {
+		sub_faceindex = arg_faceindex
+	}
+	sub_indexx = sub_faceindex \ IMGDEF_FACE_MAXX
+	sub_indexy = sub_faceindex / IMGDEF_FACE_MAXX
+	sub_tposx = IMGDEF_FACE_SIZEX * sub_indexx
+	sub_tposy = IMGDEF_FACE_SIZEY * sub_indexy
+	gmode 2
+	gzoom sub_sizex, sub_sizey, IMGDEF_FACE_BUFFER_OFFSET+char_info(arg_charid,CHAR_INFO_FACEIMGID), sub_tposx, sub_tposy, IMGDEF_FACE_SIZEX, IMGDEF_FACE_SIZEY	
+	
+	return
+	
+; チームアイコンを指定した座標に表示する
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(team): チームID
+;   arg4(size): 描画サイズ、x座標基準(-1:デフォルトサイズそのまま)
+#deffunc sub_show_team_icon int arg_posx, int arg_posy, int arg_team, int arg_size
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_team_icon. args=%d,%d,%d,%d",arg_posx,arg_posy,arg_team,arg_size)
+
+	; チームアイコンはリーダーの顔画像
+	sub_charid = team_info(arg_team,TEAM_INFO_LEADER)
+
+	; キャラクタの顔画像を指定した座標に表示する(gmode 2で描画するので注意)
+	sub_show_char_face arg_posx, arg_posy, arg_size, sub_charid, -1
+		
+	return
+
+; キャラクタ歩行画像を指定した座標に表示する(gmode 2で描画するので注意)
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(size): サイズ(x座標基準)
+;   arg4(charid): キャラクタID
+;   arg5(direc): キャラクタの向き
+;   arg6(anime): アニメーション（IMGDEF_WALK_MAXX+1で割ったあまりを採用する）
+
+#deffunc sub_show_walk int arg_posx, int arg_posy, int arg_size, int arg_charid, int arg_direc, int arg_anime
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_walk. args=%d,%d,%d,%d,%d,%d",arg_posx, arg_posy, arg_size, arg_charid, arg_direc, arg_anime)
+
+	; 表示するときのサイズを計算
+	sub_sizex = IMGDEF_WALK_SIZEX
+	sub_sizey = IMGDEF_WALK_SIZEY
+	if arg_size != -1 {	
+		sub_sizex = arg_size
+		sub_sizey = IMGDEF_WALK_SIZEY * arg_size / IMGDEF_WALK_SIZEX
+	}
+	
+	; 切り取る個所を計算
+	sub_anime = arg_anime \ 4
+	if sub_anime == 3 {
+		sub_indexx = 2
+	} else {
+		sub_indexx = sub_anime
+	}
+	sub_indexy = arg_direc
+	sub_tposx = IMGDEF_WALK_SIZEX * sub_indexx
+	sub_tposy = IMGDEF_WALK_SIZEY * sub_indexy
+
+	; 表示する
+	gmode 2
+	pos arg_posx, arg_posy
+	gzoom sub_sizex, sub_sizey, IMGDEF_WALK_BUFFER_OFFSET+char_info(arg_charid,CHAR_INFO_WALKIMGID), sub_tposx, sub_tposy, IMGDEF_WALK_SIZEX, IMGDEF_WALK_SIZEY	
+	
+	return
+	
+; チームの概要情報を指定した座標に表示する（主にマップ表示向け）
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(teamid): 表示するチームID 
+#deffunc sub_show_team_summary int arg_posx, int arg_posy, int arg_teamid
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_team_summary. args=%d,%d,%d",arg_posx,arg_posy,arg_teamid)
+
+	; ウィンドウの大きさ
+	sub_show_teams_windowx = 280
+	sub_show_teams_windowy = 170
+
+	; 背景の描画
+	color 32,32,32
+	boxf arg_posx, arg_posy, arg_posx+sub_show_teams_windowx, arg_posy+sub_show_teams_windowy
+	; 枠線の描画
+	color 128,128,128
+	pos arg_posx+1, arg_posy+1
+	line arg_posx+1,                        arg_posy+sub_show_teams_windowy-1
+	line arg_posx+sub_show_teams_windowx-1, arg_posy+sub_show_teams_windowy-1
+	line arg_posx+sub_show_teams_windowx-1, arg_posy+1
+	line arg_posx+1,                        arg_posy+1
+	
+	; チーム名
+	color 255,255,255: font "",12
+	pos arg_posx+10, arg_posy+10: mes team_sinfo(arg_teamid,TEAM_SINFO_NAME)
+	; リーダーの立ち絵
+	pos arg_posx+120, arg_posy+10
+	gmode 2
+	gzoom 150, 150, IMGDEF_CHAR_BUFFER_OFFSET+char_info(team_info(arg_teamid,TEAM_INFO_LEADER),CHAR_INFO_CHARIMGID),0,0,IMGDEF_CHAR_SIZEX,IMGDEF_CHAR_SIZEY
+	; 行動回数
+	color 255,255,255: font "",12
+	pos arg_posx+20, arg_posy+90: mes "行動回数"
+	color 255,255,255: font "",18
+	pos arg_posx+70, arg_posy+90-6: mes strf("   %d/%d",team_info(arg_teamid,TEAM_INFO_ACTIONP),team_info(arg_teamid,TEAM_INFO_ACTIONP_MAX))
+	; 総人数
+	color 255,255,255: font "",12
+	pos arg_posx+20, arg_posy+110: mes "総人数"
+	color 255,255,255: font "",18
+	pos arg_posx+70, arg_posy+110-6: mes strf("%6d",team_info(arg_teamid,TEAM_INFO_TOTAL_MEMBER))
+	; 総戦力
+	color 255,255,255: font "",12
+	pos arg_posx+20, arg_posy+130: mes "総戦力"
+	color 255,255,255: font "",18
+	pos arg_posx+70, arg_posy+130-6: mes strf("%6d",team_info(arg_teamid,TEAM_INFO_TOTAL_POWER))
+	; 総マナ量
+	color 255,255,255: font "",12
+	pos arg_posx+20, arg_posy+150: mes "総マナ"
+	color 255,255,255: font "",18
+	pos arg_posx+70, arg_posy+150-6: mes strf("%6d",team_info(arg_teamid,TEAM_INFO_TOTAL_MANA))
+	
+	return
+
+; イベント選択メニューを生成する
+;   arg1(areaid): エリアID 
+;   arg2(teamrd): チームID 
+#deffunc sub_create_menu_event int arg_areaid, int arg_teamid
+	
+	if DEBUG_MODE == 1 : logmes strf("I call sub_create_menu_event. args=%d,%d", arg_areaid, arg_teamid)
+
+	; リストの初期化
+	sdim menu_list_event,64,MENU_LIST_EVENT_MAX
+	dim menu_list_event_code,MENU_LIST_EVENT_MAX
+	menu_list_event_num = 0				; 有効な選択肢の数
+
+	menu_list_event_areaid = arg_areaid
+	menu_list_event_teamid = arg_teamid
+
+	; イベントの生成
+	;	1: 隣接エリアを攻撃
+	
+	if ( event_code_lock(EVENT_CODE_ATTACK_AREA) == 0 ) and ( team_info(arg_teamid, TEAM_INFO_ACTIONP) > 0 ) {
+		menu_list_event(menu_list_event_num) = "隣接エリアの攻撃"
+		menu_list_event_code(menu_list_event_num) = EVENT_CODE_ATTACK_AREA
+		menu_list_event_num += 1
+	} else {
+		menu_list_event(menu_list_event_num) = ""
+		menu_list_event_code(menu_list_event_num) = 0
+		menu_list_event_num += 1
+	}
+	;	2: 訓練（一部ユニットの経験値Up）
+	if ( event_code_lock(EVENT_CODE_TRAINING) == 0 ) and ( team_info(arg_teamid, TEAM_INFO_ACTIONP) > 0 ) {
+		menu_list_event(menu_list_event_num) = "自軍ユニットの訓練"
+		menu_list_event_code(menu_list_event_num) = EVENT_CODE_TRAINING
+		menu_list_event_num += 1
+	} else {
+		menu_list_event(menu_list_event_num) = ""
+		menu_list_event_code(menu_list_event_num) = 0
+		menu_list_event_num += 1
+	}
+	;	3: 自国のマナ生産量向上
+	if ( event_code_lock(EVENT_CODE_MANAG_UP) == 0 ) and ( area_info(area_select, AREA_INFO_TEAM) == global_info(GLOBAL_INFO_TURN_TEAM) ) {
+		if team_info(arg_teamid, TEAM_INFO_ACTIONP) > 0 {
+			menu_list_event(menu_list_event_num) = strf("マナ生産量の向上[要%s%d]",PARAM_LABEL(PARAM_PRD),area_info(area_select,AREA_INFO_MANAG)*10)
+			menu_list_event_code(menu_list_event_num) = EVENT_CODE_MANAG_UP
+			menu_list_event_num += 1
+		} else {
+			menu_list_event(menu_list_event_num) = ""
+			menu_list_event_code(menu_list_event_num) = 0
+			menu_list_event_num += 1
+		}
+	} else {
+		menu_list_event(menu_list_event_num) = ""
+		menu_list_event_code(menu_list_event_num) = 0
+		menu_list_event_num += 1
+	}
+	;	4: 自国の地形探索（地形効果Up）
+	if ( event_code_lock(EVENT_CODE_DEFP_UP) == 0 ) and ( area_info(area_select, AREA_INFO_TEAM) == global_info(GLOBAL_INFO_TURN_TEAM) ) {
+		if team_info(arg_teamid, TEAM_INFO_ACTIONP) > 0 {
+			menu_list_event(menu_list_event_num) = strf("地形探索（地形効果Up）[要%s%d]",PARAM_LABEL(PARAM_SRC),area_info(area_select,AREA_INFO_DEFP)*10+100)
+			menu_list_event_code(menu_list_event_num) = EVENT_CODE_DEFP_UP
+			menu_list_event_num += 1
+		} else {
+			menu_list_event(menu_list_event_num) = ""
+			menu_list_event_code(menu_list_event_num) = 0
+			menu_list_event_num += 1
+		}
+	} else {
+		menu_list_event(menu_list_event_num) = ""
+		menu_list_event_code(menu_list_event_num) = 0
+		menu_list_event_num += 1
+	}
+	;	5: 人材発掘
+	if ( event_code_lock(EVENT_CODE_CHAR_SEARCH) == 0 ) and ( area_info(area_select, AREA_INFO_TEAM) == global_info(GLOBAL_INFO_TURN_TEAM) ) {
+		if team_info(arg_teamid, TEAM_INFO_ACTIONP) > 0 {
+			menu_list_event(menu_list_event_num) = strf("人材発掘[要%s%d]",PARAM_LABEL(PARAM_COM),team_info(global_info(GLOBAL_INFO_TURN_TEAM),TEAM_INFO_RANDOM_CHAR)*10+100)
+			menu_list_event_code(menu_list_event_num) = EVENT_CODE_CHAR_SEARCH
+			menu_list_event_num += 1
+		} else {
+			menu_list_event(menu_list_event_num) = ""
+			menu_list_event_code(menu_list_event_num) = 0
+			menu_list_event_num += 1
+		}
+	} else {
+		menu_list_event(menu_list_event_num) = ""
+		menu_list_event_code(menu_list_event_num) = 0
+		menu_list_event_num += 1
+	}
+
+	; イベントスクリプト定義イベント(最高で1個)
+	; イベントトリガーチェック
+	sub_check_event_trigger EVENT_TRIGGER_INFO_TIMING_EVENT_MENU
+	if ( team_info(arg_teamid, TEAM_INFO_ACTIONP) > 0 ) and ( global_info(GLOBAL_INFO_WAIT_EVENT_ID) > 0 ) {
+		menu_list_event(menu_list_event_num) = event_trigger_sinfo(global_info(GLOBAL_INFO_WAIT_EVENT_ID),EVENT_TRIGGER_SINFO_NAME)
+		menu_list_event_code(menu_list_event_num) = global_info(GLOBAL_INFO_WAIT_EVENT_ID)
+		menu_list_event_num += 1
+	} else {
+		menu_list_event(menu_list_event_num) = ""
+		menu_list_event_code(menu_list_event_num) = 0
+		menu_list_event_num += 1
+	}
+	
+	;  97: 自チームのユニット一覧確認と回復　※ここで回復する機能は未実装
+	menu_list_event(menu_list_event_num) = "ユニット一覧確認"
+	menu_list_event_code(menu_list_event_num) = EVENT_CODE_CHAR_LIST
+	menu_list_event_num += 1
+	;  98: 他エリアの選択
+	menu_list_event(menu_list_event_num) = "他エリアの選択"
+	menu_list_event_code(menu_list_event_num) = EVENT_CODE_SELECT_AREA
+	menu_list_event_num += 1
+	;  99: ターン終了
+	menu_list_event(menu_list_event_num) = "ターン終了"
+	menu_list_event_code(menu_list_event_num) = EVENT_CODE_TURN_END
+	menu_list_event_num += 1
+	; 選択用の変数を初期化	
+	menu_list_event_focus = -1						; 選ばれている番号
+	menu_list_event_active = 1						; 選択肢を使用中かどうか(1:使用中,0:未使用)
+	menu_list_event_returncode = 0					; 終了時のリターンコード(0:未準備、1:決定、-1:キャンセル)
+
+	return
+	
+; イベント選択メニューを指定した座標に表示する（主にマップ表示向け）
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+#deffunc sub_show_menu_event int arg_posx, int arg_posy
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_menu_event. args=%d,%d",arg_posx,arg_posy)
+
+	; 有効でなければ表示しない
+	if menu_list_event_active != 1 : return
+
+	; ウィンドウの大きさ
+	sub_show_menu_event_windowx = 320
+	sub_show_menu_event_windowy = 180
+
+	; 背景の描画
+	color 32,32,32
+	boxf arg_posx, arg_posy, arg_posx+sub_show_menu_event_windowx, arg_posy+sub_show_menu_event_windowy
+	; 枠線の描画
+	color 128,128,128
+	pos arg_posx+1, arg_posy+1
+	line arg_posx+1,                             arg_posy+sub_show_menu_event_windowy-1
+	line arg_posx+sub_show_menu_event_windowx-1, arg_posy+sub_show_menu_event_windowy-1
+	line arg_posx+sub_show_menu_event_windowx-1, arg_posy+1
+	line arg_posx+1,                             arg_posy+1
+
+	; 内側の線の描画
+	for sub_i,0,MENU_LIST_EVENT_SHOW_MAX
+		pos  arg_posx+1,                             arg_posy+34+2+sub_i*16
+		line arg_posx+sub_show_menu_event_windowx-1, arg_posy+34+2+sub_i*16
+	next
+
+	; タイトルはエリア名＋占領チーム
+	color 255,255,255: font "", 18
+	pos arg_posx+10, arg_posy+10 : mes strf("%s", area_sinfo(menu_list_event_areaid))
+	color 255,255,255: font "", 12
+	pos arg_posx+160, arg_posy+10+6 : mes strf("( %s領 ) ", team_sinfo(menu_list_event_teamid,TEAM_SINFO_NAME))
+
+	for sub_i,0,MENU_LIST_EVENT_MAX
+		if strlen(menu_list_event(sub_i)) > 0 {
+			if menu_list_event_focus == sub_i {
+				color   8,247,254
+			} else {
+				color 255,255,255
+			}
+			font "", 12
+			pos arg_posx+10, arg_posy+34+4+sub_i*16 : mes strf("[%d] %s", sub_i+1, menu_list_event(sub_i))
+		}
+	next
+
+	return
+
+
+; グローバル情報を指定した座標に表示する
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+#deffunc sub_show_global int arg_posx, int arg_posy
+
+	if DEBUG_MODE == 1 :logmes strf("I call sub_show_global. args=%d,%d",arg_posx,arg_posy)
+
+	; ウィンドウの大きさ
+	sub_show_global_windowx = WINDOW_SIZEX
+	sub_show_global_windowy = 30
+
+	; 背景の描画
+	color 32,32,32
+	boxf arg_posx, arg_posy, arg_posx+sub_show_global_windowx, arg_posy+sub_show_global_windowy
+	; 枠線の描画
+	color 128,128,128
+	pos arg_posx+1, arg_posy+1
+	line arg_posx+1,                         arg_posy+sub_show_global_windowy-1
+	line arg_posx+sub_show_global_windowx-1, arg_posy+sub_show_global_windowy-1
+	line arg_posx+sub_show_global_windowx-1, arg_posy+1
+	line arg_posx+1,                         arg_posy+1
+
+	color 255,255,255: font "",12
+	pos arg_posx+8, arg_posy+8
+	mes global_sinfo(GLOBAL_SINFO_MESSAGE)
+	pos arg_posx+WINDOW_SIZEX-100, arg_posy+12
+	mes "ターン"
+	color 255,255,255: font "",18
+	pos arg_posx+WINDOW_SIZEX-60, arg_posy+6
+	mes strf("%3d",global_info(GLOBAL_INFO_TURN))
+	
+	return
+
+; メッセージを指定した座標に表示する
+;   arg1(message): 表示するメッセージ
+;   arg2(posx): 表示するx座標（左上）  (-1:中心)
+;   arg3(posy): 表示するy座標（左上）  (-1:中心)
+;   arg4(charid): 顔画像を表示するキャラID (-1:表示なし)
+;   arg5(faceindex): 顔画像を表示するキャラのfaceindex (-1:default)
+#deffunc sub_show_message_char str arg_message, int arg_posx, int arg_posy, int arg_charid, int arg_faceindex
+
+	if DEBUG_LEVEL & LOG_INFO {
+		logmes strf("I call sub_show_message_char args=%s",arg_message)
+		logmes strf("I call sub_show_message_char args=%d,%d,%d,%d",arg_posx,arg_posy,arg_charid,arg_faceindex)
+	}
+
+	; ウィンドウの大きさ
+	sub_show_message_char_windowx = 600
+	sub_show_message_char_windowy = 120
+
+	sub_posx = arg_posx
+	sub_posy = arg_posy
+	if sub_posx == -1 {
+		sub_posx = ( WINDOW_SIZEX - sub_show_message_char_windowx ) /2
+	}
+	if sub_posy == -1 {
+		sub_posy = ( WINDOW_SIZEY - sub_show_message_char_windowy ) /2
+	}
+
+
+	; 背景の描画
+	color 32,32,32
+	boxf sub_posx, sub_posy, sub_posx+sub_show_message_char_windowx, sub_posy+sub_show_message_char_windowy
+	; 枠線の描画
+	color 128,128,128
+	pos sub_posx+1, sub_posy+1
+	line sub_posx+1,                               sub_posy+sub_show_message_char_windowy-1
+	line sub_posx+sub_show_message_char_windowx-1, sub_posy+sub_show_message_char_windowy-1
+	line sub_posx+sub_show_message_char_windowx-1, sub_posy+1
+	line sub_posx+1,                               sub_posy+1
+	pos sub_posx+120, sub_posy+1
+	line sub_posx+120, sub_posy+120
+
+	; 顔画像の表示
+	if arg_charid > 0 {
+		pos sub_posx+2, sub_posy+2
+		gmode 2
+		sub_faceindex = arg_faceindex
+		if arg_faceindex == -1 : sub_faceindex = char_info(arg_charid,CHAR_INFO_FACEDEFINDEX)
+		sub_indexx = sub_faceindex \ IMGDEF_FACE_MAXX
+		sub_indexy = sub_faceindex / IMGDEF_FACE_MAXX
+		sub_tposx = IMGDEF_FACE_SIZEX * sub_indexx
+		sub_tposy = IMGDEF_FACE_SIZEY * sub_indexy
+		gzoom 116, 116, IMGDEF_FACE_BUFFER_OFFSET+char_info(arg_charid,CHAR_INFO_FACEIMGID), sub_tposx, sub_tposy, IMGDEF_FACE_SIZEX, IMGDEF_FACE_SIZEY
+
+		objcolor 0,0,0
+		color 255,255,255: font "",12,1
+		pos sub_posx+2, sub_posy+2+116-16
+		mes strf("%17s",char_sinfo(arg_charid,SKILL_SINFO_NAME)),4
+	}
+
+	; メッセージの表示
+	color 255,255,255: font "",18
+	pos sub_posx+125, sub_posy+5
+	sub_message = arg_message	; strmidの第1引数は変数でないといけないので、一旦変数に格納する。（deffuncの引数は定数扱いなので）
+	mes strmid(sub_message,0,50)
+	mes strmid(sub_message,50,50)
+	mes strmid(sub_message,100,50)
+	mes strmid(sub_message,150,50)
+	mes strmid(sub_message,200,50)
+	
+	; デバッグモードの場合のみ、残り表示時間を表示する
+	if DEBUG_LEVEL & LOG_DEBUG {
+		color 255,255,255: font "",12
+		pos sub_posx+125, sub_posy+sub_show_message_char_windowy-20
+		mes strf("残り %d",global_info(GLOBAL_INFO_OPERATION_MAP_CONTINUE_FRAME)/FRAME_RATE+1)
+	}
+
+	if DEBUG_LEVEL & LOG_DEBUG {
+		logmes strf("D done sub_show_message_char args=%s",arg_message)
+		logmes strf("D done sub_show_message_char args=%d,%d,%d,%d",arg_posx,arg_posy,arg_charid,arg_faceindex)
+	}
+	
+	return
+
+; BキャラIDを指定してアニメーション画像を表示する
+;   arg1(bchar): BキャラID
+;   arg2(animeid): アニメーションID
+;   arg3(frame): 何フレーム目を描画するか
+#deffunc sub_show_anime_by_bchar int arg_bchar, int arg_animeid, int arg_frame
+
+	if DEBUG_MODE == 1 : logmes strf("I call sub_show_anime_by_bchar. args=%d,%d,%d", arg_bchar, arg_animeid, arg_frame)
+
+	sub_posx = battle_char_show_pos(arg_bchar,POS_X) + battle_char_show_offset(arg_bchar,POS_X) - ( 90-IMGDEF_WALK_SIZEX )/2
+	sub_posy = battle_char_show_pos(arg_bchar,POS_Y) + battle_char_show_offset(arg_bchar,POS_Y) - ( 90-IMGDEF_WALK_SIZEX )/2
+	sub_size = 90
+	if arg_bchar < BATTLE_CHAR_MAX{
+		sub_reverse = 0
+	} else {
+		sub_reverse = 1
+	}
+	sub_show_anime sub_posx, sub_posy, sub_size, arg_animeid, arg_frame, sub_reverse
+	return
+
+; アニメーション画像を指定した座標に表示する（現在は1フレームで同時に2枚以上の画像を表示する機能なし）
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+;   arg3(size): サイズ(y座標基準)
+;   arg4(animeid): アニメーションID
+;   arg5(frame): 何フレーム目を描画するか
+;   arg6(reverse): 左右を反転させるか（0: しない, 1:する）
+#deffunc sub_show_anime int arg_posx, int arg_posy, int arg_size, int arg_animeid, int arg_frame, int arg_reverse
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_show_anime. args=%d,%d,%d,%d,%d,%d",arg_posx, arg_posy, arg_size, arg_animeid, arg_frame, arg_reverse)
+
+	; フレーム指定が0未満の場合は即終了
+	if arg_animeid < 0 : return
+
+	sub_imgdef_anime = anime_info(arg_animeid,ANIME_INFO_IMGDEF)
+
+	; 表示するときのサイズを計算
+	sub_sizex = imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_SIZEX)
+	sub_sizey = imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_SIZEY)
+	if arg_size != -1 {	
+		sub_sizex = imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_SIZEX) * arg_size / imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_SIZEY)
+		sub_sizey = arg_size
+	}
+	
+	; 採用するfexecを計算
+	sub_fexec = -1
+	for sub_i,0,ANIME_EXEC_MAX
+		sub_start = anime_info_frame(arg_animeid,sub_i,ANIME_INFO_FRAME_START)
+		sub_end = anime_info_frame(arg_animeid,sub_i,ANIME_INFO_FRAME_START) + anime_info_frame(arg_animeid,sub_i,ANIME_INFO_FRAME_RANGE) -1
+		if ( sub_start <= arg_frame ) and ( arg_frame <= sub_end )  {
+			sub_fexec = sub_i
+		}
+	next
+	; 表示するフレームがない場合は終了
+	if sub_fexec == -1 : return
+
+	; 切り取る座標の計算
+	sub_index = anime_info_frame(arg_animeid,sub_fexec,ANIME_INFO_FRAME_IMGID)	; 使う画像のインデックス
+
+	if imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_MAXX) > 1 {
+		sub_indexx = sub_index \ imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_MAXX)
+		sub_indexy = sub_index / imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_MAXX)
+	} else {
+		sub_indexx = 0
+		sub_indexy = sub_index
+	}
+	sub_tposx = imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_SIZEX) * sub_indexx
+	sub_tposy = imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_SIZEY) * sub_indexy
+
+	; 表示する
+	gmode imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_GMODE)
+	pos arg_posx+anime_info_frame(arg_animeid,sub_fexec,ANIME_INFO_FRAME_OFFSETX) , arg_posy+anime_info_frame(arg_animeid,sub_fexec,ANIME_INFO_FRAME_OFFSETY)
+	if anime_info(arg_animeid,ANIME_INFO_REVERSE) == 1 : sub_sizex *= -1 ; 元のアニメ定義による左右反転の処理
+	if arg_reverse == 1 : sub_sizex *= -1 ; 引数による左右反転の処理
+	gzoom sub_sizex, sub_sizey, IMGDEF_ANIME_BUFFER_OFFSET+sub_imgdef_anime, sub_tposx, sub_tposy, imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_SIZEX), imgdef_anime_info(sub_imgdef_anime,IMGDEF_ANIME_INFO_SIZEY)
+
+	; 効果音を出す
+	if anime_info(arg_animeid,ANIME_INFO_SOUNDID) > 0 {
+		if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D Judge sound in sub_show_anime. frame %d ? %d",anime_info(arg_animeid,ANIME_INFO_FRAME_SOUND), arg_frame)
+		if anime_info(arg_animeid,ANIME_INFO_FRAME_SOUND) == arg_frame {
+			sub_play_sound anime_info(arg_animeid,ANIME_INFO_SOUNDID)
+		}
+	}
+	
+	return
+
+; BキャラIDを指定して数字アニメーションを表示する
+;   arg1(bchar): BキャラID
+;   arg2(value): 数字アニメーションの数字
+;   arg3(frame): 何フレーム目を描画するか
+#deffunc sub_show_anime_number_by_bchar int arg_bchar, int arg_value, int arg_frame
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_show_anime_number_by_bchar. args=%d,%d,%d", arg_bchar, arg_value, arg_frame)
+
+	if arg_frame < 0 : return
+	if arg_frame >= QUEUE_ANIME_NUMBER_RANGE_SHOW : return
+
+	sub_posx = battle_char_show_pos(arg_bchar,POS_X) + battle_char_show_offset(arg_bchar,POS_X)
+	sub_posy = battle_char_show_pos(arg_bchar,POS_Y) + battle_char_show_offset(arg_bchar,POS_Y) + IMGDEF_WALK_SIZEY/2 
+	sub_frame = arg_frame
+
+	if arg_value <= 0 {
+		if sub_frame > QUEUE_ANIME_NUMBER_RANGE_MOVE : sub_frame = QUEUE_ANIME_NUMBER_RANGE_MOVE
+	
+		; 左側のキャラの数字は左へ、右側のキャラの数字は右へ飛ぶ
+		if arg_bchar < BATTLE_CHAR_MAX{
+			sub_posx -= sub_frame/2 * QUEUE_ANIME_NUMBER_VELX_INIT + QUEUE_ANIME_NUMBER_ACCX * sub_frame/2 * sub_frame/2 /2
+		} else {
+			sub_posx += sub_frame/2 * QUEUE_ANIME_NUMBER_VELX_INIT + QUEUE_ANIME_NUMBER_ACCX * sub_frame/2 * sub_frame/2 /2
+		}
+		sub_posy += sub_frame/2 * QUEUE_ANIME_NUMBER_VELY_INIT + QUEUE_ANIME_NUMBER_ACCY * sub_frame/2 * sub_frame/2 /2
+	} else {
+		if sub_frame > QUEUE_ANIME_NUMBER2_RANGE_MOVE : sub_frame = QUEUE_ANIME_NUMBER2_RANGE_MOVE
+	
+		; 左側のキャラの数字は左へ、右側のキャラの数字は右へ飛ぶ
+		if arg_bchar < BATTLE_CHAR_MAX{
+			sub_posx -= sub_frame/2 * QUEUE_ANIME_NUMBER2_VELX_INIT + QUEUE_ANIME_NUMBER2_ACCX * sub_frame/2 * sub_frame/2 /2
+		} else {
+			sub_posx += sub_frame/2 * QUEUE_ANIME_NUMBER2_VELX_INIT + QUEUE_ANIME_NUMBER2_ACCX * sub_frame/2 * sub_frame/2 /2
+		}
+		sub_posy += sub_frame/2 * QUEUE_ANIME_NUMBER2_VELY_INIT + QUEUE_ANIME_NUMBER2_ACCY * sub_frame/2 * sub_frame/2 /2
+	}
+		
+	; マイナスはダメージ表示（赤）、プラスは回復表示（緑）
+	if arg_value <= 0 {
+		color 255,168,168
+	} else {
+		color 168,255,255
+	}
+	objcolor 255,255,255
+	font "", 24, 1, 2
+	pos sub_posx, sub_posy
+	mes arg_value, mesopt_light
+	
+	return
+
+; BキャラIDを指定してバフ付与アニメーションを表示する
+;   arg1(bchar):  BキャラID
+;   arg2(buffid): バフID
+;   arg3(frame):  何フレーム目を描画するか
+#deffunc sub_show_anime_buff_by_bchar int arg_bchar, int arg_buffid, int arg_frame
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_show_anime_buff_by_bchar. args=%d,%d,%d", arg_bchar, arg_buffid, arg_frame)
+
+	if arg_frame < 0 : return
+	if arg_frame >= QUEUE_ANIME_BUFF_RANGE_SHOW : return
+	
+	sub_posx_offset = strlen(buff_sinfo(arg_buffid,BUFF_SINFO_NAME))*7/2
+	if sub_posx_offset < strlen(buff_sinfo(arg_buffid,BUFF_SINFO_DESC))*6/2 : sub_posx_offset = strlen(buff_sinfo(arg_buffid,BUFF_SINFO_DESC))*6/2
+	
+	sub_posx = battle_char_show_pos(arg_bchar,POS_X) + battle_char_show_offset(arg_bchar,POS_X) - sub_posx_offset
+	sub_posy = battle_char_show_pos(arg_bchar,POS_Y) + battle_char_show_offset(arg_bchar,POS_Y) - 20
+	sub_frame = arg_frame
+	if sub_frame > QUEUE_ANIME_BUFF_RANGE_MOVE : sub_frame = QUEUE_ANIME_BUFF_RANGE_MOVE
+
+	; 左側のキャラの数字は左へ、右側のキャラの数字は右へ飛ぶ
+	if arg_bchar < BATTLE_CHAR_MAX{
+		sub_posx -= sub_frame/2 * QUEUE_ANIME_BUFF_VELX_INIT + QUEUE_ANIME_BUFF_ACCX * sub_frame/2 * sub_frame/2 /2
+	} else {
+		sub_posx += sub_frame/2 * QUEUE_ANIME_BUFF_VELX_INIT + QUEUE_ANIME_BUFF_ACCX * sub_frame/2 * sub_frame/2 /2
+	}
+	sub_posy += sub_frame/2 * QUEUE_ANIME_BUFF_VELY_INIT + QUEUE_ANIME_BUFF_ACCY * sub_frame/2 * sub_frame/2 /2	
+
+	pos sub_posx, sub_posy
+	; アイコンを指定した座標に表示する
+	sub_show_icondef sub_posx, sub_posy, buff_info(arg_buffid,BUFF_INFO_ICONT), buff_info(arg_buffid,BUFF_INFO_ICONP), 20
+	color 255,255,255
+	font "", 14
+	pos sub_posx+22, sub_posy+3
+	mes buff_sinfo(arg_buffid,BUFF_SINFO_NAME)
+	font "", 12
+	pos sub_posx, sub_posy+22
+	mes buff_sinfo(arg_buffid,BUFF_SINFO_DESC)
+	
+	return
+	
+; スキル選択メニューを生成する
+;   arg1(charid): キャラID
+#deffunc sub_create_menu_battle int arg_charid
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_create_menu_battle. args=%d", arg_charid)
+
+	menu_list_battle_charid = arg_charid			; 対応するキャラID
+	
+	; キャラフラグを更新する
+	sub_calcu_char_flag arg_charid
+
+	; リストの初期化
+	sdim menu_list_battle,64,MENU_LIST_BATTLE_MAX	; 選択肢
+	sdim menu_list_battle_desc,64,MENU_LIST_BATTLE_MAX	; 選択肢（補足）
+	dim menu_list_battle_skill,MENU_LIST_BATTLE_MAX	; 対応するスキルID
+	dim menu_list_battle_disable,MENU_LIST_BATTLE_MAX	; 選択不可能フラグ(1:表示するが選択できない)
+	menu_list_battle_num = 0						; 有効な選択肢の数	
+	dim menu_list_battle_vote,MENU_LIST_BATTLE_MAX		; 自動選択用の投票
+	menu_list_battle_vote_num = 0						; 総投票数
+
+	for sub_i,0,CHAR_INFO_SKILL_MAX
+		sub_skillid = char_info(arg_charid, CHAR_INFO_SKILL+sub_i)
+		if sub_skillid > 0 {
+			; 選択肢に入れるのはアクティブスキルだけ
+			if skill_info(sub_skillid,SKILL_INFO_TRIGGER) != SKILL_INFO_SKILLTYPE_ACTIVE : _continue
+			
+			menu_list_battle_skill(menu_list_battle_num) = sub_skillid
+			menu_list_battle(menu_list_battle_num) = skill_sinfo(sub_skillid,SKILL_SINFO_NAME)
+			menu_list_battle_desc(menu_list_battle_num) = skill_sinfo(sub_skillid,SKILL_SINFO_DESC)
+			; 表示するが選択できない（無効、AP不足）
+			if skill_info(sub_skillid,SKILL_INFO_DISABLE) == 1 : menu_list_battle_disable(menu_list_battle_num) = 1
+			if ( skill_info(sub_skillid,SKILL_INFO_USEAP) * (100 - char_info(arg_charid,CHAR_INFO_FLAG_APREDUCE)) / 100 ) > char_info(arg_charid,CHAR_INFO_AP) : menu_list_battle_disable(menu_list_battle_num) = 1
+			
+			menu_list_battle_num += 1
+
+			if menu_list_battle_num >= MENU_LIST_BATTLE_MAX : _break
+		}
+	next
+
+	; 管理変数の初期化
+	menu_list_battle_focus = -1						; 選ばれている番号
+	menu_list_battle_select = -1					; 選ばれている番号（選択確定）
+	menu_list_battle_active = 1						; 選択肢を使用中かどうか(1:使用中,0:未使用,2:非アクティブ)
+	menu_list_battle_returncode = 0					; 終了時のリターンコード(0:未準備、1:決定、-1:キャンセル)
+
+	return
+
+; スキル選択メニューを指定した座標に表示する（主にバトル表示向け）
+;   arg1(posx): 表示するx座標（左上） 
+;   arg2(posy): 表示するy座標（左上） 
+#deffunc sub_show_menu_battle int arg_posx, int arg_posy
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_show_menu_battle. args=%d,%d",arg_posx,arg_posy)
+
+	; 有効でなければ表示しない
+	if menu_list_battle_active <= 0 : return
+
+	; ウィンドウの大きさ
+	sub_show_menu_battle_windowx = 480
+	sub_show_menu_battle_windowy = MENU_LIST_BATTLE_SHOW_MAX*30
+
+	; 背景の描画
+	color 32,32,32
+	boxf arg_posx, arg_posy, arg_posx+sub_show_menu_battle_windowx, arg_posy+sub_show_menu_battle_windowy
+	; 枠線の描画
+	color 128,128,128
+	pos arg_posx+1, arg_posy+1
+	line arg_posx+1,                              arg_posy+sub_show_menu_battle_windowy-1
+	line arg_posx+sub_show_menu_battle_windowx-1, arg_posy+sub_show_menu_battle_windowy-1
+	line arg_posx+sub_show_menu_battle_windowx-1, arg_posy+1
+	line arg_posx+1,                              arg_posy+1
+
+	; 内側の線の描画（1個目は線を引かない）
+	for sub_i,1,MENU_LIST_BATTLE_SHOW_MAX
+		pos  arg_posx+1,                              arg_posy+sub_i*30
+		line arg_posx+sub_show_menu_battle_windowx-1, arg_posy+sub_i*30
+	next
+
+	; スキルを表示
+	for sub_i,0,MENU_LIST_BATTLE_MAX
+		if strlen(menu_list_battle(sub_i)) > 0 {
+
+			; 無効化されてたら灰色
+			if menu_list_battle_disable(sub_i) == 1 {
+				color 64, 64,64
+			} else {
+				if menu_list_battle_select == sub_i {
+					color 254, 83,187
+				} else {
+					if menu_list_battle_focus == sub_i {
+						color   8,247,254
+					} else {
+						color 255,255,255
+					}
+				}
+			}
+			
+			font "", 12
+
+			if menu_list_battle_disable(sub_i) == 1 {
+				pos arg_posx+10, arg_posy+5+sub_i*30    : mes strf("     %s (消費AP:%d)", menu_list_battle(sub_i), skill_info(menu_list_battle_skill(sub_i),SKILL_INFO_USEAP))
+			} else {
+				pos arg_posx+10, arg_posy+5+sub_i*30    : mes strf("[%d] %s (消費AP:%d)", sub_i+1, menu_list_battle(sub_i), skill_info(menu_list_battle_skill(sub_i),SKILL_INFO_USEAP))
+			}
+			pos arg_posx+10, arg_posy+5+sub_i*30+12 : mes strf("     %s", menu_list_battle_desc(sub_i))
+		}
+	next
+
+	return
+
+; スキル選択メニューで選択肢に重みをつける
+;   arg1(mode): 投票モード
+;		MENU_LIST_BATTLE_VOTE_RANDOM  ; 投票モード（ランダム）		※全てに1票追加
+;		MENU_LIST_BATTLE_VOTE_USEAP   ; 投票モード（消費APに比例）	※AP10につき1票追加
+;		MENU_LIST_BATTLE_VOTE_COVER   ; 投票モード（味方ガード重視）※味方ガードに5票追加
+;		MENU_LIST_BATTLE_VOTE_HEAL    ; 投票モード（回復重視）		※回復に5票追加
+;		MENU_LIST_BATTLE_VOTE_ATTACK  ; 投票モード（攻撃重視）		※攻撃に威力40につき1票追加
+;		MENU_LIST_BATTLE_VOTE_WEAK    ; 投票モード（弱点重視）		※弱点を突けるものに5票追加	（未実装）
+;   arg2(weight): 投票の倍率(上記モードの票数にこの数字をかけて投票する)
+#deffunc sub_vote_menu_battle int arg_mode, int arg_weight
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_vote_menu_battle args=%d,%d", arg_mode, arg_weight)
+
+	; 有効でなければ機能しない
+	if menu_list_battle_active <= 0 : return
+
+	for sub_mlb,0,menu_list_battle_num
+		if menu_list_battle_disable(sub_mlb) == 1 : _continue	; 選択不可能フラグ(1:表示するが選択できない)
+
+		switch arg_mode
+		case MENU_LIST_BATTLE_VOTE_RANDOM  ; 投票モード（ランダム）		※全てに1票追加
+			menu_list_battle_vote(sub_mlb) += arg_weight
+			menu_list_battle_vote_num += arg_weight
+			swbreak
+		case MENU_LIST_BATTLE_VOTE_USEAP   ; 投票モード（消費APに比例）	※AP10につき1票追加
+			menu_list_battle_vote(sub_mlb) += skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_USEAP) /10 * arg_weight
+			menu_list_battle_vote_num += skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_USEAP) /10 * arg_weight
+			swbreak
+		case MENU_LIST_BATTLE_VOTE_COVER   ; 投票モード（味方ガード重視）	※味方ガードに5票追加
+			if skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_TYPE) == SKILL_INFO_TYPE_ACT_SUPPORT{
+				if buff_info( skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_ADD1_BUFFID) ,BUFF_INFO_TYPE ) == BUFF_INFO_TYPE_COVER {
+					menu_list_battle_vote(sub_mlb) += 5 * arg_weight
+					menu_list_battle_vote_num += 5 * arg_weight
+				}
+			}
+			swbreak
+		case MENU_LIST_BATTLE_VOTE_HEAL    ; 投票モード（回復重視）		※回復に5票追加
+			if skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_TYPE) == SKILL_INFO_TYPE_ACT_HEAL {
+				menu_list_battle_vote(sub_mlb) += 5 * arg_weight
+				menu_list_battle_vote_num += 5 * arg_weight
+			}
+			swbreak
+		case MENU_LIST_BATTLE_VOTE_ATTACK  ; 投票モード（攻撃重視）		※攻撃に威力40につき1票追加
+			if ( skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_TYPE) == SKILL_INFO_TYPE_ACT_ATTACKP ) or ( skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_TYPE) == SKILL_INFO_TYPE_ACT_ATTACKM ) {
+				menu_list_battle_vote(sub_mlb) += skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_POWER) * skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_COUNT) /40 * arg_weight
+				menu_list_battle_vote_num += skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_POWER) * skill_info(menu_list_battle_skill(sub_mlb), SKILL_INFO_COUNT) /40 * arg_weight
+			}
+			swbreak
+		case MENU_LIST_BATTLE_VOTE_WEAK    ; 投票モード（弱点重視）		※弱点を突けるものに5票追加
+			; 未実装
+			swbreak
+		swend
+	next
+
+	return
+
+; スキル選択メニューを自動で決定する
+;   arg1(mode): 決定モード
+;		MENU_LIST_BATTLE_DECIDE_ELECTION	; 決定モード（投票したものから抽選）
+;		MENU_LIST_BATTLE_DECIDE_MAX			; 決定モード（最も投票したものに決定）
+#deffunc sub_decide_menu_battle int arg_mode
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_decide_menu_battle args=%d", arg_mode)
+
+	; 有効でなければ機能しない
+	if menu_list_battle_active <= 0 : return
+
+	sub_election = 0
+	sub_election_num = 0
+	switch arg_mode
+	case MENU_LIST_BATTLE_DECIDE_ELECTION	; 決定モード（投票したものから抽選）
+		sub_election = rnd(menu_list_battle_vote_num)
+		for sub_i,0,menu_list_battle_num
+			if menu_list_battle_disable(sub_i) == 1 : _continue	; 選択不可能フラグ(1:表示するが選択できない)
+			if sub_election < menu_list_battle_vote(sub_i) {	; これに決定
+				menu_list_battle_active = 2
+				menu_list_battle_returncode = 1
+				menu_list_battle_select = sub_i
+				_break
+			}
+			sub_election -= menu_list_battle_vote(sub_i)
+		next
+		swbreak
+	case MENU_LIST_BATTLE_DECIDE_MAX		; 決定モード（最も投票したものに決定）
+		for sub_i,0,menu_list_battle_num
+			if menu_list_battle_disable(sub_i) == 1 : _continue	; 選択不可能フラグ(1:表示するが選択できない)
+			if sub_election_num < menu_list_battle_vote(sub_i){
+				sub_election_num = menu_list_battle_vote(sub_i)
+				sub_election = sub_i
+			}
+		next
+		menu_list_battle_active = 2
+		menu_list_battle_returncode = 1
+		menu_list_battle_select = sub_election
+		swbreak
+	swend
+	
+	return
+	
+; Bキャラ選択メニューを生成する
+;   arg1(bcharid): スキルを使うBキャラID
+;   arg1(skillid): 使うスキルID
+#deffunc sub_create_menu_bchar int arg_bcharid, int arg_skillid
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_create_menu_bchar. args=%d,%d", arg_bcharid, arg_skillid)
+	if arg_bcharid == -1 {
+		if DEBUG_LEVEL & LOG_ERROR :logmes strf("E invalied argument sub_create_menu_bchar args=%d,%d", arg_bcharid, arg_skillid)
+	}
+
+	; リストの初期化
+	dim menu_list_bchar,64,MENU_LIST_BCHAR_MAX			; 選択肢
+	dim menu_list_bchar_charid,MENU_LIST_BCHAR_MAX		; 対応するキャラID
+	dim menu_list_bchar_select_bchar,MENU_LIST_BCHAR_MAX	; 結果的に選ばれたBキャラのリスト（選択の結果、対象となるBキャラの一覧）
+	for sub_i,0,MENU_LIST_BCHAR_MAX
+		menu_list_bchar_select_bchar(sub_i) = -1	; 0がデータとして入る可能性があるので-1で初期化
+	next
+	menu_list_bchar_num = 0								; 有効な選択肢の数	
+	dim menu_list_bchar_vote,MENU_LIST_BATTLE_MAX		; 自動選択用の投票
+	menu_list_bchar_vote_num = 0						; 総投票数
+
+	sub_charid = battle_char(arg_bcharid)
+	sub_teamid = char_info(sub_charid,CHAR_INFO_TEAM)
+	sub_srange = skill_info(arg_skillid,SKILL_INFO_RANGE)
+
+	; 先に管理変数の初期化（選択されたスキルによっては）
+	menu_list_bchar_focus = -1							; 選ばれている番号
+	menu_list_bchar_select = -1							; 選ばれている番号（選択確定）
+	menu_list_bchar_select_bchar_num = 0				; 結果的に選ばれたBキャラの数
+	menu_list_bchar_active = 1							; 選択肢を使用中かどうか(1:使用中,0:未使用,2:非アクティブ)
+	menu_list_bchar_returncode = 0						; 終了時のリターンコード(0:未準備、1:決定、-1:キャンセル)
+
+	switch sub_srange
+	case SKILL_INFO_RANGE_ME       ; 自分自身(選択の余地なく確定)
+		menu_list_bchar_select = arg_bcharid
+		menu_list_bchar_select_bchar(0) = arg_bcharid
+		menu_list_bchar_select_bchar_num = 1
+		menu_list_bchar(menu_list_bchar_num) = arg_bcharid						; 選択肢
+		menu_list_bchar_charid(menu_list_bchar_num)	= battle_char(arg_bcharid)	; 対応するキャラID
+		menu_list_bchar_num = 1
+		menu_list_bchar_active = 2							; 選択肢を使用中かどうか(1:使用中,0:未使用,2:非アクティブ)
+		menu_list_bchar_returncode = 1						; 終了時のリターンコード(0:未準備、1:決定、-1:キャンセル)
+		swbreak
+	case SKILL_INFO_RANGE_ENEMY    		; 敵単体
+		for sub_i,0,BATTLE_CHAR_MAX*2
+			if battle_char(sub_i) <= 0 : _continue
+			if char_info(battle_char(sub_i),CHAR_INFO_TEAM) != sub_teamid {
+				if char_info(battle_char(sub_i),CHAR_INFO_DOWN) == 0 {
+					menu_list_bchar(menu_list_bchar_num) = sub_i						; 選択肢
+					menu_list_bchar_charid(menu_list_bchar_num)	= battle_char(sub_i)	; 対応するキャラID
+					menu_list_bchar_num += 1
+				}
+			}
+		next
+		swbreak
+	case SKILL_INFO_RANGE_ENEMYALL 		; 敵全体(選択の余地なく確定)
+	case SKILL_INFO_RANGE_ENEMYRND 		; 敵ランダム(選択の余地なく確定)
+		for sub_i,0,BATTLE_CHAR_MAX*2
+			if battle_char(sub_i) <= 0 : _continue
+			if char_info(battle_char(sub_i),CHAR_INFO_TEAM) != sub_teamid {
+				if char_info(battle_char(sub_i),CHAR_INFO_DOWN) == 0 {
+					menu_list_bchar(menu_list_bchar_num) = sub_i						; 選択肢
+					menu_list_bchar_charid(menu_list_bchar_num)	= battle_char(sub_i)	; 対応するキャラID
+					menu_list_bchar_select_bchar(menu_list_bchar_num) = sub_i			; 結果的に選ばれたBキャラのリスト（選択の結果、対象となるBキャラの一覧）
+					menu_list_bchar_select_bchar_num += 1
+					menu_list_bchar_num += 1
+				}
+			}
+		next
+		menu_list_bchar_active = 2							; 選択肢を使用中かどうか(1:使用中,0:未使用,2:非アクティブ)
+		menu_list_bchar_returncode = 1						; 終了時のリターンコード(0:未準備、1:決定、-1:キャンセル)
+		swbreak
+	case SKILL_INFO_RANGE_ALLY     		; 味方単体
+		for sub_i,0,BATTLE_CHAR_MAX*2
+			if battle_char(sub_i) <= 0 : _continue
+			if char_info(battle_char(sub_i),CHAR_INFO_TEAM) == sub_teamid {
+				if char_info(battle_char(sub_i),CHAR_INFO_DOWN) == 0 {
+					menu_list_bchar(menu_list_bchar_num) = sub_i						; 選択肢
+					menu_list_bchar_charid(menu_list_bchar_num)	= battle_char(sub_i)	; 対応するキャラID
+					menu_list_bchar_num += 1
+				}
+			}
+		next
+		swbreak
+	case SKILL_INFO_RANGE_ALLYALL  		; 味方全体(選択の余地なく確定)
+	case SKILL_INFO_RANGE_ALLYRND  		; 味方ランダム(選択の余地なく確定)
+		for sub_i,0,BATTLE_CHAR_MAX*2
+			if battle_char(sub_i) <= 0 : _continue
+			if char_info(battle_char(sub_i),CHAR_INFO_TEAM) == sub_teamid {
+				if char_info(battle_char(sub_i),CHAR_INFO_DOWN) == 0 {
+					menu_list_bchar(menu_list_bchar_num) = sub_i						; 選択肢
+					menu_list_bchar_charid(menu_list_bchar_num)	= battle_char(sub_i)	; 対応するキャラID
+					menu_list_bchar_select_bchar(menu_list_bchar_num) = sub_i			; 結果的に選ばれたBキャラのリスト（選択の結果、対象となるBキャラの一覧）
+					menu_list_bchar_select_bchar_num += 1
+					menu_list_bchar_num += 1
+				}
+			}
+		next
+		menu_list_bchar_active = 2							; 選択肢を使用中かどうか(1:使用中,0:未使用,2:非アクティブ)
+		menu_list_bchar_returncode = 1						; 終了時のリターンコード(0:未準備、1:決定、-1:キャンセル)
+		swbreak
+	swend
+	
+	if DEBUG_LEVEL & LOG_DEBUG :logmes strf("D menu_list_bchar create finish focus=%d select=%d select_bchar_num=%d active=%d returncode=%d num=%d select_bchar=(%d,%d,%d,%d,%d,%d)",menu_list_bchar_focus, menu_list_bchar_select, menu_list_bchar_select_bchar_num, menu_list_bchar_active, menu_list_bchar_returncode, menu_list_bchar_num,menu_list_bchar_select_bchar(0),menu_list_bchar_select_bchar(1),menu_list_bchar_select_bchar(2),menu_list_bchar_select_bchar(3),menu_list_bchar_select_bchar(4),menu_list_bchar_select_bchar(5))
+	
+	return
+
+; Bキャラ選択メニューを表示する（主にバトル表示向け）
+#deffunc sub_show_menu_bchar
+
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_show_menu_bchar.")
+
+	; 有効でなければ表示しない
+	if menu_list_bchar_active <= 0 : return
+
+	; スキルを表示
+	for sub_i,0,menu_list_bchar_num
+		switch menu_list_bchar(sub_i) 
+		case 0
+			sub_posx = 210
+			sub_posy = 400
+			swbreak
+		case 1
+			sub_posx = 210
+			sub_posy = 515
+			swbreak
+		case 2
+			sub_posx = 210
+			sub_posy = 630
+			swbreak
+		case 3
+			sub_posx = WINDOW_SIZEX-200-30
+			sub_posy = 400
+			swbreak
+		case 4
+			sub_posx = WINDOW_SIZEX-200-30
+			sub_posy = 515
+			swbreak
+		case 5
+			sub_posx = WINDOW_SIZEX-200-30
+			sub_posy = 630
+			swbreak
+		swend
+		
+		if menu_list_bchar_select == sub_i {
+			color 254, 83,187
+		} else {
+			if menu_list_bchar_focus == sub_i {
+				color   8,247,254
+			} else {
+				color 255,255,255
+			}
+		}
+		font "", 12
+		pos sub_posx, sub_posy : mes strf("[%d]", sub_i+1)
+	next
+
+	return
+
+
+; Bキャラ選択メニューで選択肢に重みをつける
+;	arg1(mode): 投票モード
+;		MENU_LIST_BCHAR_VOTE_RANDOM  1		; 投票モード（ランダム）		※全てに1票追加
+;		MENU_LIST_BCHAR_VOTE_LOWHP   2		; 投票モード（低いHP優先）　	※一番低いHPの相手に5票追加 （未実装）
+;		MENU_LIST_BCHAR_VOTE_COVER   3		; 投票モード（弱点重視）		※弱点を突ける相手に5票追加 （未実装）
+;		MENU_LIST_BCHAR_VOTE_HEAL    4		; 投票モード（強キャラ重視）	※一番総戦力が高い相手に5票追加 （未実装）
+;   arg2(weight): 投票の倍率(上記モードの票数にこの数字をかけて投票する)
+#deffunc sub_vote_menu_bchar int arg_mode, int arg_weight
+	
+	if DEBUG_LEVEL & LOG_INFO :logmes strf("I call sub_vote_menu_bchar args=%d,%d", arg_mode, arg_weight)
+
+	; 有効でなければ機能しない
+	if menu_list_bchar_active <= 0 : return
+
+	for sub_i,0,menu_list_bchar_num
+		switch arg_mode
+		case MENU_LIST_BCHAR_VOTE_RANDOM	; 投票モード（ランダム）		※全てに1票追加
+			menu_list_bchar_vote(sub_i) += arg_weight
+			menu_list_bchar_vote_num += arg_weight
+			swbreak
+		case MENU_LIST_BCHAR_VOTE_LOWHP		; 投票モード（低いHP優先）　	※HPを20%失っている毎に1票
+			menu_list_bchar_vote(sub_i) += ( 5 - char_info(menu_list_bchar_charid(sub_i), CHAR_INFO_HP) * 100 / char_info(menu_list_bchar_charid(sub_i), CHAR_INFO_HP_MAX) /20 ) * arg_weight
+			menu_list_bchar_vote_num += ( 5 - char_info(menu_list_bchar_charid(sub_i), CHAR_INFO_HP) * 100 / char_info(menu_list_bchar_charid(sub_i), CHAR_INFO_HP_MAX) /20 ) * arg_weight
+			swbreak
+		case MENU_LIST_BCHAR_VOTE_COVER		; 投票モード（弱点重視）		※弱点を突ける相手に5票追加
+			; 未実装
+			swbreak
+		case MENU_LIST_BCHAR_VOTE_HEAL		; 投票モード（強キャラ重視）	※一番総戦力が高い相手に5票追加
+			; 未実装
+			swbreak
+		swend
+	next
+
+	return
+
+; Bキャラ選択メニューを自動で決定する
+;   arg1(mode): 決定モード
+;		MENU_LIST_BCHAR_DECIDE_ELECTION  1	; 決定モード（投票したものから抽選）
+;		MENU_LIST_BCHAR_DECIDE_MAX       2	; 決定モード（最も投票したものに決定）
+#deffunc sub_decide_menu_bchar int arg_mode
+	
+	if DEBUG_LEVEL & LOG_INFO { 
+		logmes strf("I call sub_decide_menu_bchar args=%d list_bchar=(%d,%d,%d,%d,%d,%d)", arg_mode, menu_list_bchar(0),menu_list_bchar(1),menu_list_bchar(2),menu_list_bchar(3),menu_list_bchar(4),menu_list_bchar(5))
+		logmes strf("I menu_list_bchar_vote_num=%d menu_list_bchar_vot=(%d,%d,%d,%d,%d,%d)", menu_list_bchar_vote_num, menu_list_bchar_vote(0), menu_list_bchar_vote(1), menu_list_bchar_vote(2), menu_list_bchar_vote(3), menu_list_bchar_vote(4), menu_list_bchar_vote(5))
+	}
+
+
+	; 有効でなければ機能しない
+	if menu_list_bchar_active <= 0 : return
+
+	sub_election = 0
+	sub_election_num = 0
+	switch arg_mode
+	case MENU_LIST_BCHAR_DECIDE_ELECTION	; 決定モード（投票したものから抽選）
+		sub_election = rnd(menu_list_bchar_vote_num)
+		if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D sub_election=%d", sub_election)
+		for sub_i,0,menu_list_bchar_vote_num
+			if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D current sub_election=%d sub_i=%d", sub_election, sub_i)
+			if sub_election < menu_list_bchar_vote(sub_i) {	; これに決定
+				if DEBUG_LEVEL & LOG_DEBUG : logmes strf("D decide menu bchar select=%d", sub_i)
+				menu_list_bchar_active = 2
+				menu_list_bchar_returncode = 1
+				menu_list_bchar_select = sub_i
+				menu_list_bchar_select_bchar(0) = menu_list_bchar(sub_i)
+				menu_list_bchar_select_bchar_num = 1
+				_break
+			}
+			sub_election -= menu_list_bchar_vote(sub_i)
+		next
+		swbreak
+	case MENU_LIST_BCHAR_DECIDE_MAX		; 決定モード（最も投票したものに決定）
+		for sub_i,0,menu_list_bchar_num
+			if sub_election_num < menu_list_bchar_vote(sub_i){
+				sub_election_num = menu_list_bchar_vote(sub_i)
+				sub_election = sub_i
+			}
+		next
+		menu_list_bchar_active = 2
+		menu_list_bchar_returncode = 1
+		menu_list_bchar_select = sub_election
+		menu_list_bchar_select_bchar(0) = menu_list_bchar(sub_election)
+		menu_list_bchar_select_bchar_num = 1
+		swbreak
+	swend
+	
+	return
+	
+*end_of_slgm_sub_draw
